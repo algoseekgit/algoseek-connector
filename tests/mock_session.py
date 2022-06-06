@@ -1,6 +1,6 @@
 from typing import Optional, Any, List
 
-from algoconnect import Session
+from algoseek_connector import Session
 
 
 sample_datagroups = ('USEquityMarketData', 'USEquityReferenceData')

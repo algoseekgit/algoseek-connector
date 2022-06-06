@@ -1,6 +1,6 @@
 import unittest
 
-from algoconnect import Session, DataResource, Datagroup
+from algoseek_connector import Session, DataResource, Datagroup
 
 import config
 

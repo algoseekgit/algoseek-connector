@@ -1,7 +1,7 @@
 import unittest
 
-from algoconnect import Dataset
-from algoconnect.resources import Column
+from algoseek_connector import Dataset
+from algoseek_connector.resources import Column
 
 from mock_session import MockSession, sample_datagroups, sample_datasets, sample_columns
 

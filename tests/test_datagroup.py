@@ -1,7 +1,7 @@
 import unittest
 
-from algoconnect import Session, DataResource, Datagroup
-from algoconnect.resources import DatagroupSelector, DatagroupsMeta
+from algoseek_connector import Session, DataResource, Datagroup
+from algoseek_connector.resources import DatagroupSelector, DatagroupsMeta
 
 from mock_session import MockSession, sample_datagroups
 import config

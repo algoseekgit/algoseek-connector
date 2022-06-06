@@ -1,6 +1,6 @@
 import unittest
 
-import algoconnect.functions as fn
+import algoseek_connector.functions as fn
 
 
 class TestDataset(unittest.TestCase):

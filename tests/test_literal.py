@@ -1,8 +1,8 @@
 import datetime
 import unittest
 
-from algoconnect.resources import Column
-from algoconnect.expressions import Literal
+from algoseek_connector.resources import Column
+from algoseek_connector.expressions import Literal
 
 
 class TestDataset(unittest.TestCase):

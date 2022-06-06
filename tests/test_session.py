@@ -1,6 +1,6 @@
 import unittest
 
-from algoconnect import Session, ExecutionError
+from algoseek_connector import Session, ExecutionError
 
 import config
 
