@@ -1,0 +1,2 @@
+clickhouse-driver[lz4,numpy]
+notebook
