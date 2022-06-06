@@ -1,6 +1,8 @@
 build/
 dist/
+examples/__pycache__/
 .ipynb_checkpoints/
 .mypy_cache/
 .pytest_cache/
 .vscode/
+.python-version
