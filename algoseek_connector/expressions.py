@@ -265,6 +265,7 @@ class BaseExpression(object):
     def ilike(self, other: str) -> 'BooleanExpression':
         return BooleanExpression(op.Ilike(), self, Literal.wrap_constant(other))
 
+    # TODO failing test extra parents
     def between(self, beg: Any, end: Any) -> 'BooleanExpression':
         other = Literal.wrap_constant(beg) & Literal.wrap_constant(end)
         return BooleanExpression(op.Between(), self, other)
@@ -338,7 +339,16 @@ class BinaryExpression(Expression):
 
 
 class BooleanExpression(BinaryExpression):
-    pass
+    @property
+    def _body_str(self) -> str:
+        if isinstance(self.op, (op.Between, op.NotBetween)):
+            left_str = str(self.left)
+            right_str = str(self.right)
+            if self.precedence > self.left.precedence:
+                left_str = self.wrap_parenthesis(left_str)
+            return f"{left_str} {self.op.symbol} {right_str}"
+        else:
+            return super()._body_str
 
 
 class ArithmeticExpression(BinaryExpression):

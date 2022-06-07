@@ -1,18 +1,3 @@
-'''
-https://github.com/kayak/pypika/blob/master/pypika/terms.py
-https://clickhouse.tech/docs/en/sql-reference/operators/
-https://www.tutorialspoint.com/cprogramming/c_operators_precedence.htm
-'''
-
-
-'''
-BoolOp: And (&) Or (|)
-BinaryOp: Add | Sub | Mult | Div | Mod
-UnaryOp = Invert | USub
-cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn | Between | NotBetween | Like | NotLike | Ilike
-
-'''
-
 
 class Operation(object):
     """

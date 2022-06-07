@@ -21,10 +21,10 @@ class Session(object):
             **kwargs: Any
             ):
         default_port = 9000
-        self._host = host or os.getenv('DATABASE_HOST')
-        self._port = port or os.getenv('DATABASE_PORT') or default_port
-        self._user = user or os.getenv('DATABASE_USER')
-        self._password = password or os.getenv('DATABASE_PASSWORD')
+        self._host = host or os.getenv('AS_DATABASE_HOST')
+        self._port = port or os.getenv('AS_DATABASE_PORT') or default_port
+        self._user = user or os.getenv('AS_DATABASE_USER')
+        self._password = password or os.getenv('AS_DATABASE_PASSWORD')
         self._secure = secure
 
         self.client = Client(
