@@ -9,11 +9,18 @@ if TYPE_CHECKING:
 class Function(Operation):
     """
     """
+
+    precedence = 90
+
     def __init__(self, name: str):
         self.name = name
         self.symbol = name
 
     def __call__(self, x: 'BaseExpression', *args, **kwargs) -> 'FuncExpression':
+        # TODO: cannot apply a function to a constant
+        # TODO: cannot apply a function to column by its string name
+        # if not isinstance(x, BaseException):
+        #     x = Literal.wrap_constant(x)
         return x.apply(self, *args)
 
 
