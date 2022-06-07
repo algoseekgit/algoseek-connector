@@ -1,6 +1,7 @@
 import copy
 import functools
-from typing import Dict, List, Tuple, Iterable, Iterator, Optional, Union, Sequence
+from numbers import Number
+from typing import List, Tuple, Iterable, Iterator, Optional, Union, Sequence, Any
 
 from .sessions import Session
 from .expressions import BaseExpression, Expression, Literal
@@ -59,6 +60,10 @@ def parse_column_type(type_name: str) -> str:
         return type_name.split('(', 1)[1].rsplit(')', 1)[0]
     else:
         return type_name
+
+
+def is_iterable_type(value: Any) -> bool:
+    return isinstance(value, Sequence) and not isinstance(value, str)
 
 
 class ColumnsMeta(object):
@@ -163,12 +168,9 @@ class Dataset(object):
     def __str__(self) -> str:
         return f"Dataset({self.datagroup.name}.{self.name})"
 
-    def select(
-            self,
-            value: Union[ExprIdentifier, Sequence[ExprIdentifier], Dict[str, ExprIdentifier]]
-            ) -> 'Dataset':
+    def select(self, *args: Any) -> 'Dataset':
         result = self.copy()
-        result.expression.select(value)
+        result.expression.select(*args)
         return result
 
     def filter(self, expr: Expression) -> 'Dataset':
@@ -176,14 +178,14 @@ class Dataset(object):
         result.expression.filter(expr)
         return result
 
-    def groupby(self, expr: Union[ExprIdentifier, Sequence[ExprIdentifier]]) -> 'Dataset':
+    def groupby(self, *args: Any) -> 'Dataset':
         result = self.copy()
-        result.expression.groupby(expr)
+        result.expression.groupby(*args)
         return result
 
-    def sort(self, expr: Union[ExprIdentifier, Sequence[ExprIdentifier]]) -> 'Dataset':
+    def sort(self, *args: Any) -> 'Dataset':
         result = self.copy()
-        result.expression.sort(expr)
+        result.expression.sort(*args)
         return result
 
     def head(self, n: int = 10) -> 'Dataset':
@@ -253,27 +255,37 @@ class DatasetExpression(object):
     def _table_name(self) -> str:
         return f"{self.parent.datagroup.name}.{self.parent.name}"
 
-    def select(
-            self,
-            v: Union[ExprIdentifier, Sequence[ExprIdentifier], Dict[str, ExprIdentifier]]
-            ):
+    def _parse_identifier(self, item) -> BaseExpression:
+        if isinstance(item, BaseExpression):
+            value = item
+        elif isinstance(item, str) and item in self.parent._columns:
+            value = self.parent._columns[item]
+        elif isinstance(item, (Number, bool, str)):
+            value = Literal.wrap_constant(item)
+        else:
+            raise ValueError(f"Cannot parse the value: {item}")
+        return value
+
+    def select(self, *args: Any):
         # columns will be added next or raise an error
         columns = []
-        if isinstance(v, (str, BaseExpression)):
-            columns = [v]
-        elif isinstance(v, Sequence):
-            columns = list(v)
-        elif isinstance(v, dict):
-            for key, item in v.items():
-                if isinstance(item, BaseExpression):
-                    value = item
-                elif isinstance(item, str):
-                    value = self.parent._columns[item]
-                else:
-                    value = Literal.wrap_constant(item)
+        if not args:
+            raise ValueError("Cannot select with an empty sequence")
+        if len(args) == 1 and (isinstance(args[0], dict) or is_iterable_type(args[0])):
+            targets = args[0]
+        else:
+            targets = args
+
+        if isinstance(targets, Sequence):
+            for item in targets:
+                value = self._parse_identifier(item)
+                columns.append(value)
+        elif isinstance(targets, dict):
+            for key, item in targets.items():
+                value = self._parse_identifier(item)
                 columns.append(value.alias(key))
         else:
-            raise ValueError(f"Invalid type for select expression: {type(v)}")
+            raise ValueError(f"Invalid type for select expression: {type(targets)}")
 
         self._select.clear()
         for item in columns:
@@ -302,35 +314,25 @@ class DatasetExpression(object):
             raise ValueError(f'A positive integer is expected: got {n} instead')
         self._limit = n
 
-    def groupby(self, expr: Union[ExprIdentifier, Sequence[ExprIdentifier]]):
-        if isinstance(expr, (str, BaseExpression)):
-            by = [expr]
-        elif isinstance(expr, Sequence):
-            by = list(expr)
-        else:
-            raise ValueError("A sequence object is expected but got TODO instead ")
+    def groupby(self, *args: Any):
+        targets = args[0] if len(args) == 1 and is_iterable_type(args[0]) else args
         # TODO: validate columns
-        for item in by:
+        for item in targets:
             if isinstance(item, str):
                 if item not in self._namespace:
-                    raise ValueError()
+                    raise ValueError(f"{item} not in namespace")
                 else:
                     self._groupby.append(item)
             else:
                 self._groupby.append(item)
 
-    def sort(self, expr: Union[ExprIdentifier, Sequence[ExprIdentifier]]):
-        if isinstance(expr, (str, BaseExpression)):
-            by = [expr]
-        elif isinstance(expr, Sequence):
-            by = list(expr)
-        else:
-            raise ValueError("A sequence object is expected but got TODO instead ")
+    def sort(self, *args: Any):
+        targets = args[0] if len(args) == 1 and is_iterable_type(args[0]) else args
         # TODO: validate columns
-        for item in by:
+        for item in targets:
             if isinstance(item, str):
                 if item not in self._namespace:
-                    raise ValueError()
+                    raise ValueError(f"{item} not in namespace")
                 else:
                     self._sort.append(item)
             else:
