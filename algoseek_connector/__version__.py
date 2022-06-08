@@ -1,4 +1,4 @@
-__title__ = 'algoconnect'
+__title__ = 'algoseek-connector'
 __description__ = 'A wrapper library for ORM-like SQL builder and executor'
 __version__ = '1.0'
 __author__ = 'Taras Kuzyo'

@@ -1,4 +1,4 @@
-# algoconnect
+# algoseek-connector
 
 A wrapper library for ORM-like SQL builder and executor.
 The library provides a simple pythonic interface to algoseek datasets with custom data filtering/selection.
