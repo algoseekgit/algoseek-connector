@@ -1,9 +1,5 @@
-from typing import TYPE_CHECKING
-
 from .operators import Operation
-
-if TYPE_CHECKING:
-    from .expressions import BaseExpression, FuncExpression
+from .expressions import BaseExpression, FuncExpression, Literal
 
 
 class Function(Operation):
@@ -17,11 +13,10 @@ class Function(Operation):
         self.symbol = name
 
     def __call__(self, x: 'BaseExpression', *args, **kwargs) -> 'FuncExpression':
-        # TODO: cannot apply a function to a constant
         # TODO: cannot apply a function to column by its string name
-        # if not isinstance(x, BaseException):
-        #     x = Literal.wrap_constant(x)
-        return x.apply(self, *args)
+        if not isinstance(x, BaseExpression):
+            x = Literal.wrap_constant(x)
+        return FuncExpression(self, [x] + list(args))
 
 
 class AggregateFunction(Function):

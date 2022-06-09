@@ -1,9 +1,12 @@
 import copy
 import datetime
 from typing import List, Any, Union, Iterable, Optional
+from typing import TYPE_CHECKING
 
 from . import operators as op
-from . import functions as fn
+
+if TYPE_CHECKING:
+    from . import functions as fn
 
 
 class BaseExpression(object):
@@ -265,16 +268,14 @@ class BaseExpression(object):
     def ilike(self, other: str) -> 'BooleanExpression':
         return BooleanExpression(op.Ilike(), self, Literal.wrap_constant(other))
 
-    # TODO failing test extra parents
     def between(self, beg: Any, end: Any) -> 'BooleanExpression':
         other = Literal.wrap_constant(beg) & Literal.wrap_constant(end)
         return BooleanExpression(op.Between(), self, other)
 
-    def apply(self, func: Union[str, fn.Function], *args) -> 'FuncExpression':
-        if isinstance(func, str):
-            return FuncExpression(fn.Function(func), [self] + list(args))
-        else:
-            return FuncExpression(func, [self] + list(args))
+    def apply(self, func: 'fn.Function', *args) -> 'FuncExpression':
+        # if isinstance(func, str):
+        #     func = Function(func)
+        return func(self, *args)
 
 
 class Expression(BaseExpression):
@@ -380,7 +381,7 @@ class FuncExpression(Expression):
 
     def __init__(
             self,
-            function: fn.Function,
+            function: 'fn.Function',
             operand: List[BaseExpression],
             parent: Optional[Any] = None,
             alias_name: str = None,
