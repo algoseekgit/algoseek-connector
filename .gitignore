@@ -1,5 +1,5 @@
 */__pycache__/
-algoseek-connector.egg-info/
+algoseek_connector.egg-info/*
 build/
 dist/
 .ipynb_checkpoints/
