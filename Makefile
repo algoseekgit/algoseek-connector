@@ -11,7 +11,7 @@ install:
 	python3 setup.py install
 
 publish:
-	pip3 install twine>=1.5.0 wheel
+	pip3 install 'twine>=1.5.0' 'wheel'
 	python3 setup.py sdist bdist_wheel
 	twine upload --verbose dist/*
-	rm -fr build dist .egg algoseek_connector.egg-info
+	rm -rf build dist .egg algoseek_connector.egg-info
