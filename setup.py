@@ -20,7 +20,8 @@ with open("README.md") as fp:
 
 
 requires = [
-    'clickhouse-driver'
+    'clickhouse-driver',
+    'pandas'
 ]
 
 setup(
