@@ -8,7 +8,7 @@ The library provides a simple pythonic interface to algoseek datasets with custo
 algoseek-connector is available on PyPI:
 
 ```
-$ python -m pip install requests
+$ python -m pip install algoseek-connector
 ```
 
 or alternatively
