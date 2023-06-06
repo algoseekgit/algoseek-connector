@@ -3,6 +3,18 @@
 A wrapper library for ORM-like SQL builder and executor.
 The library provides a simple pythonic interface to algoseek datasets with custom data filtering/selection.
 
+## Dev installation
+
+`algoseek-connector` is installed using [Poetry](https://python-poetry.org/docs/#installation).
+
+Inside the project repository run:
+
+    poetry install
+
+Before commit changes, run linters and formatter using pre-commit:
+
+    poetry run pre-commit run
+
 ## Installing and Supported Versions
 
 algoseek-connector is available on PyPI:
