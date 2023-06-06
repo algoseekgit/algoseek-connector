@@ -6,7 +6,6 @@ import config
 
 
 class TestSession(unittest.TestCase):
-
     def setUp(self):
         self.host = config.host
         self.user = config.user
@@ -25,7 +24,7 @@ class TestSession(unittest.TestCase):
 
     def test_operational(self):
         session = Session(self.host, self.user, self.password)
-        self.assertEqual(session.execute("SELECT 2+2"), [(4, )])
+        self.assertEqual(session.execute("SELECT 2+2"), [(4,)])
         session.close()
 
     def test_context(self):
@@ -37,16 +36,16 @@ class TestSession(unittest.TestCase):
         session = Session(self.host, self.user, invalid_password)
         with self.assertRaises(ExecutionError) as e:
             session.ping()
-            self.assertTrue('Authentication failed' in e.message)
+            self.assertTrue("Authentication failed" in e.message)
         session.close()
 
     def test_invalid_table_name(self):
         session = Session(self.host, self.user, self.password)
         with self.assertRaises(ExecutionError) as e:
-            session.execute('SELECT * FROM InvalidTableName LIMIT 1')
+            session.execute("SELECT * FROM InvalidTableName LIMIT 1")
             self.assertTrue("doesn't exist" in e.message)
         session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -7,12 +7,11 @@ from mock_session import MockSession, sample_datagroups, sample_datasets, sample
 
 
 class TestDataset(unittest.TestCase):
-
     def setUp(self):
         self.session = MockSession()
         dgr_name = sample_datagroups[0]
         dts_name = sample_datasets[dgr_name][0]
-        self.dataset = Dataset(dgr_name + '.' + dts_name, session=self.session)
+        self.dataset = Dataset(dgr_name + "." + dts_name, session=self.session)
 
     def test_dataset_columns(self):
         names = sample_columns[self.dataset.datagroup.name][self.dataset.name][0]
@@ -30,16 +29,16 @@ class TestDataset(unittest.TestCase):
 
     def test_get_invalid_column(self):
         with self.assertRaises(AttributeError):
-            getattr(self.dataset, 'ColumnDoesNotExist')
+            getattr(self.dataset, "ColumnDoesNotExist")
 
     def test_create_invalid_column(self):
         with self.assertRaises(ValueError):
-            Column('ColumnDoesNotExist', 'String', parent=self.dataset)
+            Column("ColumnDoesNotExist", "String", parent=self.dataset)
 
     def create_column_simple(self):
-        column = Column('Ticker', 'String')
-        self.assertEqual(column.name, 'Ticker')
-        self.assertEqual(column.dtype, 'String')
+        column = Column("Ticker", "String")
+        self.assertEqual(column.name, "Ticker")
+        self.assertEqual(column.dtype, "String")
         self.assertIsNote(column.descr)
         self.assertIsNote(column._parent)
 
@@ -47,26 +46,26 @@ class TestDataset(unittest.TestCase):
         self.assertEqual(column.evaluated_dtype, column.dtype)
 
     def test_str_repr(self):
-        column = Column('Ticker', 'String')
+        column = Column("Ticker", "String")
         self.assertEqual(str(column), f'"{column.name}"')
 
     def test_cast(self):
-        column = Column('Ticker', 'String').cast('Text')
+        column = Column("Ticker", "String").cast("Text")
         self.assertIsInstance(column, Column)
-        self.assertEqual(column.dtype, 'String')
-        self.assertEqual(column.evaluated_dtype, 'Text')
+        self.assertEqual(column.dtype, "String")
+        self.assertEqual(column.evaluated_dtype, "Text")
 
     def test_alias(self):
-        column = Column('Ticker', 'String').alias('Symbol')
+        column = Column("Ticker", "String").alias("Symbol")
         self.assertIsInstance(column, Column)
-        self.assertEqual(column.name, 'Ticker')
-        self.assertEqual(column.evaluated_name, 'Symbol')
+        self.assertEqual(column.name, "Ticker")
+        self.assertEqual(column.evaluated_name, "Symbol")
 
     def test_double_alias(self):
-        column = Column('Ticker', 'String').alias('Symbol').alias('TickerName')
+        column = Column("Ticker", "String").alias("Symbol").alias("TickerName")
         self.assertIsInstance(column, Column)
-        self.assertEqual(column.name, 'Ticker')
-        self.assertEqual(column.evaluated_name, 'TickerName')
+        self.assertEqual(column.name, "Ticker")
+        self.assertEqual(column.evaluated_name, "TickerName")
 
     def tearDown(self):
         self.session.close()

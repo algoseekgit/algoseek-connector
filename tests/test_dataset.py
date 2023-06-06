@@ -7,7 +7,6 @@ from mock_session import MockSession, sample_datagroups, sample_datasets
 
 
 class TestDataset(unittest.TestCase):
-
     def setUp(self):
         self.session = MockSession()
 
@@ -47,31 +46,31 @@ class TestDataset(unittest.TestCase):
     def test_dataset_from_str(self):
         dgr_name = sample_datagroups[0]
         dts_name = sample_datasets[dgr_name][0]
-        dataset = Dataset(dgr_name + '.' + dts_name, session=self.session)
+        dataset = Dataset(dgr_name + "." + dts_name, session=self.session)
         self.assertEqual(dataset.name, dts_name)
         self.assertEqual(dataset.datagroup.name, dgr_name)
 
     def test_invalid_datagroup_name(self):
         dgr_name = sample_datagroups[0]
         dts_name = sample_datasets[dgr_name][0]
-        dgr_name = 'some-nonexisting-name'
+        dgr_name = "some-nonexisting-name"
         with self.assertRaises(ValueError):
-            Dataset(dgr_name + '.' + dts_name, session=self.session)
+            Dataset(dgr_name + "." + dts_name, session=self.session)
 
     def test_invalid_dataset_name(self):
         dgr_name = sample_datagroups[0]
-        dts_name = 'some-nonexisting-name'
+        dts_name = "some-nonexisting-name"
         with self.assertRaises(ValueError):
-            Dataset(dgr_name + '.' + dts_name, session=self.session)
+            Dataset(dgr_name + "." + dts_name, session=self.session)
 
     def test_columns_meta(self):
         dgr_name = sample_datagroups[-1]
         dts_name = sample_datasets[dgr_name][-1]
         meta = ColumnsMeta(dgr_name, dts_name, self.session)
         self.assertIs(meta.session, self.session)
-        self.assertTrue(hasattr(meta, 'names'))
-        self.assertTrue(hasattr(meta, 'types'))
-        self.assertTrue(hasattr(meta, 'descriptions'))
+        self.assertTrue(hasattr(meta, "names"))
+        self.assertTrue(hasattr(meta, "types"))
+        self.assertTrue(hasattr(meta, "descriptions"))
         self.assertIsInstance(meta.names, tuple)
         self.assertIsInstance(meta.types, tuple)
         self.assertIsInstance(meta.descriptions, tuple)
@@ -79,7 +78,7 @@ class TestDataset(unittest.TestCase):
     def test_columns_attr(self):
         dgr_name = sample_datagroups[-1]
         dts_name = sample_datasets[dgr_name][-1]
-        dataset = Dataset(dgr_name + '.' + dts_name, session=self.session)
+        dataset = Dataset(dgr_name + "." + dts_name, session=self.session)
         meta = ColumnsMeta(dgr_name, dts_name, self.session)
         for name in meta.names:
             self.assertTrue(hasattr(dataset, name))

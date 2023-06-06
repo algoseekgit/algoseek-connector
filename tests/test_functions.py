@@ -4,7 +4,6 @@ import algoseek_connector.functions as fn
 
 
 class TestDataset(unittest.TestCase):
-
     def test_function_name_integrity(self):
         for name in dir(fn):
             if isinstance(getattr(fn, name), fn.Function):

@@ -1,4 +1,3 @@
-
 class Operation(object):
     """
     Operator precedence determines the grouping of terms
@@ -6,7 +5,8 @@ class Operation(object):
 
     Within an expression, higher precedence operators will be evaluated first.
     """
-    symbol: str = 'undefined'
+
+    symbol: str = "undefined"
     precedence: int = 0
 
 
@@ -14,6 +14,7 @@ class BooleanOperation(Operation):
     """
     A base class for operations evaluating to a boolean expression
     """
+
     pass
 
 
@@ -25,7 +26,8 @@ class Or(LogicalOperation):
     """
     TRUE if either Boolean expression is TRUE
     """
-    symbol = 'OR'
+
+    symbol = "OR"
     precedence = 11
 
 
@@ -33,12 +35,13 @@ class In(LogicalOperation):
     """
     TRUE if the operand is equal to one of a list of expressions
     """
-    symbol = 'IN'
+
+    symbol = "IN"
     precedence = 12
 
 
 class NotIn(LogicalOperation):
-    symbol = 'NOT IN'
+    symbol = "NOT IN"
     precedence = 12
 
 
@@ -46,12 +49,13 @@ class Between(LogicalOperation):
     """
     TRUE if the operand is within a range
     """
-    symbol = 'BETWEEN'
+
+    symbol = "BETWEEN"
     precedence = 13
 
 
 class NotBetween(LogicalOperation):
-    symbol = 'NOT BETWEEN'
+    symbol = "NOT BETWEEN"
     precedence = 13
 
 
@@ -59,12 +63,13 @@ class Like(LogicalOperation):
     """
     TRUE if the operand matches a pattern
     """
-    symbol = 'LIKE'
+
+    symbol = "LIKE"
     precedence = 14
 
 
 class NotLike(LogicalOperation):
-    symbol = 'NOT LIKE'
+    symbol = "NOT LIKE"
     precedence = 14
 
 
@@ -72,7 +77,8 @@ class Ilike(LogicalOperation):
     """
     TRUE if the operand matches a pattern (case-insensitive)
     """
-    symbol = 'ILIKE'
+
+    symbol = "ILIKE"
     precedence = 14
 
 
@@ -80,7 +86,8 @@ class And(LogicalOperation):
     """
     TRUE if both Boolean expressions are TRUE
     """
-    symbol = 'AND'
+
+    symbol = "AND"
     precedence = 15
 
 
@@ -92,7 +99,8 @@ class Eq(EqualityOperation):
     """
     Equal to
     """
-    symbol = '='
+
+    symbol = "="
     precedence = 21
 
 
@@ -100,7 +108,8 @@ class Ne(EqualityOperation):
     """
     Not equal to
     """
-    symbol = '!='
+
+    symbol = "!="
     precedence = 21
 
 
@@ -112,7 +121,8 @@ class Lt(RelationalOperation):
     """
     Less than
     """
-    symbol = '<'
+
+    symbol = "<"
     precedence = 25
 
 
@@ -120,7 +130,8 @@ class Le(RelationalOperation):
     """
     Less than or equal to
     """
-    symbol = '<='
+
+    symbol = "<="
     precedence = 25
 
 
@@ -128,7 +139,8 @@ class Ge(RelationalOperation):
     """
     Greater than or equal to
     """
-    symbol = '>='
+
+    symbol = ">="
     precedence = 25
 
 
@@ -136,7 +148,8 @@ class Gt(RelationalOperation):
     """
     Greater than
     """
-    symbol = '>'
+
+    symbol = ">"
     precedence = 25
 
 
@@ -144,6 +157,7 @@ class ArithmeticOperation(Operation):
     """
     A base class for operations evaluating to an arithmetic expression
     """
+
     pass
 
 
@@ -155,7 +169,8 @@ class Add(AdditiveOperation):
     """
     Add
     """
-    symbol = '+'
+
+    symbol = "+"
     precedence = 31
 
 
@@ -163,7 +178,8 @@ class Sub(AdditiveOperation):
     """
     Subtract
     """
-    symbol = '-'
+
+    symbol = "-"
     precedence = 31
 
 
@@ -175,7 +191,8 @@ class Mul(MultiplicativeOperation):
     """
     Multiply
     """
-    symbol = '*'
+
+    symbol = "*"
     precedence = 35
 
 
@@ -183,7 +200,8 @@ class Div(MultiplicativeOperation):
     """
     Divide
     """
-    symbol = '/'
+
+    symbol = "/"
     precedence = 35
 
 
@@ -191,7 +209,8 @@ class Mod(MultiplicativeOperation):
     """
     Modulo
     """
-    symbol = '%'
+
+    symbol = "%"
     precedence = 35
 
 
@@ -203,7 +222,8 @@ class USub(UnaryOperation, ArithmeticOperation):
     """
     Negate
     """
-    symbol = '-'
+
+    symbol = "-"
     precedence = 41
 
 
@@ -211,5 +231,6 @@ class Not(UnaryOperation, LogicalOperation):
     """
     Negate
     """
-    symbol = 'NOT '
+
+    symbol = "NOT "
     precedence = 41

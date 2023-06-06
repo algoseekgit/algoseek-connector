@@ -9,13 +9,10 @@ from .expressions import BaseExpression, Expression, Literal
 
 @functools.lru_cache()
 def list_datagroups(session: Session) -> Tuple[str]:
-    return session.execute(
-        "SHOW DATABASES", columnar=True
-    )[0]
+    return session.execute("SHOW DATABASES", columnar=True)[0]
 
 
 class DatagroupsMeta(object):
-
     def __init__(self, session: Optional[Session] = None):
         self.session = session or Session()
         self.names = list_datagroups(self.session)
@@ -23,16 +20,12 @@ class DatagroupsMeta(object):
 
 @functools.lru_cache()
 def list_datasets(datagroup_name: str, session: Session) -> Tuple[str]:
-
     # TODO:
     # datagroup_name in list_datagroups()
-    return session.execute(
-        f"SHOW TABLES FROM {datagroup_name}", columnar=True
-    )[0]
+    return session.execute(f"SHOW TABLES FROM {datagroup_name}", columnar=True)[0]
 
 
 class DatasetsMeta(object):
-
     def __init__(self, datagroup_name: str, session: Optional[Session] = None):
         self.session = session or Session()
         self.names = list_datasets(datagroup_name, self.session)
@@ -40,24 +33,20 @@ class DatasetsMeta(object):
 
 @functools.lru_cache()
 def list_columns(
-        datagroup_name: str,
-        dataset_name: str,
-        session: Session
-        ) -> Tuple[Tuple[str], Tuple[str], Tuple[str]]:
-
+    datagroup_name: str, dataset_name: str, session: Session
+) -> Tuple[Tuple[str], Tuple[str], Tuple[str]]:
     names, types, _, _, descriptions, _, _ = session.execute(
-        f"DESCRIBE TABLE {datagroup_name}.{dataset_name}",
-        columnar=True
+        f"DESCRIBE TABLE {datagroup_name}.{dataset_name}", columnar=True
     )
     return names, tuple(parse_column_type(x) for x in types), descriptions
 
 
 def parse_column_type(type_name: str) -> str:
     # TODO
-    if type_name.startswith('Enum'):
-        return 'String'
-    elif type_name.startswith('LowCardinality'):
-        return type_name.split('(', 1)[1].rsplit(')', 1)[0]
+    if type_name.startswith("Enum"):
+        return "String"
+    elif type_name.startswith("LowCardinality"):
+        return type_name.split("(", 1)[1].rsplit(")", 1)[0]
     else:
         return type_name
 
@@ -67,13 +56,9 @@ def is_iterable_type(value: Any) -> bool:
 
 
 class ColumnsMeta(object):
-
     def __init__(
-            self,
-            datagroup_name: str,
-            dataset_name: str,
-            session: Optional[Session] = None
-            ):
+        self, datagroup_name: str, dataset_name: str, session: Optional[Session] = None
+    ):
         self.session = session or Session()
         self.names, self.types, self.descriptions = list_columns(
             datagroup_name, dataset_name, self.session
@@ -85,12 +70,12 @@ class ColumnsMeta(object):
 
 
 class Datagroup(object):
-
     def __init__(
-            self, name: str,
-            session: Optional[Session] = None,
-            meta: Optional[DatagroupsMeta] = None
-            ):
+        self,
+        name: str,
+        session: Optional[Session] = None,
+        meta: Optional[DatagroupsMeta] = None,
+    ):
         self.name = name
         self.session = session or Session()
         self.meta = meta or DatagroupsMeta(self.session)
@@ -98,11 +83,11 @@ class Datagroup(object):
             raise ValueError(f"Cannot identify a datagroup with a name '{name}'")
 
     @property
-    def datasets(self) -> 'DatasetSelector':
+    def datasets(self) -> "DatasetSelector":
         return DatasetSelector(self, self.session)
 
     @property
-    def _datasets_meta(self) -> 'DatasetsMeta':
+    def _datasets_meta(self) -> "DatasetsMeta":
         return DatasetsMeta(self.name, self.session)
 
     def __str__(self) -> str:
@@ -110,15 +95,11 @@ class Datagroup(object):
 
 
 class DatagroupSelector(object):
-
     def __init__(self, session: Optional[Session] = None):
-
         self.session = session or Session()
         self.meta = DatagroupsMeta(self.session)
         self._datagroups = {
-            name: Datagroup(
-                name, session=self.session, meta=self.meta
-            )
+            name: Datagroup(name, session=self.session, meta=self.meta)
             for name in self.meta.names
         }
         for name, datagroup in self._datagroups.items():
@@ -134,17 +115,15 @@ ExprIdentifier = Union[str, BaseExpression]
 
 
 class Dataset(object):
-
     def __init__(
-            self,
-            datagroup: DatagroupIdentifier,
-            name: Optional[str] = None,
-            session: Optional[Session] = None
-            ):
-
+        self,
+        datagroup: DatagroupIdentifier,
+        name: Optional[str] = None,
+        session: Optional[Session] = None,
+    ):
         if isinstance(datagroup, str):
-            if not name and '.' in datagroup:
-                datagroup, name = datagroup.split('.', 1)
+            if not name and "." in datagroup:
+                datagroup, name = datagroup.split(".", 1)
             self.datagroup = Datagroup(datagroup, session=session)
         elif isinstance(datagroup, Datagroup):
             self.datagroup = datagroup
@@ -168,27 +147,27 @@ class Dataset(object):
     def __str__(self) -> str:
         return f"Dataset({self.datagroup.name}.{self.name})"
 
-    def select(self, *args: Any) -> 'Dataset':
+    def select(self, *args: Any) -> "Dataset":
         result = self.copy()
         result.expression.select(*args)
         return result
 
-    def filter(self, expr: Expression) -> 'Dataset':
+    def filter(self, expr: Expression) -> "Dataset":
         result = self.copy()
         result.expression.filter(expr)
         return result
 
-    def groupby(self, *args: Any) -> 'Dataset':
+    def groupby(self, *args: Any) -> "Dataset":
         result = self.copy()
         result.expression.groupby(*args)
         return result
 
-    def sort(self, *args: Any) -> 'Dataset':
+    def sort(self, *args: Any) -> "Dataset":
         result = self.copy()
         result.expression.sort(*args)
         return result
 
-    def head(self, n: int = 10) -> 'Dataset':
+    def head(self, n: int = 10) -> "Dataset":
         result = self.copy()
         result.expression.head(n)
         return result
@@ -200,7 +179,7 @@ class Dataset(object):
     def sql(self) -> str:
         return str(self.expression)
 
-    def copy(self) -> 'Dataset':
+    def copy(self) -> "Dataset":
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
@@ -212,13 +191,9 @@ class Dataset(object):
 
 
 class DatasetSelector(object):
-
     def __init__(
-            self,
-            datagroup: DatagroupIdentifier,
-            session: Optional[Session] = None
-            ):
-
+        self, datagroup: DatagroupIdentifier, session: Optional[Session] = None
+    ):
         if isinstance(datagroup, str):
             self.datagroup = Datagroup(datagroup, session=session)
         elif isinstance(datagroup, Datagroup):
@@ -229,19 +204,17 @@ class DatasetSelector(object):
         self.session = session or self.datagroup.session
         self.meta = self.datagroup._datasets_meta
         self._datasets = {
-            name: Dataset(self.datagroup, name)
-            for name in self.meta.names
+            name: Dataset(self.datagroup, name) for name in self.meta.names
         }
         for name, dataset in self._datasets.items():
             setattr(self, name, dataset)
 
-    def all(self) -> Iterable['Dataset']:
+    def all(self) -> Iterable["Dataset"]:
         for dataset in self._datasets.values():
             yield dataset
 
 
 class DatasetExpression(object):
-
     def __init__(self, parent: Dataset):
         self.parent = parent
         self._namespace = set(self.parent._columns.keys())
@@ -303,15 +276,15 @@ class DatasetExpression(object):
             else:
                 self._select.append(Literal.wrap_constant(item))
 
-    def filter(self, expr: 'Expression'):
+    def filter(self, expr: "Expression"):
         # TODO: validate expr
         self._filter = expr if self._filter is None else self._filter & expr
 
     def head(self, n: int):
         if not isinstance(n, int):
-            raise ValueError(f'An integer value is expected: got {type(n)} instead')
+            raise ValueError(f"An integer value is expected: got {type(n)} instead")
         if n <= 0:
-            raise ValueError(f'A positive integer is expected: got {n} instead')
+            raise ValueError(f"A positive integer is expected: got {n} instead")
         self._limit = n
 
     def groupby(self, *args: Any):
@@ -339,22 +312,22 @@ class DatasetExpression(object):
                 self._sort.append(item)
 
     def __str__(self) -> str:
-        select = '*'
+        select = "*"
         if self._select:
-            select = ', '.join(col.sql() for col in self._select)
-        sql_expr = ''
+            select = ", ".join(col.sql() for col in self._select)
+        sql_expr = ""
         sql_expr += f"SELECT {select}"
-        sql_expr += f'\nFROM {self._table_name}'
+        sql_expr += f"\nFROM {self._table_name}"
         if self._filter:
-            sql_expr += f'\nWHERE {self._filter.sql()}'
+            sql_expr += f"\nWHERE {self._filter.sql()}"
         if self._groupby:
-            groupby_expr = ', '.join(map(str, self._groupby))
-            sql_expr += f'\nGROUP BY {groupby_expr}'
+            groupby_expr = ", ".join(map(str, self._groupby))
+            sql_expr += f"\nGROUP BY {groupby_expr}"
         if self._sort:
-            sort_expr = ', '.join(map(str, self._sort))
-            sql_expr += f'\n ORDER BY {sort_expr}'
+            sort_expr = ", ".join(map(str, self._sort))
+            sql_expr += f"\n ORDER BY {sort_expr}"
         if self._limit:
-            sql_expr += f'\nLIMIT {self._limit}'
+            sql_expr += f"\nLIMIT {self._limit}"
         return sql_expr
 
 
@@ -364,14 +337,14 @@ class Column(BaseExpression):
     """
 
     def __init__(
-            self,
-            name: str,
-            dtype: str,
-            descr: Optional[str] = None,
-            parent: Optional[Dataset] = None,
-            alias_name: Optional[str] = None,
-            cast_dtype: Optional[str] = None
-            ):
+        self,
+        name: str,
+        dtype: str,
+        descr: Optional[str] = None,
+        parent: Optional[Dataset] = None,
+        alias_name: Optional[str] = None,
+        cast_dtype: Optional[str] = None,
+    ):
         """
 
         Parameters
@@ -390,7 +363,9 @@ class Column(BaseExpression):
         body = self.name, self.dtype, self.description = name, dtype, descr
         super().__init__(body, parent, alias_name, cast_dtype)
         if self._parent and name not in self._parent.meta.names:
-            raise ValueError(f"A dataset '{self._parent.name}' doesn't have a column '{name}'")
+            raise ValueError(
+                f"A dataset '{self._parent.name}' doesn't have a column '{name}'"
+            )
 
     @property
     def _body_str(self) -> str:
@@ -406,7 +381,6 @@ class Column(BaseExpression):
 
 
 class DataResource(object):
-
     def __init__(self, session: Optional[Session] = None):
         self.session = session or Session()
 

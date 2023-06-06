@@ -6,7 +6,6 @@ import config
 
 
 class TestDataResource(unittest.TestCase):
-
     def setUp(self):
         self.host = config.host
         self.user = config.user
@@ -38,5 +37,5 @@ class TestDataResource(unittest.TestCase):
         session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

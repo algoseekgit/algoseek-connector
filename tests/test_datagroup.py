@@ -8,7 +8,6 @@ import config
 
 
 class TestDatagroup(unittest.TestCase):
-
     def setUp(self):
         self.session = MockSession()
 
@@ -46,13 +45,13 @@ class TestDatagroup(unittest.TestCase):
     def test_meta_from_real_db(self):
         session = Session(config.host, config.user, config.password)
         meta = DatagroupsMeta(session)
-        self.assertTrue(hasattr(meta, 'names'))
+        self.assertTrue(hasattr(meta, "names"))
         self.assertTrue(meta.names)
         session.close()
 
     def test_meta(self):
         meta = DatagroupsMeta(self.session)
-        self.assertTrue(hasattr(meta, 'names'))
+        self.assertTrue(hasattr(meta, "names"))
         self.assertEqual(set(meta.names), set(sample_datagroups))
 
     def tearDown(self):
