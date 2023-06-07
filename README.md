@@ -9,7 +9,7 @@ The library provides a simple pythonic interface to algoseek datasets with custo
 
 Inside the project repository run:
 
-    poetry install
+    poetry install --with dev
 
 Before commit changes, run linters and formatter using pre-commit:
 
