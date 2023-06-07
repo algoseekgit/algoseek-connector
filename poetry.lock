@@ -336,6 +336,21 @@ pycodestyle = ">=2.10.0,<2.11.0"
 pyflakes = ">=3.0.0,<3.1.0"
 
 [[package]]
+name = "flake8-docstrings"
+version = "1.7.0"
+description = "Extension for flake8 which uses pydocstyle to check docstrings"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "flake8_docstrings-1.7.0-py2.py3-none-any.whl", hash = "sha256:51f2344026da083fc084166a9353f5082b01f72901df422f74b4d953ae88ac75"},
+    {file = "flake8_docstrings-1.7.0.tar.gz", hash = "sha256:4c8cc748dc16e6869728699e5d0d685da9a10b0ea718e090b1ba088e67a941af"},
+]
+
+[package.dependencies]
+flake8 = ">=3"
+pydocstyle = ">=2.1"
+
+[[package]]
 name = "greenlet"
 version = "2.0.2"
 description = "Lightweight in-process concurrent programming"
@@ -562,6 +577,23 @@ files = [
 ]
 
 [[package]]
+name = "pydocstyle"
+version = "6.3.0"
+description = "Python docstring style checker"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pydocstyle-6.3.0-py3-none-any.whl", hash = "sha256:118762d452a49d6b05e194ef344a55822987a462831ade91ec5c06fd2169d019"},
+    {file = "pydocstyle-6.3.0.tar.gz", hash = "sha256:7ce43f0c0ac87b07494eb9c0b462c0b73e6ff276807f204d6b53edc72b7e44e1"},
+]
+
+[package.dependencies]
+snowballstemmer = ">=2.2.0"
+
+[package.extras]
+toml = ["tomli (>=1.2.3)"]
+
+[[package]]
 name = "pyflakes"
 version = "3.0.1"
 description = "passive checker of Python programs"
@@ -692,6 +724,17 @@ testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[l
 testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
+name = "snowballstemmer"
+version = "2.2.0"
+description = "This package provides 29 stemmers for 28 languages generated from Snowball algorithms."
+optional = false
+python-versions = "*"
+files = [
+    {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
+    {file = "snowballstemmer-2.2.0.tar.gz", hash = "sha256:09b16deb8547d3412ad7b590689584cd0fe25ec8db3be37788be3810cbf19cb1"},
+]
+
+[[package]]
 name = "sqlalchemy"
 version = "2.0.15"
 description = "Database Abstraction Library"
@@ -820,13 +863,13 @@ devenv = ["black", "check-manifest", "flake8", "pyroma", "pytest (>=4.3)", "pyte
 
 [[package]]
 name = "urllib3"
-version = "2.0.2"
+version = "2.0.3"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "urllib3-2.0.2-py3-none-any.whl", hash = "sha256:d055c2f9d38dc53c808f6fdc8eab7360b6fdbbde02340ed25cfbcd817c62469e"},
-    {file = "urllib3-2.0.2.tar.gz", hash = "sha256:61717a1095d7e155cdb737ac7bb2f4324a858a1e2e6466f6d03ff630ca68d3cc"},
+    {file = "urllib3-2.0.3-py3-none-any.whl", hash = "sha256:48e7fafa40319d358848e1bc6809b208340fafe2096f1725d05d67443d0483d1"},
+    {file = "urllib3-2.0.3.tar.gz", hash = "sha256:bee28b5e56addb8226c96f7f13ac28cb4c301dd5ea8a6ca179c0b9835e032825"},
 ]
 
 [package.extras]
@@ -858,4 +901,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.3)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "bf1d411a1de868ad9b8139644ef04b66925bad8730118d80c628695daba3c0a6"
+content-hash = "3dd73f1d6a15dfd04afed6ec75d11ffe2dd71ab135d81361de28ee89f0015c99"
