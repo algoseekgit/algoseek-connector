@@ -2,3 +2,5 @@
 max-line-length = 88
 extend-ignore = E203, E501
 docstring-convention = numpy
+per-file-ignores =
+    tests/*:D100,D101,D102,D103
