@@ -15,6 +15,24 @@ Before commit changes, run linters and formatter using pre-commit:
 
     poetry run pre-commit run
 
+## Testing
+
+For now, table metadata is fetched from Algoseek API. user/password is necessary
+for testing. Set user/pass using the environment variables `ALGOSEEK_API_USERNAME`
+and `ALGOSEEK_API_PASSWORD`.
+
+Unit tests:
+
+```sh
+poetry run pytest
+```
+
+Integration tests:
+
+```sh
+poetry run pytest tests
+```
+
 ## Installing and Supported Versions
 
 algoseek-connector is available on PyPI:
@@ -37,8 +55,8 @@ The following query operations on datasets are supported:
 - Filtering by column value/column expression
 - Grouping by column(s)
 - Sorting by column(s)
-- All common artithmetic, logical operations on dataset columns and function application
-- Fetching query results as a pandas dataframe
+- All common arithmetic, logical operations on dataset columns and function application
+- Fetching query results as a pandas DataFrame
 
 ## Getting Started
 
@@ -61,7 +79,7 @@ Optionally a port number is provided unless it is a default value of 9000.
 
 ### Configuring a session with environment variables
 
-You can make use of the following environment variables to set up the databse connection:
+You can make use of the following environment variables to set up the database connection:
 
 - AS_DATABASE_HOST
 - AS_DATABASE_PORT
@@ -88,7 +106,7 @@ LIMIT 10''')
 ### Datagroups and datasets
 
 All datasets available are grouped into data groups
-Is structured into datagroups, e.g. USEquityMarketData, USFuturesMarketData, etc.
+Is structured into data groups, e.g. USEquityMarketData, USFuturesMarketData, etc.
 
 You can browse the list of available data groups with the `DataResource`
 
@@ -146,7 +164,7 @@ ds.select(
 
 ### Getting results
 
-You can make use of `Dataset.fetch` method to execute the generated query and get results as a pandas dataframe:
+You can make use of `Dataset.fetch` method to execute the generated query and get results as a pandas DataFrame:
 
 ```
 ds = aconnect.Dataset(
@@ -165,4 +183,4 @@ ds.select(
 
 ## TODO
 
-- pandas dataframe parse date/time columns
+- pandas DataFrame parse date/time columns
