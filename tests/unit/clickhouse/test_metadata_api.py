@@ -4,9 +4,7 @@ import pytest
 
 @pytest.fixture(scope="module")
 def api_consumer():
-    username = "mock-user"
-    password = "mock-password"
-    return MockAPIConsumer(user=username, password=password)
+    return MockAPIConsumer()
 
 
 def test_APIConsumer_list_db_groups(api_consumer: APIConsumer):
