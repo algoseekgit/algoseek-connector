@@ -169,7 +169,12 @@ class APIConsumer:
 class MockAPIConsumer(APIConsumer):
     """Mock class for tests."""
 
-    def __init__(self, user: str, password: str, data_path: Optional[str] = None):
+    def __init__(
+        self,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        data_path: Optional[str] = None,
+    ):
         if data_path is None:
             data_path = "tests/data/table_data.json"
         self.data_path = data_path
