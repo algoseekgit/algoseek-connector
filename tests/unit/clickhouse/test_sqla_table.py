@@ -27,6 +27,7 @@ def test_SQLAlchemyColumnFactory_create_enum_column(
     actual = column_factory(metadata)
     assert actual.name == expected_name
     assert actual.doc == expected_description
+    assert not actual.nullable
     for member, expected_value in zip(actual.type.enum_class, enum_values):
         assert member.value == expected_value
 
@@ -40,6 +41,7 @@ def test_SQLAlchemyColumnFactory_create_integer_column(column_factory, type_str:
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_types.Integer)
     assert actual.name == expected_name
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize("type_str", ["Float32", "Float64"])
@@ -51,6 +53,7 @@ def test_SQLAlchemyColumnFactory_create_float_column(column_factory, type_str):
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_types.Float)
     assert actual.name == expected_name
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize(
@@ -69,6 +72,7 @@ def test_SQLAlchemyColumnFactory_create_decimal_column(
     assert actual.name == expected_name
     assert actual.type.scale == expected_scale
     assert actual.type.precision == expected_precision
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize(
@@ -84,6 +88,7 @@ def test_SQLAlchemyColumnFactory_create_string_column(
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_types.String)
     assert actual.name == expected_name
+    assert not actual.nullable
     if expected_length is not None:
         assert actual.type.length == expected_length
 
@@ -97,6 +102,7 @@ def test_SQLAlchemyColumnFactory_create_date_column(column_factory):
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_types.Date)
     assert actual.name == expected_name
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize(
@@ -117,6 +123,7 @@ def test_SQLAlchemyColumnFactory_create_datetime_column(
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_table.DateTime)
     assert actual.type.timezone == expected_timezone
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize(
@@ -138,6 +145,7 @@ def test_SQLAlchemyColumnFactory_create_datetime64_column(
     assert isinstance(actual.type, sqla_table.DateTime64)
     assert actual.type.timezone == expected_timezone
     assert actual.type.precision == expected_precision
+    assert not actual.nullable
 
 
 @pytest.mark.parametrize(
@@ -151,7 +159,7 @@ def test_SQLAlchemyColumnFactory_create_low_cardinality_column(
     column_factory, type_str, expected_type
 ):
     expected_name = "myLowCardinalityColumn"
-    expected_description = ""
+    expected_description = "myLowCardinalityDescription"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
     expected = column_factory(
@@ -160,6 +168,27 @@ def test_SQLAlchemyColumnFactory_create_low_cardinality_column(
     assert str(actual.type) == str(expected.type)
     assert actual.name == expected_name
     assert actual.doc == expected_description
+    assert not actual.nullable
+
+
+@pytest.mark.parametrize(
+    "type_str,expected_type",
+    [("Nullable(String)", "String"), ("Nullable(Float64)", "Float64")],
+)
+def test_SQLAlchemyColumnFactory_nullable_column(
+    column_factory, type_str, expected_type
+):
+    expected_name = "myNullableColumn"
+    expected_description = "myNullableDescription"
+    metadata = ColumnMetadata(expected_name, type_str, expected_description)
+    actual = column_factory(metadata)
+    expected = column_factory(
+        ColumnMetadata(expected_name, expected_type, expected_description)
+    )
+    assert str(actual.type) == str(expected.type)
+    assert actual.name == expected_name
+    assert actual.doc == expected_description
+    assert actual.nullable
 
 
 def test_SQLAlchemyColumnFactory_create_boolean_column(column_factory):
@@ -170,6 +199,7 @@ def test_SQLAlchemyColumnFactory_create_boolean_column(column_factory):
     actual = column_factory(metadata)
     assert actual.doc == expected_description
     assert isinstance(actual.type, sqla_types.Boolean)
+    assert not actual.nullable
 
 
 def test_SQLAlchemyColumnFactory_invalid_unsupported_type_column(column_factory):

@@ -31,6 +31,7 @@ CLICKHOUSE_INTEGER = [
     "Int256",
 ]
 CLICKHOUSE_LOW_CARDINALITY = "LowCardinality"
+CLICKHOUSE_NULLABLE = "Nullable"
 CLICKHOUSE_STRING = ["String", "FixedString"]
 
 

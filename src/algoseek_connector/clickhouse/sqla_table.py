@@ -77,20 +77,26 @@ class SQLAlchemyColumnFactory:
             If an unsupported type is used.
 
         """
-        if column_metadata.get_type_name() == base.CLICKHOUSE_LOW_CARDINALITY:
+        type_name = column_metadata.get_type_name()
+
+        # recursive call for nested types
+        if type_name in [base.CLICKHOUSE_LOW_CARDINALITY, base.CLICKHOUSE_NULLABLE]:
             args = column_metadata.get_type_args()
             column_type = args[0]
             column_metadata = ColumnMetadata(
                 column_metadata.name, column_type, column_metadata.description
             )
+            column = self(column_metadata)
+        else:
+            try:
+                sqla_type = self.ch_type_to_sqla_type[type_name]
+                create_column = self.sqla_type_to_column_creator[sqla_type]
+                column = create_column(column_metadata)
+            except KeyError:
+                msg = f"{column_metadata.type} type is not supported."
+                raise UnsupportedClickHouseType(msg)
 
-        try:
-            sqla_type = self.ch_type_to_sqla_type[column_metadata.get_type_name()]
-            create_column = self.sqla_type_to_column_creator[sqla_type]
-            column = create_column(column_metadata)
-        except KeyError:
-            msg = f"{column_metadata.type} type is not supported."
-            raise UnsupportedClickHouseType(msg)
+        column.nullable = type_name == base.CLICKHOUSE_NULLABLE
 
         return column
 
