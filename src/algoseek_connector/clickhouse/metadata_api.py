@@ -10,6 +10,7 @@ APIConsumer : fetch DB table metadata.
 import json
 import requests
 from functools import lru_cache
+from pathlib import Path
 from os import getenv
 from typing import Optional
 from .base import ColumnMetadata, TableMetadata
@@ -173,10 +174,11 @@ class MockAPIConsumer(APIConsumer):
         self,
         user: Optional[str] = None,
         password: Optional[str] = None,
-        data_path: Optional[str] = None,
+        data_path: Optional[Path] = None,
     ):
         if data_path is None:
-            data_path = "tests/data/table_data.json"
+            project_root_path = Path(__file__).parent.parent.parent.parent
+            data_path = project_root_path / "tests/data/table_data.json"
         self.data_path = data_path
 
     @lru_cache
