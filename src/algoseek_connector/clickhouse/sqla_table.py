@@ -6,14 +6,25 @@ from typing import Callable, Optional
 from . import base
 from .base import ColumnMetadata, TableMetadata
 
-SQLALCHEMY_DECIMAL = "Decimal"
-SQLALCHEMY_FLOAT = "Float"
-SQLALCHEMY_INT = "Integer"
-SQLALCHEMY_ENUM = "Enum"
-SQLALCHEMY_DATE = "Date"
-SQLALCHEMY_DATETIME = "DateTime"
-SQLALCHEMY_STRING = "String"
-SQLALCHEMY_BOOLEAN = "Boolean"
+
+class SQLAlchemyType(enum.Enum):
+    """Maps ClickHouse Types to SQLAlchemy types."""
+
+    DECIMAL = 1
+    FLOAT = 2
+    INT = 3
+    ENUM = 4
+    DATE = 5
+    DATETIME = 6
+    STRING = 7
+    BOOLEAN = 8
+    ARRAY = 9
+
+
+class Array(types.TypeDecorator):
+    """SQLAlchemy Type for ClickHouse Array."""
+
+    impl = types.ARRAY
 
 
 class DateTime(types.TypeDecorator):
@@ -45,18 +56,20 @@ class SQLAlchemyColumnFactory:
     """Create SQLAlchemy columns using column metadata."""
 
     def __init__(self):
+        self.ch_types = base.ClickHouseTypes()
         self.ch_type_to_sqla_type = _get_clickhouse_type_to_sqlalchemy_type_mapping()
         self.sqla_type_to_column_creator: dict[
             str, Callable[[ColumnMetadata], Column]
         ] = {
-            SQLALCHEMY_DATE: _to_date,
-            SQLALCHEMY_DATETIME: _to_datetime,
-            SQLALCHEMY_DECIMAL: _to_decimal,
-            SQLALCHEMY_FLOAT: _to_float,
-            SQLALCHEMY_INT: _to_integer,
-            SQLALCHEMY_ENUM: _to_enum,
-            SQLALCHEMY_STRING: _to_string,
-            SQLALCHEMY_BOOLEAN: _to_boolean,
+            SQLAlchemyType.DATE: _to_date,
+            SQLAlchemyType.DATETIME: _to_datetime,
+            SQLAlchemyType.DECIMAL: _to_decimal,
+            SQLAlchemyType.FLOAT: _to_float,
+            SQLAlchemyType.INT: _to_integer,
+            SQLAlchemyType.ENUM: _to_enum,
+            SQLAlchemyType.STRING: _to_string,
+            SQLAlchemyType.BOOLEAN: _to_boolean,
+            SQLAlchemyType.ARRAY: _to_array,
         }
 
     def __call__(self, column_metadata: ColumnMetadata) -> Column:
@@ -77,10 +90,11 @@ class SQLAlchemyColumnFactory:
             If an unsupported type is used.
 
         """
+        self.ch_types.fix_type(column_metadata)
         type_name = column_metadata.get_type_name()
 
         # recursive call for nested types
-        if type_name in [base.CLICKHOUSE_LOW_CARDINALITY, base.CLICKHOUSE_NULLABLE]:
+        if type_name in [self.ch_types.LOW_CARDINALITY, self.ch_types.NULLABLE]:
             args = column_metadata.get_type_args()
             column_type = args[0]
             column_metadata = ColumnMetadata(
@@ -96,7 +110,7 @@ class SQLAlchemyColumnFactory:
                 msg = f"{column_metadata.type} type is not supported."
                 raise UnsupportedClickHouseType(msg)
 
-        column.nullable = type_name == base.CLICKHOUSE_NULLABLE
+        column.nullable = type_name == self.ch_types.NULLABLE
 
         return column
 
@@ -113,16 +127,18 @@ class SQLAlchemyTableFactory:
         return Table(table_metadata.name, metadata, *columns)
 
 
-def _get_clickhouse_type_to_sqlalchemy_type_mapping() -> dict[str, str]:
+def _get_clickhouse_type_to_sqlalchemy_type_mapping() -> dict[SQLAlchemyType, str]:
+    ch_types = base.ClickHouseTypes()
     sqla_type_to_clickhouse_type = {
-        SQLALCHEMY_FLOAT: base.CLICKHOUSE_FLOAT,
-        SQLALCHEMY_INT: base.CLICKHOUSE_INTEGER,
-        SQLALCHEMY_DECIMAL: base.CLICKHOUSE_DECIMAL,
-        SQLALCHEMY_DATE: base.CLICKHOUSE_DATE,
-        SQLALCHEMY_DATETIME: base.CLICKHOUSE_DATETIME,
-        SQLALCHEMY_ENUM: base.CLICKHOUSE_ENUM,
-        SQLALCHEMY_STRING: base.CLICKHOUSE_STRING,
-        SQLALCHEMY_BOOLEAN: base.CLICKHOUSE_BOOLEAN,
+        SQLAlchemyType.FLOAT: ch_types.FLOAT,
+        SQLAlchemyType.INT: ch_types.INTEGER,
+        SQLAlchemyType.DECIMAL: ch_types.DECIMAL,
+        SQLAlchemyType.DATE: ch_types.DATE,
+        SQLAlchemyType.DATETIME: ch_types.DATETIME,
+        SQLAlchemyType.ENUM: ch_types.ENUM,
+        SQLAlchemyType.STRING: ch_types.STRING,
+        SQLAlchemyType.BOOLEAN: ch_types.BOOLEAN,
+        SQLAlchemyType.ARRAY: ch_types.ARRAY,
     }
 
     clickhouse_type_to_sqla_type = dict()
@@ -220,3 +236,20 @@ def _to_datetime(column_metadata: ColumnMetadata) -> Column:
             timezone = None
         column_type = DateTime(timezone)
     return Column(column_metadata.name, column_type, doc=column_metadata.description)
+
+
+def _to_array(column_metadata: ColumnMetadata) -> Column:
+    """Create a SQLAlchemy Array column from column metadata."""
+    # TODO: currently, supports simple 1D arrays of Float, Int and Strings
+    ch_types = base.ClickHouseTypes()
+    type_str = column_metadata.get_type_args()[0]
+    if type_str in ch_types.STRING:
+        T = types.String
+    elif type_str in ch_types.FLOAT:
+        T = types.Float
+    elif type_str in ch_types.INTEGER:
+        T = types.Integer
+    else:
+        msg = "Unsupported  type for Array."
+        raise ValueError(msg)
+    return Column(column_metadata.name, Array(T), doc=column_metadata.description)
