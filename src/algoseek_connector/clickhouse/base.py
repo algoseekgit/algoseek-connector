@@ -9,30 +9,8 @@ TableMetadata : Stores table name and column metadata.
 """
 
 import dataclasses
-
-CLICKHOUSE_BOOLEAN = ["Boolean"]
-CLICKHOUSE_DATETIME = ["DateTime", "DateTime64"]
-CLICKHOUSE_DATE = ["Date", "Date32"]
-CLICKHOUSE_DECIMAL = ["Decimal", "Decimal32", "Decimal64", "Decimal128", "Decimal256"]
-CLICKHOUSE_ENUM = ["Enum"]
-CLICKHOUSE_FLOAT = ["Float32", "Float64"]
-CLICKHOUSE_INTEGER = [
-    "UInt8",
-    "UInt16",
-    "UInt32",
-    "UInt64",
-    "UInt128",
-    "UInt256",
-    "Int8",
-    "Int16",
-    "Int32",
-    "Int64",
-    "Int128",
-    "Int256",
-]
-CLICKHOUSE_LOW_CARDINALITY = "LowCardinality"
-CLICKHOUSE_NULLABLE = "Nullable"
-CLICKHOUSE_STRING = ["String", "FixedString"]
+import json
+from pathlib import Path
 
 
 @dataclasses.dataclass
@@ -101,3 +79,65 @@ class TableMetadata:
     name: str
     group: str
     columns: list[ColumnMetadata]
+
+
+def _alias_dict() -> dict[str, str]:
+    """Create a dictionary that map aliased types to their alias."""
+    json_path = Path(__file__).parent / "alias.json"
+    with open(json_path) as fin:
+        alias = json.load(fin)
+    return alias
+
+
+def _case_insensitive_dict() -> dict[str, str]:
+    """Create a dictionary that contains case insensitive types."""
+    json_path = Path(__file__).parent / "case_insensitive.json"
+    with open(json_path) as fin:
+        case_insensitive = json.load(fin)
+    return case_insensitive
+
+
+@dataclasses.dataclass(frozen=True)
+class ClickHouseTypes:
+    """Store string representation of ClickHouse Types."""
+
+    LOW_CARDINALITY = "LowCardinality"
+    NULLABLE = "Nullable"
+    ARRAY = ["Array"]
+    STRING = ["String", "FixedString"]
+    BOOLEAN = ["Bool"]
+    DATETIME = ["DateTime", "DateTime64"]
+    DATE = ["Date", "Date32"]
+    DECIMAL = ["Decimal", "Decimal32", "Decimal64", "Decimal128", "Decimal256"]
+    ENUM = ["Enum"]
+    FLOAT = ["Float32", "Float64"]
+    INTEGER = [
+        "UInt8",
+        "UInt16",
+        "UInt32",
+        "UInt64",
+        "UInt128",
+        "UInt256",
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "Int128",
+        "Int256",
+    ]
+    ALIAS = _alias_dict()
+    CASE_INSENSITIVE = _case_insensitive_dict()
+
+    def fix_type(self, column_metadata: ColumnMetadata):
+        """Replace case-insensitive and aliased types with the internally used type."""
+        type_str = column_metadata.get_type_name()
+        upper = type_str.upper()
+        if upper in self.CASE_INSENSITIVE:
+            fixed = self.CASE_INSENSITIVE[upper]
+            fixed = self.ALIAS.get(fixed, fixed)  # replace by alias if available
+        elif type_str in self.ALIAS:
+            fixed = self.ALIAS[column_metadata.type_str]
+        else:
+            fixed = type_str
+        offset = len(type_str)
+        column_metadata.type = fixed + column_metadata.type[offset:]
