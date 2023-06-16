@@ -1,6 +1,7 @@
 import pytest
 from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
 from algoseek_connector.clickhouse import sqla_table
+from algoseek_connector.clickhouse.metadata_api import MockAPIConsumer
 from sqlalchemy import types as sqla_types
 from sqlalchemy import MetaData
 
@@ -191,6 +192,21 @@ def test_SQLAlchemyColumnFactory_nullable_column(
     assert actual.nullable
 
 
+@pytest.mark.parametrize(
+    "type_str,expected_type",
+    [("Array(String)", "String"), ("Array(Float64)", "Float64")],
+)
+def test_SQLAlchemyColumnFactory_array_column(column_factory, type_str, expected_type):
+    expected_name = "myArrayColumn"
+    expected_description = "myArrayDescription"
+    metadata = ColumnMetadata(expected_name, type_str, expected_description)
+    actual = column_factory(metadata)
+    # assert str(actual.type) == str(expected.type)
+    assert actual.name == expected_name
+    assert actual.doc == expected_description
+    assert not actual.nullable
+
+
 def test_SQLAlchemyColumnFactory_create_boolean_column(column_factory):
     expected_name = "myBooleanTimeColumn"
     expected_description = "myBooleanDescription"
@@ -225,3 +241,17 @@ def test_SQLAlchemyTableFactory():
     table_metadata = TableMetadata(name, group, columns)
     table = table_factory(table_metadata, metadata)
     assert table.name == name
+
+
+def test_SQLAlchemyTableFactory_create_from_APIConsumer_data():
+    api_consumer = MockAPIConsumer()
+    table_factory = sqla_table.SQLAlchemyTableFactory()
+    for db_group in api_consumer.list_db_groups():
+        metadata = MetaData()
+        for db_table in api_consumer.list_db_tables(db_group):
+            if db_group == "USOptionsMarketData" and db_table == "TradeAndQuote":
+                # ignore this table as it contains invalid Enum data.
+                continue
+            table_metadata = api_consumer.get_db_table_metadata(db_group, db_table)
+            table_factory(table_metadata, metadata)
+    assert True
