@@ -240,7 +240,7 @@ def test_SQLAlchemyTableFactory():
     metadata = MetaData()
     table_metadata = TableMetadata(name, group, columns)
     table = table_factory(table_metadata, metadata)
-    assert table.name == name
+    assert table.name == f"{table_metadata.group}.{table_metadata.name}"
 
 
 def test_SQLAlchemyTableFactory_create_from_APIConsumer_data():
