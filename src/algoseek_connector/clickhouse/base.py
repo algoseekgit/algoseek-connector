@@ -80,6 +80,10 @@ class TableMetadata:
     group: str
     columns: list[ColumnMetadata]
 
+    def get_table_name(self) -> str:
+        """Get the table name in the format `group.name`."""
+        return f"{self.group}.{self.name}"
+
 
 def _alias_dict() -> dict[str, str]:
     """Create a dictionary that map aliased types to their alias."""
@@ -109,7 +113,7 @@ class ClickHouseTypes:
     DATETIME = ["DateTime", "DateTime64"]
     DATE = ["Date", "Date32"]
     DECIMAL = ["Decimal", "Decimal32", "Decimal64", "Decimal128", "Decimal256"]
-    ENUM = ["Enum"]
+    ENUM = ["Enum", "Enum8", "Enum16"]
     FLOAT = ["Float32", "Float64"]
     INTEGER = [
         "UInt8",
@@ -136,7 +140,7 @@ class ClickHouseTypes:
             fixed = self.CASE_INSENSITIVE[upper]
             fixed = self.ALIAS.get(fixed, fixed)  # replace by alias if available
         elif type_str in self.ALIAS:
-            fixed = self.ALIAS[column_metadata.type_str]
+            fixed = self.ALIAS[type_str]
         else:
             fixed = type_str
         offset = len(type_str)
