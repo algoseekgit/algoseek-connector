@@ -17,9 +17,13 @@ Before commit changes, run linters and formatter using pre-commit:
 
 ## Testing
 
-For now, table metadata is fetched from Algoseek API. user/password is necessary
-for testing. Set user/pass using the environment variables `ALGOSEEK_API_USERNAME`
-and `ALGOSEEK_API_PASSWORD`.
+Testing requires access to Algoseek metadata API. Set user/pass using the
+environment variables `ALGOSEEK_API_USERNAME` and `ALGOSEEK_API_PASSWORD`.
+
+Testing requires access to the ClickHouse Database. Set host address, port,
+user and password using the environment variables `ALGOSEEK_DATABASE_HOST`,
+`ALGOSEEK_DATABASE_PORT`, `ALGOSEEK_DATABASE_USER` and
+`ALGOSEEK_DATABASE_PASSWORD`.
 
 Unit tests:
 
@@ -28,6 +32,9 @@ poetry run pytest
 ```
 
 Integration tests:
+
+Currently, integration tests require access to the ClickHouse database. See
+the instructions above to connect to the DB.
 
 ```sh
 poetry run pytest tests
