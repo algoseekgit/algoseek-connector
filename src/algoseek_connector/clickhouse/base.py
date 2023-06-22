@@ -33,11 +33,6 @@ class ColumnMetadata:
     type: str
     description: str
 
-    def __post_init__(self):
-        """Validate fields."""
-        # TODO: add validation
-        pass
-
     def get_type_name(self) -> str:
         """Get the type name."""
         ind = self.type.find("(")
@@ -105,12 +100,15 @@ def _case_insensitive_dict() -> dict[str, str]:
 class ClickHouseTypes:
     """Store string representation of ClickHouse Types."""
 
+    UNSUPPORTED = ["Nested", "Map", "Tuple"]
     LOW_CARDINALITY = "LowCardinality"
     NULLABLE = "Nullable"
-    ARRAY = ["Array"]
-    STRING = ["String", "FixedString"]
-    BOOLEAN = ["Bool"]
-    DATETIME = ["DateTime", "DateTime64"]
+    ARRAY = "Array"
+    STRING = "String"
+    FIXED_STRING = "FixedString"
+    BOOLEAN = "Bool"
+    DATETIME = "DateTime"
+    DATETIME64 = "DateTime64"
     DATE = ["Date", "Date32"]
     DECIMAL = ["Decimal", "Decimal32", "Decimal64", "Decimal128", "Decimal256"]
     ENUM = ["Enum", "Enum8", "Enum16"]

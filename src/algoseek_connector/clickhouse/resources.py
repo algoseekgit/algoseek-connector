@@ -2,13 +2,13 @@
 
 import numpy as np
 import os
-import sqlalchemy
 from typing import cast, Optional
 from clickhouse_driver import Client
-from sqlalchemy import Select
+from sqlalchemy.sql import Select
 from ..base import DataGroup, DataResource, DataSet, FunctionHandle
 from .base import ColumnMetadata, TableMetadata
-from .sqla_table import ClickHouseDialect, SQLAlchemyTableFactory
+from .sqla_table import SQLAlchemyTableFactory
+from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from functools import lru_cache
 from pandas import DataFrame
 
@@ -38,7 +38,7 @@ class ClickHouseDataResource(DataResource):
         functions = ["sum", "average"]
         return FunctionHandle(functions)
 
-    def fetch(self, stmt: sqlalchemy.Select, **kwargs):
+    def fetch(self, stmt: Select, **kwargs):
         """Execute a Select statement."""
         query = stmt.compile(dialect=self._dialect)
         execute_params = {"with_column_types": True, "columnar": True}
@@ -121,7 +121,6 @@ class ClickHouseDataResource(DataResource):
         dataset = data_group.get_dataset(name)
         if dataset is None:
             dataset = self._create_dataset(group, name)
-            data_group.add_dataset(dataset)
         return dataset
 
     def _create_dataset(self, group: str, name: str) -> DataSet:
@@ -130,6 +129,13 @@ class ClickHouseDataResource(DataResource):
         table_metadata = self._table_metadata_factory(group, name)
         table = self._table_factory(table_metadata, data_group.metadata)
         return DataSet(data_group, table, self)
+
+    def compile(self, stmt: Select) -> tuple[str, dict]:
+        """Convert a stmt into an SQL string."""
+        compiled = stmt.compile(dialect=self._dialect)
+        sql = compiled.string
+        params = compiled.params
+        return sql, params
 
 
 class ClickHouseTableMetadataFactory:
@@ -196,3 +202,15 @@ def _create_clickhouse_client(
     user = user or os.getenv("ALGOSEEK_DATABASE_USER")
     password = password or os.getenv("ALGOSEEK_DATABASE_PASSWORD")
     return Client(host=host, user=user, password=password, secure=secure, **kwargs)
+
+
+class MockClickHouseDataResource(ClickHouseDataResource):
+    """Mock class use for testing query string generation."""
+
+    def __init__(self):
+        self.groups: dict[str, DataGroup] = dict()
+        self._dialect = ClickHouseDialect(paramstyle="pyformat")
+
+    def list_groups(self) -> list[str]:
+        """List available groups."""
+        return list(self.groups)

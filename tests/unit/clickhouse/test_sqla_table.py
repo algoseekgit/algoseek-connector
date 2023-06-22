@@ -4,6 +4,7 @@ from algoseek_connector.clickhouse import sqla_table
 from algoseek_connector.clickhouse.metadata_api import MockAPIConsumer
 from sqlalchemy import types as sqla_types
 from sqlalchemy import MetaData
+from clickhouse_sqlalchemy import types as clickhouse_types
 
 
 @pytest.fixture
@@ -15,8 +16,8 @@ def column_factory():
     "type_str,enum_values",
     [
         ["Enum('value1' = 1, 'value2' = 2, 'value3' = 3)", [1, 2, 3]],
-        ["Enum('value1' = 10, 'value2' = 30)", [10, 30]],
-        ["Enum('value1' = 10)", [10]],
+        ["Enum8('value1' = 10, 'value2' = 30)", [10, 30]],
+        ["Enum16('value1' = 10)", [10]],
     ],
 )
 def test_SQLAlchemyColumnFactory_create_enum_column(
@@ -39,8 +40,9 @@ def test_SQLAlchemyColumnFactory_create_integer_column(column_factory, type_str:
     expected_description = "MyEnumIntDescription"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
+    expected_type = getattr(clickhouse_types, type_str)
     assert actual.doc == expected_description
-    assert isinstance(actual.type, sqla_types.Integer)
+    assert isinstance(actual.type, expected_type)
     assert actual.name == expected_name
     assert not actual.nullable
 
@@ -69,7 +71,7 @@ def test_SQLAlchemyColumnFactory_create_decimal_column(
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
     assert actual.doc == expected_description
-    assert isinstance(actual.type, sqla_types.DECIMAL)
+    assert isinstance(actual.type, clickhouse_types.Decimal)
     assert actual.name == expected_name
     assert actual.type.scale == expected_scale
     assert actual.type.precision == expected_precision
@@ -122,7 +124,7 @@ def test_SQLAlchemyColumnFactory_create_datetime_column(
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
     assert actual.doc == expected_description
-    assert isinstance(actual.type, sqla_table.DateTime)
+    assert isinstance(actual.type, clickhouse_types.DateTime)
     assert actual.type.timezone == expected_timezone
     assert not actual.nullable
 
@@ -143,7 +145,7 @@ def test_SQLAlchemyColumnFactory_create_datetime64_column(
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
     assert actual.doc == expected_description
-    assert isinstance(actual.type, sqla_table.DateTime64)
+    assert isinstance(actual.type, clickhouse_types.DateTime64)
     assert actual.type.timezone == expected_timezone
     assert actual.type.precision == expected_precision
     assert not actual.nullable
@@ -163,10 +165,8 @@ def test_SQLAlchemyColumnFactory_create_low_cardinality_column(
     expected_description = "myLowCardinalityDescription"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
-    expected = column_factory(
-        ColumnMetadata(expected_name, expected_type, expected_description)
-    )
-    assert str(actual.type) == str(expected.type)
+    assert isinstance(actual.type, clickhouse_types.LowCardinality)
+    assert isinstance(actual.type.nested_type, clickhouse_types.String)
     assert actual.name == expected_name
     assert actual.doc == expected_description
     assert not actual.nullable
@@ -183,10 +183,9 @@ def test_SQLAlchemyColumnFactory_nullable_column(
     expected_description = "myNullableDescription"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
-    expected = column_factory(
-        ColumnMetadata(expected_name, expected_type, expected_description)
-    )
-    assert str(actual.type) == str(expected.type)
+    expected_nested_type = getattr(clickhouse_types, expected_type)
+    assert isinstance(actual.type, clickhouse_types.Nullable)
+    assert isinstance(actual.type.nested_type, expected_nested_type)
     assert actual.name == expected_name
     assert actual.doc == expected_description
     assert actual.nullable
@@ -201,7 +200,9 @@ def test_SQLAlchemyColumnFactory_array_column(column_factory, type_str, expected
     expected_description = "myArrayDescription"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
-    # assert str(actual.type) == str(expected.type)
+    expected_item_type = getattr(clickhouse_types, expected_type)
+    assert isinstance(actual.type, clickhouse_types.Array)
+    assert actual.type.item_type is expected_item_type
     assert actual.name == expected_name
     assert actual.doc == expected_description
     assert not actual.nullable
@@ -210,11 +211,11 @@ def test_SQLAlchemyColumnFactory_array_column(column_factory, type_str, expected
 def test_SQLAlchemyColumnFactory_create_boolean_column(column_factory):
     expected_name = "myBooleanTimeColumn"
     expected_description = "myBooleanDescription"
-    type_str = "Boolean"
+    type_str = "Bool"
     metadata = ColumnMetadata(expected_name, type_str, expected_description)
     actual = column_factory(metadata)
     assert actual.doc == expected_description
-    assert isinstance(actual.type, sqla_types.Boolean)
+    assert isinstance(actual.type, clickhouse_types.Boolean)
     assert not actual.nullable
 
 
