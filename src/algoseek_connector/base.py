@@ -2,7 +2,8 @@
 
 import numpy as np
 from abc import ABC, abstractmethod
-from sqlalchemy import func, Column, MetaData, select, Select, Table
+from sqlalchemy import func, Column, MetaData, select, Table
+from sqlalchemy.sql import Select
 from typing import Optional, Sequence
 from pandas import DataFrame
 
@@ -67,6 +68,10 @@ class DataSet:
             exclude_names = [x.name for x in exclude]
             columns = [x for x in columns if x.name not in exclude_names]
 
+        if not columns:
+            msg = "Cannot perform select if all column are excluded."
+            raise ValueError(msg)
+
         return select(*columns)
 
     def fetch(self, stmt: Select) -> dict[str, list]:
@@ -106,6 +111,7 @@ class DataSet:
         return self._source.fetch_dataframe(stmt)
 
 
+# TODO: reorganize creation of datasets and inclusion in data group.
 class DataGroup:
     """Manage a collection of related datasets."""
 
@@ -157,3 +163,7 @@ class DataResource(ABC):
     @abstractmethod
     def get_function_handle(self) -> FunctionHandle:
         """Create a FunctionHandler instance."""
+
+    @abstractmethod
+    def compile(self, stmt: Select) -> str:
+        """Compiles the statement into a SQL string."""
