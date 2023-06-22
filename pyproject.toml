@@ -28,10 +28,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-SQLAlchemy = "^2.0.15"
 clickhouse-driver = "^0.2.6"
 requests = "^2.31.0"
 pandas = "^2.0.2"
+clickhouse-sqlalchemy = "^0.2.4"
+sqlalchemy = "^1.4"
 
 [tool.poetry.group.dev]
 optional = true
