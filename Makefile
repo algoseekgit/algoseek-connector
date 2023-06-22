@@ -7,6 +7,9 @@ flake8:
 test:
 	python3 -m unittest discover -s tests/
 
+coverage:
+	poetry run pytest --cov=src tests && coverage html
+
 install:
 	python3 setup.py install
 
