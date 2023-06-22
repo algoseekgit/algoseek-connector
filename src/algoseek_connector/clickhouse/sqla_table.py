@@ -9,10 +9,16 @@ from clickhouse_sqlalchemy.types.common import ClickHouseTypeEngine
 from typing import cast
 
 
-class UnsupportedClickHouseType(ValueError):
-    """Exception class to raise when an unsupported ClickHouse type is used."""
+class SQLAlchemyTableFactory:
+    """Create SQLAlchemy tables from table metadata."""
 
-    pass
+    def __init__(self):
+        self.column_factory = SQLAlchemyColumnFactory()
+
+    def __call__(self, table_metadata: TableMetadata, metadata: MetaData) -> Table:
+        """Create a SQLAlchemy Table from a TableMetadata instance."""
+        columns = [self.column_factory(x) for x in table_metadata.columns]
+        return Table(table_metadata.get_table_name(), metadata, *columns, quote=False)
 
 
 class SQLAlchemyColumnFactory:
@@ -157,13 +163,7 @@ class ClickHouseTypeMapper:
         return clickhouse_types.LowCardinality(T)
 
 
-class SQLAlchemyTableFactory:
-    """Create SQLAlchemy tables from table metadata."""
+class UnsupportedClickHouseType(ValueError):
+    """Exception class to raise when an unsupported ClickHouse type is used."""
 
-    def __init__(self):
-        self.column_factory = SQLAlchemyColumnFactory()
-
-    def __call__(self, table_metadata: TableMetadata, metadata: MetaData) -> Table:
-        """Create a SQLAlchemy Table from a TableMetadata instance."""
-        columns = [self.column_factory(x) for x in table_metadata.columns]
-        return Table(table_metadata.get_table_name(), metadata, *columns, quote=False)
+    pass
