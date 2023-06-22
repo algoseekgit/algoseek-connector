@@ -1,12 +1,12 @@
 """Tools to create SQLAlchemy Tables from base.TableMetadata."""
 
 import enum
-from sqlalchemy import Column, Table, MetaData
-from . import base
-from .base import ColumnMetadata, TableMetadata
 from clickhouse_sqlalchemy import types as clickhouse_types
 from clickhouse_sqlalchemy.types.common import ClickHouseTypeEngine
+from sqlalchemy import Column, Table, MetaData
 from typing import cast
+from . import base
+from .base import ColumnMetadata, TableMetadata
 
 
 class SQLAlchemyTableFactory:
