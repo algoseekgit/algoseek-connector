@@ -4,6 +4,7 @@ import enum
 from clickhouse_sqlalchemy import types as clickhouse_types
 from clickhouse_sqlalchemy.types.common import ClickHouseTypeEngine
 from sqlalchemy import Column, Table, MetaData
+from sqlalchemy.types import TypeEngine
 from typing import cast
 from . import base
 from .base import ColumnMetadata, TableMetadata
@@ -16,7 +17,20 @@ class SQLAlchemyTableFactory:
         self.column_factory = SQLAlchemyColumnFactory()
 
     def __call__(self, table_metadata: TableMetadata, metadata: MetaData) -> Table:
-        """Create a SQLAlchemy Table from a TableMetadata instance."""
+        """
+        Create a SQLAlchemy Table from a TableMetadata instance.
+
+        Parameters
+        ----------
+        table_metadata : TableMetadata
+        metadata : sqlalchemy.MetaData
+            Stores a collection of related tables.
+
+        Returns
+        -------
+        sqlalchemy.Table
+
+        """
         columns = [self.column_factory(x) for x in table_metadata.columns]
         return Table(table_metadata.get_table_name(), metadata, *columns, quote=False)
 
@@ -43,6 +57,8 @@ class SQLAlchemyColumnFactory:
         ------
         UnsupportedClickHouseType
             If an unsupported type is used.
+        ValueError
+            If an invalid type string is passed.
 
         """
         T = self.type_mapper.get_type(column_metadata)
@@ -57,8 +73,26 @@ class ClickHouseTypeMapper:
     def __init__(self):
         self.clickhouse_types = base.ClickHouseTypes()
 
-    def get_type(self, column_metadata: ColumnMetadata) -> ClickHouseTypeEngine:
-        """Search a ClickHouse type."""
+    def get_type(self, column_metadata: ColumnMetadata) -> TypeEngine:
+        """
+        Search a ClickHouse type.
+
+        Parameters
+        ----------
+        column_metadata : ColumnMetadata
+
+        Returns
+        -------
+        TypeEngine
+
+        Raises
+        ------
+        UnsupportedClickHouseType
+            If an unsupported type is used.
+        ValueError
+            If an invalid type string is passed.
+
+        """
         self.clickhouse_types.fix_type(column_metadata)
         t = column_metadata.get_type_name()
         if t == self.clickhouse_types.ARRAY:
