@@ -1,10 +1,11 @@
 import pytest
-from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
-from algoseek_connector.clickhouse import sqla_table
-from algoseek_connector.clickhouse.metadata_api import MockAPIConsumer
-from sqlalchemy import types as sqla_types
-from sqlalchemy import MetaData
 from clickhouse_sqlalchemy import types as clickhouse_types
+from sqlalchemy import MetaData
+from sqlalchemy import types as sqla_types
+
+from algoseek_connector.clickhouse import sqla_table
+from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
+from algoseek_connector.clickhouse.metadata_api import MockAPIConsumer
 
 
 @pytest.fixture
@@ -219,12 +220,21 @@ def test_SQLAlchemyColumnFactory_create_boolean_column(column_factory):
     assert not actual.nullable
 
 
-def test_SQLAlchemyColumnFactory_invalid_unsupported_type_column(column_factory):
+def test_SQLAlchemyColumnFactory_unsupported_type_column(column_factory):
     col_name = "myDateTimeColumn"
     type_str = "Nested(Field1 Int64, Field2 String)"
     col_description = ""
     metadata = ColumnMetadata(col_name, type_str, col_description)
     with pytest.raises(sqla_table.UnsupportedClickHouseType):
+        column_factory(metadata)
+
+
+def test_SQLAlchemyColumnFactory_invalid_type_column(column_factory):
+    col_name = "myDateTimeColumn"
+    type_str = "InvalidType"
+    col_description = ""
+    metadata = ColumnMetadata(col_name, type_str, col_description)
+    with pytest.raises(ValueError):
         column_factory(metadata)
 
 
