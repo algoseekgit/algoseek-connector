@@ -1,16 +1,18 @@
 """DataResource implementation for ClickHouse DB."""
 
-import numpy as np
 import os
-from typing import cast, Optional
+from functools import lru_cache
+from typing import Optional, cast
+
+import numpy as np
 from clickhouse_driver import Client
+from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
+from pandas import DataFrame
 from sqlalchemy.sql import Select
+
 from ..base import DataGroup, DataResource, DataSet, FunctionHandle
 from .base import ColumnMetadata, TableMetadata
 from .sqla_table import SQLAlchemyTableFactory
-from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
-from functools import lru_cache
-from pandas import DataFrame
 
 
 class ClickHouseDataResource(DataResource):
