@@ -44,6 +44,7 @@ flake8 = "^6.0.0"
 pre-commit = "^3.3.2"
 flake8-docstrings = "^1.7.0"
 pytest-cov = "^4.1.0"
+isort = "^5.12.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -53,3 +54,6 @@ build-backend = "poetry.core.masonry.api"
 testpaths = [
     "tests/unit",
 ]
+
+[tool.isort]
+profile = "black"
