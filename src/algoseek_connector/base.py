@@ -1,16 +1,20 @@
 """Base tools for the algoseek_connector library."""
 
+from __future__ import annotations  # delayed annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generator, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Generator, Optional, Sequence
 
 import numpy as np
-from pandas import DataFrame
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
+
+if TYPE_CHECKING:  # pragma: no cover
+    from pandas import DataFrame
 
 
 class DataResource(ABC):
@@ -90,7 +94,9 @@ class DataSet:
         self.c = ColumnHandle(table)
         group.add_dataset(self)
 
-    def _repr_html_(self):
+    def _repr_html_(self):  # pragma: no cover
+        from pandas import DataFrame
+
         d = dict()
         d["name"] = [x.name for x in self._table.columns]
         d["type"] = [str(x.type) for x in self._table.columns]
@@ -101,7 +107,7 @@ class DataSet:
     def __getitem__(self, key: str) -> Column:
         return self.c[key]
 
-    def _ipython_key_completions_(self):
+    def _ipython_key_completions_(self):  # pragma: no cover
         """Add autocomplete integration for keys in Ipython/Jupyter."""
         return self.c._ipython_key_completions_()
 
@@ -199,7 +205,7 @@ class CompiledQuery:
     sql: str
     parameters: dict
 
-    def _repr_html_(self):
+    def _repr_html_(self):  # pragma: no cover
         """Display query as a code block in Jupyter notebooks."""
         fmt = HtmlFormatter()
         lexer = get_lexer_by_name("SQL")
@@ -221,7 +227,7 @@ class ColumnHandle:
         for key in self.__dict__:
             yield self[key]
 
-    def _ipython_key_completions_(self):
+    def _ipython_key_completions_(self):  # pragma: no cover
         return self.__dict__.keys()
 
 
