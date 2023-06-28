@@ -13,55 +13,68 @@ from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
 
 
-@dataclass(frozen=True)
-class CompiledQuery:
-    """
-    Container class for compiled queries.
+class DataResource(ABC):
+    """Base class to manage a data source."""
 
-    Attributes
-    ----------
-    sql : str
-        Parametrized SQL statement.
-    parameters : str
-        Query parameters.
+    @abstractmethod
+    def fetch(self, stmt: Select) -> dict[str, list]:
+        """Fetch data and output using Python native types."""
 
-    """
+    @abstractmethod
+    def fetch_iter(
+        self, stmt: Select, size: int
+    ) -> Generator[dict[str, Any], None, None]:
+        """Fetch data and output using Python native types."""
 
-    sql: str
-    parameters: dict
+    @abstractmethod
+    def fetch_dataframe(self, stmt: Select) -> DataFrame:
+        """Fetch data and output using Pandas DataFrame."""
 
-    def _repr_html_(self):
-        """Display query as a code block in Jupyter notebooks."""
-        fmt = HtmlFormatter()
-        lexer = get_lexer_by_name("SQL")
-        style = "<style>{}</style>".format(fmt.get_style_defs(".output_html"))
-        return style + highlight(self.sql, lexer, fmt)
+    @abstractmethod
+    def fetch_numpy(self, stmt: Select) -> dict[str, np.ndarray]:
+        """Fetch data and output using Numpy arrays."""
+
+    @abstractmethod
+    def list_groups(self) -> list[str]:
+        """List available data groups."""
+
+    @abstractmethod
+    def list_datasets(self, group: str) -> list[str]:
+        """List available datasets in a group."""
+
+    @abstractmethod
+    def get_dataset(self, group: str, name: str) -> "DataSet":
+        """Get a dataset."""
+
+    @abstractmethod
+    def get_function_handle(self) -> "FunctionHandle":
+        """Create a FunctionHandler instance."""
+
+    @abstractmethod
+    def compile(self, stmt: Select) -> "CompiledQuery":
+        """Compiles the statement into a dialect-specific SQL string."""
 
 
-class ColumnHandle:
-    """Handle for fast access to a dataset columns."""
+# TODO: reorganize creation of datasets and inclusion in data group.
+class DataGroup:
+    """Manage a collection of related datasets."""
 
-    def __init__(self, table: Table):
-        for column in table.c:
-            setattr(self, column.name, column)
+    def __init__(self, source: "DataResource") -> None:
+        self.metadata = MetaData()
+        self.datasets: dict[str, DataSet] = dict()
+        self._source = source
 
-    def __getitem__(self, key: str) -> Column:
-        return self.__dict__[key]
+    def add_dataset(self, dataset: "DataSet"):
+        """Add dataset to data group."""
+        self.datasets[dataset.name] = dataset
 
-    def __iter__(self) -> Generator[Column, None, None]:
-        for key in self.__dict__:
-            yield self[key]
+    def get_dataset(self, name: str) -> Optional["DataSet"]:
+        """Get a dataset using the name."""
+        return self.datasets.get(name)
 
-    def _ipython_key_completions_(self):
-        return self.__dict__.keys()
-
-
-class FunctionHandle:
-    """Handle for supported functions."""
-
-    def __init__(self, function_names: list[str]):
-        for f in function_names:
-            setattr(self, f, getattr(func, f))
+    @abstractmethod
+    def list_datasets(self) -> list[str]:
+        """List available datasets."""
 
 
 class DataSet:
@@ -92,11 +105,11 @@ class DataSet:
         """Add autocomplete integration for keys in Ipython/Jupyter."""
         return self.c._ipython_key_completions_()
 
-    def get_column_handle(self) -> ColumnHandle:
+    def get_column_handle(self) -> "ColumnHandle":
         """Get a handler object for fast access to dataset columns."""
         return ColumnHandle(self._table)
 
-    def get_function_handle(self) -> FunctionHandle:
+    def get_function_handle(self) -> "FunctionHandle":
         """Get a handle for fast access to supported functions."""
         return self._source.get_function_handle()
 
@@ -169,65 +182,52 @@ class DataSet:
         return self._source.fetch_dataframe(stmt)
 
 
-# TODO: reorganize creation of datasets and inclusion in data group.
-class DataGroup:
-    """Manage a collection of related datasets."""
+@dataclass(frozen=True)
+class CompiledQuery:
+    """
+    Container class for compiled queries.
 
-    def __init__(self, source: "DataResource") -> None:
-        self.metadata = MetaData()
-        self.datasets: dict[str, DataSet] = dict()
-        self._source = source
+    Attributes
+    ----------
+    sql : str
+        Parametrized SQL statement.
+    parameters : str
+        Query parameters.
 
-    def add_dataset(self, dataset: DataSet):
-        """Add dataset to data group."""
-        self.datasets[dataset.name] = dataset
+    """
 
-    def get_dataset(self, name: str) -> Optional[DataSet]:
-        """Get a dataset using the name."""
-        return self.datasets.get(name)
+    sql: str
+    parameters: dict
 
-    @abstractmethod
-    def list_datasets(self) -> list[str]:
-        """List available datasets."""
+    def _repr_html_(self):
+        """Display query as a code block in Jupyter notebooks."""
+        fmt = HtmlFormatter()
+        lexer = get_lexer_by_name("SQL")
+        style = "<style>{}</style>".format(fmt.get_style_defs(".output_html"))
+        return style + highlight(self.sql, lexer, fmt)
 
 
-class DataResource(ABC):
-    """Base class to manage a data source."""
+class ColumnHandle:
+    """Handle for fast access to a dataset columns."""
 
-    @abstractmethod
-    def fetch(self, stmt: Select) -> dict[str, list]:
-        """Fetch data and output using Python native types."""
+    def __init__(self, table: Table):
+        for column in table.c:
+            setattr(self, column.name, column)
 
-    @abstractmethod
-    def fetch_iter(
-        self, stmt: Select, size: int
-    ) -> Generator[dict[str, Any], None, None]:
-        """Fetch data and output using Python native types."""
+    def __getitem__(self, key: str) -> Column:
+        return self.__dict__[key]
 
-    @abstractmethod
-    def fetch_dataframe(self, stmt: Select) -> DataFrame:
-        """Fetch data and output using Pandas DataFrame."""
+    def __iter__(self) -> Generator[Column, None, None]:
+        for key in self.__dict__:
+            yield self[key]
 
-    @abstractmethod
-    def fetch_numpy(self, stmt: Select) -> dict[str, np.ndarray]:
-        """Fetch data and output using Numpy arrays."""
+    def _ipython_key_completions_(self):
+        return self.__dict__.keys()
 
-    @abstractmethod
-    def list_groups(self) -> list[str]:
-        """List available data groups."""
 
-    @abstractmethod
-    def list_datasets(self, group: str) -> list[str]:
-        """List available datasets in a group."""
+class FunctionHandle:
+    """Handle for supported functions."""
 
-    @abstractmethod
-    def get_dataset(self, group: str, name: str) -> DataSet:
-        """Get a dataset."""
-
-    @abstractmethod
-    def get_function_handle(self) -> FunctionHandle:
-        """Create a FunctionHandler instance."""
-
-    @abstractmethod
-    def compile(self, stmt: Select) -> CompiledQuery:
-        """Compiles the statement into a dialect-specific SQL string."""
+    def __init__(self, function_names: list[str]):
+        for f in function_names:
+            setattr(self, f, getattr(func, f))
