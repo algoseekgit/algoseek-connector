@@ -1,8 +1,9 @@
 import pytest
-from algoseek_connector.clickhouse.base import TableMetadata, ColumnMetadata
-from algoseek_connector.clickhouse import sqla_table
-from algoseek_connector.clickhouse.resources import MockClickHouseDataResource
+
 from algoseek_connector.base import DataGroup, DataSet
+from algoseek_connector.clickhouse import sqla_table
+from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
+from algoseek_connector.clickhouse.resources import MockClickHouseDataResource
 
 
 @pytest.fixture(scope="module")
@@ -35,8 +36,8 @@ def test_select_one_column(resource: MockClickHouseDataResource):
     dataset_name = "t"
     dataset = resource.get_dataset(group_name, dataset_name)
     stmt = dataset.select(dataset.col1)
-    actual, _ = resource.compile(stmt)
-    actual = remove_new_lines(actual)
+    query = resource.compile(stmt)
+    actual = remove_new_lines(query.sql)
     assert expected == actual
 
 
@@ -47,8 +48,8 @@ def test_select_two_columns(resource: MockClickHouseDataResource):
     dataset = resource.get_dataset(group_name, dataset_name)
     c = dataset.get_column_handle()
     stmt = dataset.select(c.col1, c.col2)
-    actual, _ = resource.compile(stmt)
-    actual = remove_new_lines(actual)
+    query = resource.compile(stmt)
+    actual = remove_new_lines(query.sql)
     assert expected == actual
 
 
@@ -58,8 +59,8 @@ def test_select_all_columns(resource: MockClickHouseDataResource):
     dataset_name = "t"
     dataset = resource.get_dataset(group_name, dataset_name)
     stmt = dataset.select()
-    actual, _ = resource.compile(stmt)
-    actual = remove_new_lines(actual)
+    query = resource.compile(stmt)
+    actual = remove_new_lines(query.sql)
     assert expected == actual
 
 
@@ -70,8 +71,8 @@ def test_select_exclude_columns(resource: MockClickHouseDataResource):
     dataset = resource.get_dataset(group_name, dataset_name)
     c = dataset.get_column_handle()
     stmt = dataset.select(exclude=(c.col2, c.col3))
-    actual, _ = resource.compile(stmt)
-    actual = remove_new_lines(actual)
+    query = resource.compile(stmt)
+    actual = remove_new_lines(query.sql)
     assert expected == actual
 
 
@@ -94,7 +95,7 @@ def test_select_where(resource):
     c = dataset.get_column_handle()
     col2_filter = 2
     stmt = dataset.select(c.col1, c.col3).where(c.col2 == col2_filter)
-    actual, params = resource.compile(stmt)
-    actual = remove_new_lines(actual)
+    query = resource.compile(stmt)
+    actual = remove_new_lines(query.sql)
     assert actual == expected
-    assert params["col2_1"] == col2_filter
+    assert query.parameters["col2_1"] == col2_filter
