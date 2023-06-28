@@ -7,11 +7,13 @@ flake8:
 test:
 	python3 -m unittest discover -s tests/
 
+.PHONY: coverage
 coverage:
 	poetry run pytest --cov=src tests && coverage html
 
-install:
-	python3 setup.py install
+.PHONY: dev-install
+dev-install:
+	poetry install --with dev
 
 publish:
 	pip3 install 'twine>=1.5.0' 'wheel'
