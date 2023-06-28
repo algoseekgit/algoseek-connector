@@ -63,10 +63,11 @@ class SQLAlchemyColumnFactory:
             If an invalid type string is passed.
 
         """
+        name = column_metadata.name
         T = self.type_mapper.get_type(column_metadata)
         nullable = isinstance(T, clickhouse_types.Nullable)
         doc = column_metadata.description
-        return Column(column_metadata.name, T, nullable=nullable, doc=doc)
+        return Column(name, T, nullable=nullable, doc=doc, quote=False)
 
 
 class ClickHouseTypeMapper:
