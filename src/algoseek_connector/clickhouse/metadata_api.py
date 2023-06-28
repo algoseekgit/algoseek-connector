@@ -8,11 +8,13 @@ APIConsumer : fetch DB table metadata.
 """
 
 import json
-import requests
 from functools import lru_cache
-from pathlib import Path
 from os import getenv
+from pathlib import Path
 from typing import Optional
+
+import requests
+
 from .base import ColumnMetadata, TableMetadata
 
 BASE_URL = "https://metadata-services.algoseek.com/"
@@ -132,7 +134,7 @@ class APIConsumer:
             msg = f"Connection to API failed with code {response.status_code}"
             raise requests.exceptions.HTTPError(msg)
 
-        db_metadata = dict()
+        db_metadata: dict[str, dict[str, dict]] = dict()
         for t in tables:
             group, name = t["table_name"].split(".")
             group_metadata = db_metadata.setdefault(group, dict())
