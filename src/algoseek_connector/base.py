@@ -6,14 +6,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generator, Optional, Sequence
 
-import numpy as np
-from pygments import highlight
-from pygments.formatters import HtmlFormatter
-from pygments.lexers import get_lexer_by_name
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
 
 if TYPE_CHECKING:  # pragma: no cover
+    import numpy as np
     from pandas import DataFrame
 
 
@@ -76,9 +73,10 @@ class DataGroup:
         """Get a dataset using the name."""
         return self.datasets.get(name)
 
-    @abstractmethod
     def list_datasets(self) -> list[str]:
         """List available datasets."""
+        # TODO: fix this. Only lists loaded datasets
+        return list(self.datasets)
 
 
 class DataSet:
@@ -207,6 +205,10 @@ class CompiledQuery:
 
     def _repr_html_(self):  # pragma: no cover
         """Display query as a code block in Jupyter notebooks."""
+        from pygments import highlight
+        from pygments.formatters import HtmlFormatter
+        from pygments.lexers import get_lexer_by_name
+
         fmt = HtmlFormatter()
         lexer = get_lexer_by_name("SQL")
         style = "<style>{}</style>".format(fmt.get_style_defs(".output_html"))
