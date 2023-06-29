@@ -219,9 +219,9 @@ class ClickHouseDataResource(DataResource):
         table = self._table_factory(table_metadata, data_group.metadata)
         return DataSet(data_group, table, self)
 
-    def compile(self, stmt: Select) -> CompiledQuery:
+    def compile(self, stmt: Select, **kwargs) -> CompiledQuery:
         """Convert a stmt into an SQL string."""
-        compiled = stmt.compile(dialect=self._dialect)
+        compiled = stmt.compile(dialect=self._dialect, **kwargs)
         return CompiledQuery(compiled.string, compiled.params)
 
 
