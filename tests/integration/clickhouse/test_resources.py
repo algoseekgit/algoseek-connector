@@ -1,4 +1,5 @@
 import pytest
+
 from algoseek_connector.clickhouse.resources import ClickHouseDataResource
 
 
@@ -57,3 +58,44 @@ def test_ClickHouseDataResource_get_dataset_invalid_group_name(
         group_name = "InvalidGroupName"
         dataset_name = "InvalidDatasetName"
         clickhouse_resource.get_dataset(group_name, dataset_name)
+
+
+def test_ClickHouseDataResource_fetch(clickhouse_resource: ClickHouseDataResource):
+    group_name = clickhouse_resource.list_groups()[2]
+    dataset_name = clickhouse_resource.list_datasets(group_name)[0]
+    dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
+    size = 10
+    stmt = dataset.select().limit(size)
+    data = dataset.fetch(stmt)
+    for k, v in data.items():
+        column = dataset[k]
+        assert k == column.name
+        assert len(v) == size
+        if hasattr(column.type, "nested_type"):
+            assert isinstance(v[0], column.type.nested_type.python_type)
+        else:
+            assert isinstance(v[0], column.type.python_type)
+
+
+def test_ClickHouseDataResource_fetch_iter(clickhouse_resource: ClickHouseDataResource):
+    group_name = clickhouse_resource.list_groups()[2]
+    dataset_name = clickhouse_resource.list_datasets(group_name)[0]
+    dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
+    # the first chunk contains headers. make all chunks with size=10
+    # except the first one
+    limit = 49
+    chunk_size = 10
+    stmt = dataset.select().limit(limit)
+    for i, chunk in enumerate(dataset.fetch_iter(stmt, size=chunk_size)):
+        for col_name, v in chunk.items():
+            column = dataset[col_name]
+            assert col_name == column.name
+            if i == 0:  # first chunk is shorter as it contains headers
+                assert len(v) == chunk_size - 1
+            else:
+                assert len(v) == chunk_size
+
+            if hasattr(column.type, "nested_type"):
+                assert isinstance(v[0], column.type.nested_type.python_type)
+            else:
+                assert isinstance(v[0], column.type.python_type)
