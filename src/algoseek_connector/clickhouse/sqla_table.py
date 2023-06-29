@@ -3,8 +3,10 @@
 import enum
 from typing import cast
 
+import numpy as np
 from clickhouse_sqlalchemy import types as clickhouse_types
 from clickhouse_sqlalchemy.types.common import ClickHouseTypeEngine
+from numpy.typing import DTypeLike
 from sqlalchemy import Column, MetaData, Table
 from sqlalchemy.types import TypeEngine
 
@@ -153,8 +155,7 @@ class ClickHouseTypeMapper:
         else:
             precision = type_args[0]
             timezone = None
-        precision = int(precision)
-        return clickhouse_types.DateTime64(precision, timezone)
+        return clickhouse_types.DateTime64(int(precision), timezone)
 
     def _to_decimal(self, column_metadata: ColumnMetadata) -> clickhouse_types.Decimal:
         t = column_metadata.get_type_name()
@@ -171,8 +172,7 @@ class ClickHouseTypeMapper:
         for arg in args:
             member, value = arg.split("=")
             member = member.strip("' ")
-            value = int(value.strip())
-            members[member] = value
+            members[member] = int(value.strip())
         python_enum = enum.Enum(column_metadata.name, members)
         ch_enum_class = getattr(clickhouse_types, column_metadata.get_type_name())
         return ch_enum_class(python_enum)
@@ -198,6 +198,71 @@ class ClickHouseTypeMapper:
         inner = ColumnMetadata(column_metadata.name, inner_type_str, "")
         T = self.get_type(inner)
         return clickhouse_types.LowCardinality(T)
+
+
+class ClickHouseToNumpyTypeMapper:
+    """Map ClickHouse Types to Numpy types."""
+
+    def __init__(self):
+        self.basic = {
+            "UInt8": np.uint8,
+            "UInt16": np.uint16,
+            "UInt32": np.uint32,
+            "UInt64": np.uint64,
+            # "UInt128": np.uint128,
+            # "UInt256": np.uint256,
+            "Int8": np.int8,
+            "Int16": np.int16,
+            "Int32": np.int32,
+            "Int64": np.int64,
+            # "Int128": np.int128,
+            # "Int256": np.int256,
+            "Float32": np.float32,
+            "Float64": np.float64,
+            "Bool": np.bool_,
+            "String": np.str_,
+            "Date": np.datetime64,
+            "Date32": np.datetime64,
+            "DateTime": np.datetime64,
+            "DateTime64": np.datetime64,
+        }
+
+        self.nested = {"LowCardinality", "Nullable", "Array"}
+
+    def get_type(self, T: ClickHouseTypeEngine) -> DTypeLike:
+        """
+        Search a Numpy Type.
+
+        Parameters
+        ----------
+        T : ClickHouseTypeEngine
+
+        Returns
+        -------
+        DTypeLike
+            Numpy DType
+
+        Raises
+        ------
+        ValueError
+            If an unsupported ClickHouse type is passed.
+
+        """
+        name = str(T)
+        if name in self.basic:
+            numpy_type = self.basic[name]
+        elif hasattr(T, "nested_type"):
+            numpy_type = self.basic[getattr(T, "nested_type")]
+        elif name in ["Enum", "Enum8", "Enum16"]:
+            numpy_type = np.uint16
+        elif name == "Decimal":
+            precision = getattr(T, "precision")
+            numpy_type_str = f"Float{precision}"
+            numpy_type = self.basic[numpy_type_str]
+        else:
+            msg = f"{name} has not a corresponding Numpy Dtype assigned."
+            raise ValueError(msg)
+        return numpy_type
 
 
 class UnsupportedClickHouseType(ValueError):
