@@ -11,7 +11,7 @@ Inside the project repository run:
 
     poetry install --with dev
 
-Before commit changes, run linters and formatter using pre-commit:
+Before committing changes, run linters and formatter using pre-commit:
 
     poetry run pre-commit run
 
@@ -40,21 +40,21 @@ the instructions above to connect to the DB.
 poetry run pytest tests
 ```
 
-## Installing and Supported Versions
+# Docs
 
-algoseek-connector is available on PyPI:
+The documentation is generated using the sphinx library. First, install
+the necessary dependencies with the following command:
 
-```
-$ python -m pip install algoseek-connector
-```
-
-or alternatively
-
-```
-$ pip install algoseek-connector
+```sh
+poetry install --with docs
 ```
 
-Python versions 3.6+ are supported.
+Build the documentation using the Makefile located in the `docs` directory:
+
+```sh
+make html
+```
+
 ## Supported Features
 
 The following query operations on datasets are supported:
