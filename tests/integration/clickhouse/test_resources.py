@@ -61,7 +61,7 @@ def test_ClickHouseDataResource_get_dataset_invalid_group_name(
 
 
 def test_ClickHouseDataResource_fetch(clickhouse_resource: ClickHouseDataResource):
-    group_name = clickhouse_resource.list_groups()[2]
+    group_name = "USEquityReferenceData"
     dataset_name = clickhouse_resource.list_datasets(group_name)[0]
     dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
     size = 10
@@ -78,7 +78,7 @@ def test_ClickHouseDataResource_fetch(clickhouse_resource: ClickHouseDataResourc
 
 
 def test_ClickHouseDataResource_fetch_iter(clickhouse_resource: ClickHouseDataResource):
-    group_name = clickhouse_resource.list_groups()[2]
+    group_name = "USEquityReferenceData"
     dataset_name = clickhouse_resource.list_datasets(group_name)[0]
     dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
     # the first chunk contains headers. make all chunks with size=10
