@@ -1,69 +1,59 @@
 import pytest
 
-from algoseek_connector.clickhouse.resources import ClickHouseDataResource
+from algoseek_connector import base
+from algoseek_connector.base import DataSource
+from algoseek_connector.clickhouse.resources import ClickHouseClient
+
+# TODO: rename file to test_clickhouse_client
 
 
 @pytest.fixture(scope="module")
-def clickhouse_resource():
+def data_source():
     # Connect to DB using host, user and password from env variables.
-    return ClickHouseDataResource()
+    return base.DataSource(ClickHouseClient())
 
 
-def test_ClickHouseDataResource_list_groups(
-    clickhouse_resource: ClickHouseDataResource,
-):
-    groups = clickhouse_resource.list_groups()
+def test_ClickHouseClient_list_groups(data_source: DataSource):
+    groups = data_source.list_datagroups()
     assert len(groups)
     assert all(isinstance(x, str) for x in groups)
 
 
-def test_ClickHouseDataResource_list_dataset(
-    clickhouse_resource: ClickHouseDataResource,
-):
-    for group in clickhouse_resource.list_groups():
-        for dataset in clickhouse_resource.list_datasets(group):
-            assert isinstance(dataset, str)
+def test_ClickHouseClient_list_dataset(data_source: DataSource):
+    for group in data_source.groups.values():
+        for dataset_name in group.list_datasets():
+            assert isinstance(dataset_name, str)
 
 
-def test_ClickHouseDataResource_list_dataset_invalid_group(
-    clickhouse_resource: ClickHouseDataResource,
-):
-    with pytest.raises(ValueError):
+def test_ClickHouseClient_get_datagroup_invalid_group(data_source: DataSource):
+    with pytest.raises(base.InvalidDataGroupName):
         group = "InvalidGroupName"
-        clickhouse_resource.list_datasets(group)
+        data_source.get_datagroup(group)
 
 
-def test_ClickHouseDataResource_get_dataset(
-    clickhouse_resource: ClickHouseDataResource,
-):
-    for group_name in clickhouse_resource.list_groups():
-        for dataset_name in clickhouse_resource.list_datasets(group_name):
-            dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
+def test_ClickHouseClient_get_dataset(data_source: DataSource):
+    for group_name in data_source.groups:
+        group = data_source.groups[group_name]
+        for dataset_name in group.list_datasets():
+            dataset = group.fetch_dataset(dataset_name)
             assert dataset_name == dataset.name
 
 
-def test_ClickHouseDataResource_get_dataset_invalid_dataset_name(
-    clickhouse_resource: ClickHouseDataResource,
+def test_ClickHouseClient_get_dataset_invalid_dataset_name(
+    data_source: DataSource,
 ):
-    with pytest.raises(ValueError):
-        group_name = clickhouse_resource.list_groups()[0]
+    group_name = data_source.list_datagroups()[0]
+    group = data_source.groups[group_name]
+    with pytest.raises(base.InvalidDataSetName):
         dataset_name = "InvalidDatasetName"
-        clickhouse_resource.get_dataset(group_name, dataset_name)
+        group.fetch_dataset(dataset_name)
 
 
-def test_ClickHouseDataResource_get_dataset_invalid_group_name(
-    clickhouse_resource: ClickHouseDataResource,
-):
-    with pytest.raises(ValueError):
-        group_name = "InvalidGroupName"
-        dataset_name = "InvalidDatasetName"
-        clickhouse_resource.get_dataset(group_name, dataset_name)
-
-
-def test_ClickHouseDataResource_fetch(clickhouse_resource: ClickHouseDataResource):
+def test_ClickHouseClient_fetch(data_source: DataSource):
     group_name = "USEquityReferenceData"
-    dataset_name = clickhouse_resource.list_datasets(group_name)[0]
-    dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
+    group = data_source.groups[group_name]
+    dataset_name = group.list_datasets()[0]
+    dataset = group.fetch_dataset(dataset_name)
     size = 10
     stmt = dataset.select().limit(size)
     data = dataset.fetch(stmt)
@@ -77,10 +67,11 @@ def test_ClickHouseDataResource_fetch(clickhouse_resource: ClickHouseDataResourc
             assert isinstance(v[0], column.type.python_type)
 
 
-def test_ClickHouseDataResource_fetch_iter(clickhouse_resource: ClickHouseDataResource):
+def test_ClickHouseClient_fetch_iter(data_source: DataSource):
     group_name = "USEquityReferenceData"
-    dataset_name = clickhouse_resource.list_datasets(group_name)[0]
-    dataset = clickhouse_resource.get_dataset(group_name, dataset_name)
+    group = data_source.groups[group_name]
+    dataset_name = group.list_datasets()[0]
+    dataset = group.fetch_dataset(dataset_name)
     # the first chunk contains headers. make all chunks with size=10
     # except the first one
     limit = 49
