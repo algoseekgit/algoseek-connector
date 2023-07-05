@@ -2,7 +2,7 @@ import pytest
 
 from algoseek_connector import base
 from algoseek_connector.base import DataSource
-from algoseek_connector.clickhouse.resources import ClickHouseClient
+from algoseek_connector.clickhouse.client import ClickHouseClient
 
 
 @pytest.fixture(scope="module")

@@ -5,7 +5,7 @@ from clickhouse_sqlalchemy import types as clickhouse_types
 from sqlalchemy import func
 
 from algoseek_connector.base import DataSet, DataSource
-from algoseek_connector.clickhouse.resources import ClickHouseClient
+from algoseek_connector.clickhouse.client import ClickHouseClient
 
 
 @pytest.fixture(scope="module")

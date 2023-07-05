@@ -9,7 +9,7 @@ Provides:
 """
 
 from .base import ClientProtocol, DataSource
-from .clickhouse.resources import ClickHouseClient
+from .clickhouse.client import ClickHouseClient
 
 
 class ResourceManager:

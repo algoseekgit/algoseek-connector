@@ -19,8 +19,6 @@ from .sqla_table import ClickHouseToNumpyTypeMapper, SQLAlchemyTableFactory
 if TYPE_CHECKING:  # pragma: no cover
     import numpy as np
 
-# TODO: rename module to client.py
-
 
 class ClickHouseClient(ClientProtocol):
     """

@@ -3,9 +3,6 @@ Connector tools for ClickHouse DBMS.
 
 """
 
-from . import base
-from . import metadata_api
-from . import sqla_table
-from . import resources
+from . import base, client, metadata_api, sqla_table
 
-__all__ = ["base", "metadata_api", "resources", "sqla_table"]
+__all__ = ["base", "metadata_api", "client", "sqla_table"]

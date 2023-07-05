@@ -3,7 +3,7 @@ from sqlalchemy import func
 
 from algoseek_connector.base import DataGroup, DataSet, DataSource
 from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
-from algoseek_connector.clickhouse.resources import MockClickHouseClient
+from algoseek_connector.clickhouse.client import MockClickHouseClient
 
 
 @pytest.fixture(scope="module")
