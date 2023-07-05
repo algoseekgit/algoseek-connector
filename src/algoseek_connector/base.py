@@ -1,98 +1,167 @@
-"""Base tools for the algoseek_connector library."""
+"""
+Base tools for the algoseek-connector library.
+
+Provides:
+
+Classes
+-------
+DataSource
+    Manage connection to a Database.
+DataGroupMapping
+    Container class for the DataGroups in a DataSource.
+DataGroup
+    Container class for a collection of related Datasets.
+DataSet
+    Represents a Table in a Database. Allows to query data from a data source.
+CompiledQuery
+    Container class for a query created using a DataSet.
+ColumnHandle
+    Container class for the columns of a DataSet.
+FunctionHandle
+    Container class for functions allowed in a database query.
+ClientProtocol
+    Interface to connect to different databases.
+
+Exceptions
+----------
+InvalidDataGroupName
+    Exception raised when an invalid DataGroup is requested.
+InvalidDataSetName
+    Exception raised when an invalid DataSet is requested.
+
+"""
 
 from __future__ import annotations  # delayed annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generator, Optional, Sequence
+from typing import TYPE_CHECKING, Generator, Optional, Protocol, Sequence
 
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
 
 if TYPE_CHECKING:  # pragma: no cover
-    import numpy as np
     from pandas import DataFrame
 
 
-class DataResource(ABC):
-    """Base class to manage a data source."""
+class DataSource:
+    """
+    Base class to manage a data source.
 
-    @abstractmethod
-    def fetch(self, stmt: Select) -> dict[str, list]:
-        """Fetch data and output using Python native types."""
+    Attributes
+    ----------
+    groups : DataGroupMapping
+        Maintains the collection of available DataGroups.
 
-    @abstractmethod
-    def fetch_iter(
-        self, stmt: Select, size: int
-    ) -> Generator[dict[str, Any], None, None]:
-        """Fetch data and output using Python native types."""
+    """
 
-    @abstractmethod
-    def fetch_dataframe(self, stmt: Select) -> DataFrame:
-        """Fetch data and output using Pandas DataFrame."""
+    def __init__(self, client: ClientProtocol):
+        self._client = client
+        groups = [DataGroup(self, x) for x in self._client.list_datagroups()]
+        self.groups = DataGroupMapping(*groups)
 
-    @abstractmethod
-    def fetch_numpy(self, stmt: Select) -> dict[str, np.ndarray]:
-        """Fetch data and output using Numpy arrays."""
+    @property
+    def client(self) -> ClientProtocol:
+        """Get the data source client."""
+        return self._client
 
-    @abstractmethod
-    def list_groups(self) -> list[str]:
+    def get_datagroup(self, name: str) -> "DataGroup":
+        """Retrieve a data group."""
+        return self.groups[name]
+
+    def list_datagroups(self) -> list[str]:
         """List available data groups."""
-
-    @abstractmethod
-    def list_datasets(self, group: str) -> list[str]:
-        """List available datasets in a group."""
-
-    @abstractmethod
-    def get_dataset(self, group: str, name: str) -> "DataSet":
-        """Get a dataset."""
-
-    @abstractmethod
-    def get_function_handle(self) -> "FunctionHandle":
-        """Create a FunctionHandler instance."""
-
-    @abstractmethod
-    def compile(self, stmt: Select) -> "CompiledQuery":
-        """Compiles the statement into a dialect-specific SQL string."""
+        return self._client.list_datagroups()
 
 
-# TODO: reorganize creation of datasets and inclusion in data group.
+class DataGroupMapping(Mapping):
+    """Mapping class that stores DataGroups from a DataSource."""
+
+    def __init__(self, *groups: "DataGroup"):
+        for g in groups:
+            setattr(self, g.name, g)
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self) -> Generator[str, None, None]:
+        yield from self.__dict__
+
+    def __getitem__(self, key: str) -> "DataGroup":
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            raise InvalidDataGroupName(key)
+
+
 class DataGroup:
     """Manage a collection of related datasets."""
 
-    def __init__(self, source: "DataResource") -> None:
+    def __init__(self, source: "DataSource", name: str) -> None:
+        self.name = name
         self.metadata = MetaData()
-        self.datasets: dict[str, DataSet] = dict()
-        self._source = source
+        self._datasets: dict[str, DataSet] = dict()
+        self._client = source.client
 
-    def add_dataset(self, dataset: "DataSet"):
-        """Add dataset to data group."""
-        self.datasets[dataset.name] = dataset
+    @property
+    def client(self) -> ClientProtocol:
+        """Get the data source client."""
+        return self._client
 
-    def get_dataset(self, name: str) -> Optional["DataSet"]:
-        """Get a dataset using the name."""
-        return self.datasets.get(name)
+    def fetch_dataset(self, name: str) -> "DataSet":
+        """
+        Load a dataset from a data source.
+
+        Parameters
+        ----------
+        name : str
+            The dataset name.
+
+        Raises
+        ------
+        ValueError
+            If an invalid dataset name is provided.
+
+        """
+        if name not in self.list_datasets():
+            raise InvalidDataSetName(name)
+
+        if name not in self._datasets:
+            table = self.client.create_dataset_table(self, name)
+            self._datasets[name] = DataSet(self, table)
+
+        return self._datasets[name]
 
     def list_datasets(self) -> list[str]:
         """List available datasets."""
-        # TODO: fix this. Only lists loaded datasets
-        return list(self.datasets)
+        return self.client.list_datasets(self.name)
 
 
 class DataSet:
     """Retrieves data from a Dataset using SQL queries."""
 
-    def __init__(self, group: "DataGroup", table: Table, source: "DataResource"):
-        self.group = group
+    def __init__(self, group: "DataGroup", table: Table):
+        self._group = group
         self.name = table.name.split(".")[-1]  # remove DB name "DBName.TableName"
-        self._source = source
+        self._client = group.client
         self._table = table
         for column in table.c:
             setattr(self, column.name, column)
         self.c = ColumnHandle(table)
-        group.add_dataset(self)
+
+    @property
+    def group(self) -> DataGroup:
+        """Get the dataset group."""
+        return self._group
+
+    @property
+    def client(self) -> ClientProtocol:
+        """Get the data source client."""
+        return self._client
 
     def _repr_html_(self):  # pragma: no cover
+        """Display the Dataset in jupyter notebooks using HTML."""
         from pandas import DataFrame
 
         d = dict()
@@ -115,7 +184,7 @@ class DataSet:
 
     def get_function_handle(self) -> "FunctionHandle":
         """Get a handle for fast access to supported functions."""
-        return self._source.get_function_handle()
+        return self.client.create_function_handle()
 
     def select(
         self, *args: Column, exclude: Optional[Sequence[Column]] = None
@@ -142,12 +211,12 @@ class DataSet:
             columns = [x for x in columns if x.name not in exclude_names]
 
         if not columns:
-            msg = "Cannot perform select if all column are excluded."
+            msg = "At least one column must be selected to create a select statement."
             raise ValueError(msg)
 
         return select(*columns)
 
-    def fetch(self, stmt: Select) -> dict[str, list]:
+    def fetch(self, stmt: Select) -> dict[str, tuple]:
         """
         Fetch data using a select statement.
 
@@ -157,11 +226,12 @@ class DataSet:
             A SQLAlchemy Select statement created using the select method.
 
         """
-        return self._source.fetch(stmt)
+        query = self.client.compile(stmt)
+        return self.client.fetch(query)
 
     def fetch_iter(
-        self, stmt: Select, size: int = 1
-    ) -> Generator[dict[str, Any], None, None]:
+        self, stmt: Select, size: int
+    ) -> Generator[dict[str, tuple], None, None]:
         """
         Fetch data using a select statement. Output columns as Numpy arrays.
 
@@ -171,7 +241,8 @@ class DataSet:
             A SQLAlchemy Select statement created using the select method.
 
         """
-        yield from self._source.fetch_iter(stmt, size)
+        query = self.client.compile(stmt)
+        yield from self.client.fetch_iter(query, size)
 
     def fetch_dataframe(self, stmt: Select) -> DataFrame:
         """
@@ -183,7 +254,24 @@ class DataSet:
             A SQLAlchemy Select statement created using the select method.
 
         """
-        return self._source.fetch_dataframe(stmt)
+        query = self.client.compile(stmt)
+        return self.client.fetch_dataframe(query)
+
+    def compile(self, stmt: Select) -> "CompiledQuery":
+        """Compiles the statement into a dialect-specific SQL string."""
+        return self.client.compile(stmt)
+
+
+class InvalidDataGroupName(KeyError):
+    """Exception raised when an invalid DataGroup name is passed."""
+
+    pass
+
+
+class InvalidDataSetName(KeyError):
+    """Exception raised when an invalid DataSet name is passed."""
+
+    pass
 
 
 @dataclass(frozen=True)
@@ -239,3 +327,47 @@ class FunctionHandle:
     def __init__(self, function_names: list[str]):
         for f in function_names:
             setattr(self, f, getattr(func, f))
+
+
+class ClientProtocol(Protocol):
+    """Interface for DB connection."""
+
+    @abstractmethod
+    def compile(self, stmt: Select) -> CompiledQuery:
+        """Compile a SQLAlchemy Select statement into a CompiledQuery."""
+
+    @abstractmethod
+    def create_dataset_table(self, group: DataGroup, name: str) -> Table:
+        """Create a dataset."""
+
+    @abstractmethod
+    def create_function_handle(self) -> FunctionHandle:
+        """Create a FunctionHandle instance."""
+
+    @abstractmethod
+    def fetch(self, query: CompiledQuery) -> dict[str, tuple]:
+        """Fetch a select query."""
+
+    @abstractmethod
+    def fetch_iter(
+        self, query: CompiledQuery, size: int
+    ) -> Generator[dict[str, tuple], None, None]:
+        """Yield a select query in chunks."""
+
+    @abstractmethod
+    def fetch_dataframe(self, query: CompiledQuery) -> DataFrame:
+        """Fetch a select query and output results as a Pandas DataFrame."""
+
+    @abstractmethod
+    def fetch_iter_dataframe(
+        self, query: CompiledQuery, size: int
+    ) -> Generator[DataFrame, None, None]:
+        """Yield a select query in chunks, using pandas DataFrames."""
+
+    @abstractmethod
+    def list_datagroups(self) -> list[str]:
+        """List available data groups."""
+
+    @abstractmethod
+    def list_datasets(self, group: str) -> list[str]:
+        """List available data groups."""

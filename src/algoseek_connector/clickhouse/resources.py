@@ -4,22 +4,25 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Generator, Optional, cast
+from typing import TYPE_CHECKING, Generator, Optional, cast
 
 from clickhouse_driver import Client
 from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
+from pandas import DataFrame
+from sqlalchemy import Table
 from sqlalchemy.sql import Select
 
-from ..base import CompiledQuery, DataGroup, DataResource, DataSet, FunctionHandle
+from ..base import ClientProtocol, CompiledQuery, DataGroup, FunctionHandle
 from .base import ColumnMetadata, TableMetadata
 from .sqla_table import ClickHouseToNumpyTypeMapper, SQLAlchemyTableFactory
 
 if TYPE_CHECKING:  # pragma: no cover
     import numpy as np
-    from pandas import DataFrame
+
+# TODO: rename module to client.py
 
 
-class ClickHouseDataResource(DataResource):
+class ClickHouseClient(ClientProtocol):
     """
     Manage dataset retrieval from ClickHouse DB.
 
@@ -68,15 +71,14 @@ class ClickHouseDataResource(DataResource):
         self._table_metadata_factory = ClickHouseTableMetadataFactory(self._client)
         self._table_factory = SQLAlchemyTableFactory()
         self._numpy_type_mapper = ClickHouseToNumpyTypeMapper()
-        self.groups: dict[str, DataGroup] = dict()
         self._dialect = ClickHouseDialect(paramstyle="pyformat")
 
-    def get_function_handle(self) -> FunctionHandle:
+    def create_function_handle(self) -> FunctionHandle:
         """Get a FunctionHandler instance."""
         functions = ["sum", "average"]
         return FunctionHandle(functions)
 
-    def fetch(self, stmt: Select) -> dict[str, Any]:
+    def fetch(self, query: CompiledQuery) -> dict[str, tuple]:
         """
         Retrieve data using a select statement.
 
@@ -91,11 +93,12 @@ class ClickHouseDataResource(DataResource):
             A mapping from column names to values retrieved.
 
         """
-        query = stmt.compile(dialect=self._dialect)
+        # render_postcompile expand multiple valued parameters, such as lists,
+        # into independent parameters.
         execute_params = {"with_column_types": True, "columnar": True}
         data, names = cast(
             tuple[list, list[tuple[str, str]]],
-            self._client.execute(query.string, query.params, **execute_params),
+            self._client.execute(query.sql, query.parameters, **execute_params),
         )
 
         result = dict()
@@ -104,8 +107,8 @@ class ClickHouseDataResource(DataResource):
         return result
 
     def fetch_iter(
-        self, stmt: Select, size: int
-    ) -> Generator[dict[str, Any], None, None]:
+        self, query: CompiledQuery, size: int
+    ) -> Generator[dict[str, tuple], None, None]:
         """
         Retrieve data with result streaming using a select statement.
 
@@ -120,10 +123,9 @@ class ClickHouseDataResource(DataResource):
             A mapping from column names to values retrieved.
 
         """
-        query = stmt.compile(dialect=self._dialect)
         execute_params = {"with_column_types": True}
         iterator = self._client.execute_iter(
-            query.string, query.params, chunk_size=size, **execute_params
+            query.sql, query.parameters, chunk_size=size, **execute_params
         )
 
         column_names = None
@@ -140,19 +142,26 @@ class ClickHouseDataResource(DataResource):
 
             yield d
 
-    def fetch_dataframe(self, stmt: Select) -> DataFrame:
+    def fetch_dataframe(self, query: CompiledQuery) -> DataFrame:
         """Execute a Select statement and output data as a Pandas DataFrame."""
         from pandas import DataFrame
 
-        return DataFrame(self.fetch_numpy(stmt))
+        return DataFrame(self.fetch_numpy(query))
 
-    def fetch_numpy(self, stmt: Select) -> dict[str, np.ndarray]:
+    def fetch_iter_dataframe(
+        self, query: CompiledQuery, size: int
+    ) -> Generator[DataFrame, None, None]:
+        """Yield pandas DataFrame in chunks."""
+        for k in range(2):
+            yield self.fetch_dataframe(query)
+
+    def fetch_numpy(self, query: CompiledQuery) -> dict[str, np.ndarray]:
         """Execute a Select statement and output data as a Pandas DataFrame."""
         from numpy import array
 
-        return {k: array(v) for k, v in self.fetch(stmt).items()}
+        return {k: array(v) for k, v in self.fetch(query).items()}
 
-    def list_groups(self) -> list[str]:
+    def list_datagroups(self) -> list[str]:
         """List available groups."""
         return self._table_metadata_factory.list_groups()
 
@@ -160,32 +169,7 @@ class ClickHouseDataResource(DataResource):
         """List available datasets in the data group."""
         return self._table_metadata_factory.list_tables(group)
 
-    def get_datagroup(self, group: str) -> DataGroup:
-        """
-        Retrieve a datagroup.
-
-        Parameters
-        ----------
-        group : str
-            The data group name.
-
-        Returns
-        -------
-        DataGroup
-
-        Raises
-        ------
-        ValueError
-            If an invalid group name is provided.
-
-        """
-        valid_groups = self.list_groups()
-        if group not in valid_groups:
-            msg = f"{group} is not a valid data group name. Valid groups are one of {valid_groups}"
-            raise ValueError(msg)
-        return self.groups.setdefault(group, DataGroup(self))
-
-    def get_dataset(self, group: str, name: str) -> DataSet:
+    def create_dataset_table(self, group: DataGroup, name: str) -> Table:
         """
         Retrieve a dataset.
 
@@ -206,22 +190,14 @@ class ClickHouseDataResource(DataResource):
             If an invalid data group or dataset name are provided.
 
         """
-        data_group = self.get_datagroup(group)
-        dataset = data_group.get_dataset(name)
-        if dataset is None:
-            dataset = self._create_dataset(group, name)
-        return dataset
-
-    def _create_dataset(self, group: str, name: str) -> DataSet:
-        """Create a new dataset."""
-        data_group = self.get_datagroup(group)
-        table_metadata = self._table_metadata_factory(group, name)
-        table = self._table_factory(table_metadata, data_group.metadata)
-        return DataSet(data_group, table, self)
+        table_metadata = self._table_metadata_factory(group.name, name)
+        return self._table_factory(table_metadata, group.metadata)
 
     def compile(self, stmt: Select, **kwargs) -> CompiledQuery:
         """Convert a stmt into an SQL string."""
-        compiled = stmt.compile(dialect=self._dialect, **kwargs)
+        compile_kwargs = {"compile_kwargs": {"render_postcompile": True}}
+        compile_kwargs.update(kwargs)
+        compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)
         return CompiledQuery(compiled.string, compiled.params)
 
 
@@ -291,13 +267,25 @@ def _create_clickhouse_client(
     return Client(host=host, user=user, password=password, secure=secure, **kwargs)
 
 
-class MockClickHouseDataResource(ClickHouseDataResource):
-    """Mock class use for testing query string generation."""
+class MockClickHouseClient(ClickHouseClient):
+    """Mock class used for testing query string generation."""
 
-    def __init__(self):
-        self.groups: dict[str, DataGroup] = dict()
+    def __init__(
+        self,
+        host: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        port: Optional[int] = None,
+        secure: bool = False,
+        use_numpy: bool = False,
+        **kwargs,
+    ):
+        self._client = cast(Client, None)
+        self._table_metadata_factory = ClickHouseTableMetadataFactory(self._client)
+        self._table_factory = SQLAlchemyTableFactory()
+        self._numpy_type_mapper = ClickHouseToNumpyTypeMapper()
         self._dialect = ClickHouseDialect(paramstyle="pyformat")
 
-    def list_groups(self) -> list[str]:
-        """List available groups."""
-        return list(self.groups)
+    def list_datagroups(self) -> list[str]:
+        """Overwrite call to DB in method."""
+        return list()
