@@ -9,10 +9,10 @@ TODO: add examples.
 
 """
 
-from .sessions import Session, ExecutionError
-from .resources import DataResource, Datagroup, Dataset
-from . import base
-from . import clickhouse
+from . import base, clickhouse
+from .manager import ResourceManager
+from .resources import Datagroup, DataResource, Dataset
+from .sessions import ExecutionError, Session
 
 __all__ = [
     "base",
@@ -22,4 +22,5 @@ __all__ = [
     "Datagroup",
     "Dataset",
     "clickhouse",
+    "ResourceManager",
 ]
