@@ -4,8 +4,6 @@ from algoseek_connector import base
 from algoseek_connector.base import DataSource
 from algoseek_connector.clickhouse.resources import ClickHouseClient
 
-# TODO: rename file to test_clickhouse_client
-
 
 @pytest.fixture(scope="module")
 def data_source():
