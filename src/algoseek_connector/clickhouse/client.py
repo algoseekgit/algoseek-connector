@@ -287,3 +287,7 @@ class MockClickHouseClient(ClickHouseClient):
     def list_datagroups(self) -> list[str]:
         """Overwrite call to DB in method."""
         return list()
+
+    def list_datasets(self, group: str) -> list[str]:
+        """Overwrite call to DB in method."""
+        return list()

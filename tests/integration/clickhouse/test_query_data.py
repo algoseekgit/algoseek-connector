@@ -19,7 +19,7 @@ def data_source():
 def dataset(data_source: DataSource):
     group_name = "USEquityMarketData"
     dataset_name = "TradeOnlyAdjustedMinuteBar"
-    group = data_source.get_datagroup(group_name)
+    group = data_source.fetch_datagroup(group_name)
     return group.fetch_dataset(dataset_name)
 
 

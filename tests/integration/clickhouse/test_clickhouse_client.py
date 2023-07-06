@@ -18,7 +18,8 @@ def test_ClickHouseClient_list_groups(data_source: DataSource):
 
 
 def test_ClickHouseClient_list_dataset(data_source: DataSource):
-    for group in data_source.groups.values():
+    for group_name in data_source.groups:
+        group = data_source.fetch_datagroup(group_name)
         for dataset_name in group.list_datasets():
             assert isinstance(dataset_name, str)
 
@@ -26,12 +27,12 @@ def test_ClickHouseClient_list_dataset(data_source: DataSource):
 def test_ClickHouseClient_get_datagroup_invalid_group(data_source: DataSource):
     with pytest.raises(base.InvalidDataGroupName):
         group = "InvalidGroupName"
-        data_source.get_datagroup(group)
+        data_source.fetch_datagroup(group)
 
 
 def test_ClickHouseClient_get_dataset(data_source: DataSource):
-    for group_name in data_source.groups:
-        group = data_source.groups[group_name]
+    for group_name in data_source.list_datagroups():
+        group = data_source.fetch_datagroup(group_name)
         for dataset_name in group.list_datasets():
             dataset = group.fetch_dataset(dataset_name)
             assert dataset_name == dataset.name
@@ -41,7 +42,7 @@ def test_ClickHouseClient_get_dataset_invalid_dataset_name(
     data_source: DataSource,
 ):
     group_name = data_source.list_datagroups()[0]
-    group = data_source.groups[group_name]
+    group = data_source.fetch_datagroup(group_name)
     with pytest.raises(base.InvalidDataSetName):
         dataset_name = "InvalidDatasetName"
         group.fetch_dataset(dataset_name)
@@ -49,7 +50,7 @@ def test_ClickHouseClient_get_dataset_invalid_dataset_name(
 
 def test_ClickHouseClient_fetch(data_source: DataSource):
     group_name = "USEquityReferenceData"
-    group = data_source.groups[group_name]
+    group = data_source.fetch_datagroup(group_name)
     dataset_name = group.list_datasets()[0]
     dataset = group.fetch_dataset(dataset_name)
     size = 10
@@ -67,7 +68,7 @@ def test_ClickHouseClient_fetch(data_source: DataSource):
 
 def test_ClickHouseClient_fetch_iter(data_source: DataSource):
     group_name = "USEquityReferenceData"
-    group = data_source.groups[group_name]
+    group = data_source.fetch_datagroup(group_name)
     dataset_name = group.list_datasets()[0]
     dataset = group.fetch_dataset(dataset_name)
     # the first chunk contains headers. make all chunks with size=10
