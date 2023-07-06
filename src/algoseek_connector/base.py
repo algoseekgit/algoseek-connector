@@ -34,7 +34,6 @@ InvalidDataSetName
 from __future__ import annotations  # delayed annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generator, Optional, Protocol, Sequence
 
@@ -68,7 +67,7 @@ class DataSource:
 
     def __init__(self, client: ClientProtocol):
         self._client = client
-        groups = [DataGroup(self, x) for x in self._client.list_datagroups()]
+        groups = [DataGroupFetcher(self, x) for x in self._client.list_datagroups()]
         self.groups = DataGroupMapping(*groups)
 
     @property
@@ -76,23 +75,23 @@ class DataSource:
         """Get the data source client."""
         return self._client
 
-    def get_datagroup(self, name: str) -> "DataGroup":
+    def fetch_datagroup(self, name: str) -> "DataGroup":
         """Retrieve a data group."""
-        return self.groups[name]
+        return self.groups[name].fetch()
 
     def list_datagroups(self) -> list[str]:
         """List available data groups."""
-        return self._client.list_datagroups()
+        return self.client.list_datagroups()
 
 
-class DataGroupMapping(Mapping):
+class DataGroupMapping:
     """
     Mapping class that stores DataGroups from a DataSource.
 
     Implements the Mapping protocol.
     """
 
-    def __init__(self, *groups: "DataGroup"):
+    def __init__(self, *groups: "DataGroupFetcher"):
         for g in groups:
             setattr(self, g.name, g)
 
@@ -102,11 +101,36 @@ class DataGroupMapping(Mapping):
     def __iter__(self) -> Generator[str, None, None]:
         yield from self.__dict__
 
-    def __getitem__(self, key: str) -> "DataGroup":
+    def __getitem__(self, key: str) -> "DataGroupFetcher":
         try:
             return self.__dict__[key]
         except KeyError:
-            raise InvalidDataGroupName(key)
+            raise InvalidDataGroupName(key) from None
+
+    def _ipython_key_completions_(self):  # pragma: no cover
+        return list(self.__dict__)
+
+
+class DataGroupFetcher:
+    """PlaceHolder class to fetch DataGroups."""
+
+    def __init__(self, source: DataSource, name: str) -> None:
+        self._source = source
+        self._name = name
+        self._group = None
+
+    @property
+    def name(self) -> str:
+        """Get the group name."""
+        return self._name
+
+    def fetch(self) -> "DataGroup":
+        """Fetch the data group instance."""
+        if self._group is None:
+            group = DataGroup(self._source, self._name)
+        else:
+            group = self._group
+        return group
 
 
 class DataGroup:
@@ -130,10 +154,11 @@ class DataGroup:
     """
 
     def __init__(self, source: "DataSource", name: str) -> None:
+        self._client = source.client
         self._name = name
         self.metadata = MetaData()
-        self._datasets: dict[str, DataSet] = dict()
-        self._client = source.client
+        datasets = [DataSetFetcher(self, x) for x in self.list_datasets()]
+        self.datasets = DataSetMapping(*datasets)
 
     @property
     def client(self) -> ClientProtocol:
@@ -156,22 +181,66 @@ class DataGroup:
 
         Raises
         ------
-        ValueError
+        InvalidDataSetName
             If an invalid dataset name is provided.
 
         """
-        if name not in self.list_datasets():
-            raise InvalidDataSetName(name)
-
-        if name not in self._datasets:
-            table = self.client.create_dataset_table(self, name)
-            self._datasets[name] = DataSet(self, table)
-
-        return self._datasets[name]
+        return self.datasets[name].fetch()
 
     def list_datasets(self) -> list[str]:
         """List available datasets."""
         return self.client.list_datasets(self.name)
+
+
+class DataSetMapping:
+    """
+    Mapping class that stores DataGroups from a DataSource.
+
+    Implements the Mapping protocol.
+    """
+
+    def __init__(self, *datasets: "DataSetFetcher"):
+        for ds in datasets:
+            setattr(self, ds.name, ds)
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self) -> Generator[str, None, None]:
+        yield from self.__dict__
+
+    def __getitem__(self, key: str) -> "DataSetFetcher":
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            raise InvalidDataSetName(key) from None
+
+    def _ipython_key_completions_(self):  # pragma: no cover
+        return list(self.__dict__)
+
+
+class DataSetFetcher:
+    """Placeholder class that fetch dataset."""
+
+    def __init__(self, group: DataGroup, name: str):
+        self._group = group
+        self._name = name
+        self._dataset = None
+
+    @property
+    def name(self) -> str:
+        """Get the dataset name."""
+        return self._name
+
+    def fetch(self) -> "DataSet":
+        """Fetch the dataset."""
+        if self._dataset is None:
+            group = self._group
+            table = group.client.create_dataset_table(group, self.name)
+            dataset = DataSet(self._group, table)
+        else:
+            dataset = self._dataset
+        return dataset
 
 
 class DataSet:
