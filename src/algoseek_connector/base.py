@@ -47,12 +47,22 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class DataSource:
     """
-    Base class to manage a data source.
+    Manage the connection to a data source.
+
+    See :ref:`here <datasets>` for a guide on how to work with data sources.
 
     Attributes
     ----------
     groups : DataGroupMapping
         Maintains the collection of available DataGroups.
+
+
+    Methods
+    -------
+    get_datagroup:
+        Retrieve a data group from the data source.
+    list_datagroups:
+        List available data groups.
 
     """
 
@@ -76,7 +86,11 @@ class DataSource:
 
 
 class DataGroupMapping(Mapping):
-    """Mapping class that stores DataGroups from a DataSource."""
+    """
+    Mapping class that stores DataGroups from a DataSource.
+
+    Implements the Mapping protocol.
+    """
 
     def __init__(self, *groups: "DataGroup"):
         for g in groups:
@@ -96,10 +110,27 @@ class DataGroupMapping(Mapping):
 
 
 class DataGroup:
-    """Manage a collection of related datasets."""
+    """
+    Manage a collection of related datasets.
+
+    Parameters
+    ----------
+    source : DataSource
+        The data source where the data groups belongs.
+    name :  str
+        The data group name.
+
+    Methods
+    -------
+    fetch_dataset:
+        Retrieves a dataset from the data source.
+    list_datasets:
+        List available datasets.
+
+    """
 
     def __init__(self, source: "DataSource", name: str) -> None:
-        self.name = name
+        self._name = name
         self.metadata = MetaData()
         self._datasets: dict[str, DataSet] = dict()
         self._client = source.client
@@ -108,6 +139,11 @@ class DataGroup:
     def client(self) -> ClientProtocol:
         """Get the data source client."""
         return self._client
+
+    @property
+    def name(self) -> str:
+        """Get the data group name."""
+        return self._name
 
     def fetch_dataset(self, name: str) -> "DataSet":
         """
@@ -139,16 +175,51 @@ class DataGroup:
 
 
 class DataSet:
-    """Retrieves data from a Dataset using SQL queries."""
+    """
+    Retrieve data from a data source using SQL queries.
+
+    See :ref:`here <datasets>` for a detailed description on how work with
+    datasets.
+
+    Parameters
+    ----------
+    group : DataGroup
+        The data group where the dataset will be included.
+    table : sqlalchemy.Table
+        Store table name and columns.
+
+    Methods
+    -------
+    compile:
+        Convert a sqlalchemy.Select statement into a CompiledQuery.
+    fetch:
+        Retrieve data from the data source.
+    fetch_dataframe:
+        Retrieve data from the data source as a pandas DataFrame.
+    fetch_iter:
+        Retrieve data in chunks from the data source.
+    get_function_handle:
+        Create a FunctionHandle object.
+    get_column_handle:
+        Create a column handle object.
+    select:
+        Build a sqlalchemy.Select statement using method chaining.
+
+    """
 
     def __init__(self, group: "DataGroup", table: Table):
         self._group = group
-        self.name = table.name.split(".")[-1]  # remove DB name "DBName.TableName"
+        self._name = table.name.split(".")[-1]  # remove DB name "DBName.TableName"
         self._client = group.client
         self._table = table
         for column in table.c:
             setattr(self, column.name, column)
         self.c = ColumnHandle(table)
+
+    @property
+    def name(self) -> str:
+        """Get the dataset name."""
+        return self._name
 
     @property
     def group(self) -> DataGroup:
@@ -192,13 +263,20 @@ class DataSet:
         """
         Create a select statement using chained methods with SQL-like syntax.
 
+        See :ref:`here <sql>` for a detailed guide on how to create select
+        statements.
+
         Parameters
         ----------
-        args : Column
+        args : tuple of Columns
             Sequence of columns included in the select statement. If no columns
             are provided, use all columns in the dataset.
-        exclude : Sequence[Column] or None, default=None
+        exclude : sequence of Columns or None, default=None
             List of columns to exclude from the select statement.
+
+        Returns
+        -------
+        :py:class:`sqlalchemy.sql.selectable.Select`
 
         """
         if args:
@@ -304,7 +382,14 @@ class CompiledQuery:
 
 
 class ColumnHandle:
-    """Handle for fast access to a dataset columns."""
+    """
+    Handle for fast access to a dataset columns.
+
+    Support access to a dataset columns by attribute or by key.
+
+    See :ref:`here <datasets>` for a guide on how to use column handles.
+
+    """
 
     def __init__(self, table: Table):
         for column in table.c:
@@ -322,7 +407,12 @@ class ColumnHandle:
 
 
 class FunctionHandle:
-    """Handle for supported functions."""
+    """
+    Handle for SQL functions.
+
+    See :ref:`here <datasets>` for a guide on how to use function handles.
+
+    """
 
     def __init__(self, function_names: list[str]):
         for f in function_names:
@@ -330,7 +420,7 @@ class FunctionHandle:
 
 
 class ClientProtocol(Protocol):
-    """Interface for DB connection."""
+    """Interface for DB connection used by the DataSource class."""
 
     @abstractmethod
     def compile(self, stmt: Select) -> CompiledQuery:

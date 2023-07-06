@@ -13,13 +13,35 @@ from .clickhouse.client import ClickHouseClient
 
 
 class ResourceManager:
-    """Manage data sources available to an user."""
+    """
+    Manage data sources available to an user.
+
+    Methods
+    -------
+    create_data_source:
+        Create a new DataSource instance.
+    list_data_source:
+        List available data sources.
+
+    """
 
     def __init__(self):
         self._client_factory = ClientProtocolFactory()
 
     def create_data_source(self, name: str, **kwargs) -> DataSource:
-        """Create a connection to a data source."""
+        """
+        Create a connection to a data source.
+
+        Parameters
+        ----------
+        name : str
+            Name of an available data source.
+
+        Returns
+        -------
+        DataSource
+
+        """
         client = self._client_factory(name, **kwargs)
         return DataSource(client)
 
