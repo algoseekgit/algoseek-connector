@@ -14,6 +14,7 @@ Find here tutorials
 
    tutorials/datasets
    tutorials/sql
+   api
 
 .. toctree::
    :maxdepth: 2
