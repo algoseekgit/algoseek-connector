@@ -9,7 +9,7 @@ Welcome to algoseek-connector's documentation!
 Find here tutorials
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
    tutorials/datasets

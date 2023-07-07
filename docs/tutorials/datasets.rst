@@ -9,6 +9,8 @@ The algoseek-connector library provide means to retrieve data from different
 data sources in a straightforward way. To get started, first we will describe
 the hierarchy used to organize data:
 
+TODO: ADD DIAGRAM WITH CLASS HIERARCHY
+
 The :py:class:`~algoseek_connector.manager.ResourceManager` is the first point of contact
 to fetch data. It manages available data sources for an user:
 
@@ -51,11 +53,17 @@ Also, the `groups` attribute maintains a collection of
 
 TODO: ADD GIF WITH AUTOCOMPLETION OF DATASETS.
 
-`groups` also support retrieving a data group by key.
+A data group is created using the fetch method:
 
 .. code-block:: python
 
-    group = data_source.get_data_group("USEquityData")
+    group = data_source.groups.USEquityData.fetch()
+
+A data group can also be created by using :py:func:`~algoseek_connector.base.DataSource.fetch_datagroups`:
+
+.. code-block:: python
+
+    group = data_source.fetch_datagroup("USEquityData")
 
 
 In a similar way to data sources, data groups allows to list datasets:

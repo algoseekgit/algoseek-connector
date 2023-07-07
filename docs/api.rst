@@ -7,32 +7,51 @@
 Here you can find the reference for the objects used by algoseek-connector
 library:
 
-- :py:class:`~algoseek_connector.manager.ResourceManager`
-- :py:class:`~algoseek_connector.base.DataSource`
-- :py:class:`~algoseek_connector.base.DataGroup`
-- :py:class:`~algoseek_connector.base.DataSet`
+.. _ResourceManager:
 
+ResourceManager
+---------------
 
 .. autoclass:: algoseek_connector.manager.ResourceManager
     :members:
-    :undoc-members:
+
+.. _DataSource:
+
+DataSource
+----------
 
 .. autoclass:: algoseek_connector.base.DataSource
     :members:
-    :undoc-members:
+
+.. _DataGroup:
+
+DataGroup
+---------
 
 .. autoclass:: algoseek_connector.base.DataGroup
     :members:
     :undoc-members:
 
+.. _DataSet:
+
+DataSet
+-------
+
 .. autoclass:: algoseek_connector.base.DataSet
     :members:
-    :undoc-members:
+
+.. _ColumnHandle:
+
+ColumnHandle
+------------
 
 .. autoclass:: algoseek_connector.base.ColumnHandle
     :members:
-    :undoc-members:
+
+.. _FunctionHandle:
+
+FunctionHandle
+--------------
 
 .. autoclass:: algoseek_connector.base.FunctionHandle
     :members:
-    :undoc-members:

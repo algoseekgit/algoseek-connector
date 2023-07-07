@@ -28,3 +28,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # ------------------
 html_theme = "alabaster"
 html_static_path = ["_static"]
+
+html_theme_options = {
+    "description": "Connector library for AlgoSeek datasets",
+    "fixed_sidebar": True,
+    "sidebar_width": "300px",
+    "page_width": "1000px",
+}
