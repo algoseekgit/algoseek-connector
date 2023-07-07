@@ -7,8 +7,6 @@ Classes
 -------
 DataSource
     Manage connection to a Database.
-DataGroupMapping
-    Container class for the DataGroups in a DataSource.
 DataGroup
     Container class for a collection of related Datasets.
 DataSet
@@ -128,6 +126,7 @@ class DataGroupFetcher:
         """Fetch the data group instance."""
         if self._group is None:
             group = DataGroup(self._source, self._name)
+            self._group = group
         else:
             group = self._group
         return group
@@ -236,8 +235,11 @@ class DataSetFetcher:
         """Fetch the dataset."""
         if self._dataset is None:
             group = self._group
-            table = group.client.create_dataset_table(group, self.name)
-            dataset = DataSet(self._group, table)
+            dataset_metadata = group.client.fetch_dataset_metadata(
+                group.name, self.name
+            )
+            dataset = DataSet(self._group, dataset_metadata)
+            self._dataset = dataset
         else:
             dataset = self._dataset
         return dataset
@@ -276,9 +278,11 @@ class DataSet:
 
     """
 
-    def __init__(self, group: "DataGroup", table: Table):
+    def __init__(self, group: "DataGroup", table_metadata: DataSetMetadata):
         self._group = group
-        self._name = table.name.split(".")[-1]  # remove DB name "DBName.TableName"
+        self._name = table_metadata.name
+        table_name = f"{group.name}.{table_metadata.name}"
+        table = Table(table_name, group.metadata, *table_metadata.columns, quote=False)
         self._client = group.client
         self._table = table
         for column in table.c:
@@ -409,6 +413,24 @@ class DataSet:
         return self.client.compile(stmt)
 
 
+@dataclass(frozen=True)
+class DataSetMetadata:
+    """
+    Container class for table metadata.
+
+    Attributes
+    ----------
+    name : str
+        The dataset name.
+    columns : list[Column]
+        The dataset columns.
+
+    """
+
+    name: str
+    columns: list[Column]
+
+
 class InvalidDataGroupName(KeyError):
     """Exception raised when an invalid DataGroup name is passed."""
 
@@ -496,7 +518,7 @@ class ClientProtocol(Protocol):
         """Compile a SQLAlchemy Select statement into a CompiledQuery."""
 
     @abstractmethod
-    def create_dataset_table(self, group: DataGroup, name: str) -> Table:
+    def fetch_dataset_metadata(self, group: str, name: str) -> DataSetMetadata:
         """Create a dataset."""
 
     @abstractmethod
