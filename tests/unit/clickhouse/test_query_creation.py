@@ -1,8 +1,8 @@
 import pytest
 from sqlalchemy import func
 
-from algoseek_connector.base import DataGroup, DataSet, DataSource
-from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
+from algoseek_connector.base import DataGroup, DataSet, DataSetMetadata, DataSource
+from algoseek_connector.clickhouse.base import ColumnMetadata
 from algoseek_connector.clickhouse.client import MockClickHouseClient
 
 
@@ -14,16 +14,16 @@ def dataset():
     dataset_name = "t"
     group = DataGroup(data_source, group_name)
 
-    columns = [
+    columns_metadata = [
         ColumnMetadata("col1", "Float64", ""),
         ColumnMetadata("col2", "Int64", ""),
         ColumnMetadata("col3", "DateTime64(3, 'Asia/Istanbul')", ""),
         ColumnMetadata("col4", "Enum8('A' = 1, 'B' = 2, 'C' = 3)", ""),
         ColumnMetadata("col5", "String", ""),
     ]
-    table_metadata = TableMetadata(dataset_name, group.name, columns)
-    table = client._table_factory(table_metadata, group.metadata)
-    return DataSet(group, table)
+    columns = [client._column_factory(x) for x in columns_metadata]
+    dataset_metadata = DataSetMetadata(dataset_name, columns)
+    return DataSet(group, dataset_metadata)
 
 
 def remove_new_lines(query: str) -> str:
