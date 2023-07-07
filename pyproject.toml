@@ -33,6 +33,7 @@ requests = "^2.31.0"
 pandas = "^2.0.2"
 clickhouse-sqlalchemy = "^0.2.4"
 sqlalchemy = "^1.4"
+clickhouse-connect = "^0.6.6"
 
 [tool.poetry.group.dev]
 optional = true
