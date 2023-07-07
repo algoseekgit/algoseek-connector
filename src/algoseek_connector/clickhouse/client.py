@@ -57,7 +57,7 @@ class ClickHouseClient(ClientProtocol):
         functions = ["sum", "average"]
         return FunctionHandle(functions)
 
-    def fetch(self, query: CompiledQuery) -> dict[str, tuple]:
+    def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
         """
         Retrieve data using a select statement.
 
@@ -65,6 +65,9 @@ class ClickHouseClient(ClientProtocol):
         ----------
         stmt : Select
             A select statement generated with :py:meth:`Dataset.select`.
+        kwargs :
+            Optional parameters passed to clickhouse-connect Client.query
+            method.
 
         Returns
         -------
@@ -72,7 +75,7 @@ class ClickHouseClient(ClientProtocol):
             A mapping from column names to values retrieved.
 
         """
-        query_result = self._client.query(query.sql, query.parameters)
+        query_result = self._client.query(query.sql, query.parameters, **kwargs)
         names = query_result.column_names
         data = query_result.result_columns
         result = dict()
@@ -81,7 +84,7 @@ class ClickHouseClient(ClientProtocol):
         return result
 
     def fetch_iter(
-        self, query: CompiledQuery, size: int
+        self, query: CompiledQuery, size: int, **kwargs
     ) -> Generator[dict[str, tuple], None, None]:
         """
         Retrieve data with result streaming using a select statement.
@@ -92,7 +95,11 @@ class ClickHouseClient(ClientProtocol):
             A select statement generated with :py:meth:`Dataset.select`.
         size : int
             Sets the `max_block_size_parameter` of the ClickHouse DataBase.
-            Values lower than ``8912`` are ignored.
+            Values lower than ``8912`` are ignored. Overwrites values passed
+            using settings as optional parameter
+        kwargs :
+            Optional parameters passed to clickhouse-connect
+            Client.query_column_block_stream method.
 
         Yields
         ------
@@ -101,25 +108,62 @@ class ClickHouseClient(ClientProtocol):
 
         """
         settings = {"max_block_size": size}
-        with self._client.query_row_block_stream(
-            query.sql, query.parameters, settings=settings
+        kwargs_settings = kwargs.get("settings", dict())
+        kwargs_settings.update(settings)
+
+        with self._client.query_column_block_stream(
+            query.sql, parameters=query.parameters, **kwargs
         ) as stream:
             column_names = stream.source.column_names
             for block in stream:
-                transposed = tuple(zip(*block))
-                yield {k: v for k, v in zip(column_names, transposed)}
+                yield {k: v for k, v in zip(column_names, block)}
 
-    def fetch_dataframe(self, query: CompiledQuery) -> DataFrame:
-        """Execute a Select statement and output data as a Pandas DataFrame."""
-        return self._client.query_df(query.sql, query.parameters)
+    def fetch_dataframe(self, query: CompiledQuery, **kwargs) -> DataFrame:
+        """
+        Execute a Select statement and output data as a Pandas DataFrame.
+
+        Parameters
+        ----------
+        query : CompiledQuery
+        kwargs :
+            Optional parameters passed to clickhouse-connect
+            Client.query_df method.
+
+        Returns
+        -------
+        pandas.DataFrame
+
+        """
+        return self._client.query_df(query.sql, query.parameters, **kwargs)
 
     def fetch_iter_dataframe(
-        self, query: CompiledQuery, size: int
+        self, query: CompiledQuery, size: int, **kwargs
     ) -> Generator[DataFrame, None, None]:
-        """Yield pandas DataFrame in chunks."""
+        """
+        Yield pandas DataFrame in chunks.
+
+        Parameters
+        ----------
+        stmt : Select
+            A select statement generated with :py:meth:`Dataset.select`.
+        size : int
+            Sets the `max_block_size_parameter` of the ClickHouse DataBase.
+            Values lower than ``8912`` are ignored. Overwrites values passed
+            using settings as optional parameter
+        kwargs :
+            Optional parameters passed to clickhouse-connect
+            Client.query_df_stream method.
+
+        Yields
+        ------
+        pandas.DataFrame
+
+        """
         settings = {"max_block_size": size}
+        kwargs_settings = kwargs.get("settings", dict())
+        kwargs_settings.update(settings)
         with self._client.query_df_stream(
-            query.sql, query.parameters, settings=settings
+            query.sql, parameters=query.parameters, settings=settings
         ) as stream:
             for df in stream:
                 yield df
