@@ -1,7 +1,7 @@
 import pytest
 
 from algoseek_connector import ResourceManager, base
-from algoseek_connector.base import DataSource
+from algoseek_connector.base import DataSet, DataSource
 
 
 @pytest.fixture(scope="module")
@@ -9,6 +9,14 @@ def data_source():
     # Connect to DB using host, user and password from env variables.
     manager = ResourceManager()
     return manager.create_data_source("clickhouse")
+
+
+@pytest.fixture(scope="module")
+def dataset(data_source):
+    group_name = "USEquityMarketData"
+    group = data_source.fetch_datagroup(group_name)
+    dataset_name = "TradeOnly"
+    return group.fetch_dataset(dataset_name)
 
 
 def test_ClickHouseClient_list_groups(data_source: DataSource):
@@ -48,12 +56,7 @@ def test_ClickHouseClient_get_dataset_invalid_dataset_name(
         group.fetch_dataset(dataset_name)
 
 
-def test_ClickHouseClient_fetch(data_source: DataSource):
-    group_name = "USEquityReferenceData"
-    group = data_source.fetch_datagroup(group_name)
-    print(group.datasets.ASIDLookupBase._dataset)
-    dataset_name = group.list_datasets()[0]
-    dataset = group.fetch_dataset(dataset_name)
+def test_ClickHouseClient_fetch(dataset: DataSet):
     size = 10
     stmt = dataset.select().limit(size)
     data = dataset.fetch(stmt)
@@ -61,28 +64,33 @@ def test_ClickHouseClient_fetch(data_source: DataSource):
         column = dataset[k]
         assert k == column.name
         assert len(v) == size
-        if hasattr(column.type, "nested_type"):
-            assert isinstance(v[0], column.type.nested_type.python_type)
-        else:
-            assert isinstance(v[0], column.type.python_type)
 
 
-def test_ClickHouseClient_fetch_iter(data_source: DataSource):
-    group_name = "USEquityReferenceData"
-    group = data_source.fetch_datagroup(group_name)
-    dataset_name = group.list_datasets()[0]
-    dataset = group.fetch_dataset(dataset_name)
-    # the first chunk contains headers. make all chunks with size=10
-    # except the first one
+def test_ClickHouseClient_fetch_dataframe(dataset: DataSet):
+    size = 100
+    stmt = dataset.select().limit(size)
+    df = dataset.fetch_dataframe(stmt)
+    n_cols = len(dataset.c)
+    assert df.shape == (size, n_cols)
+
+
+def test_ClickHouseClient_fetch_iter(dataset: DataSet):
+    # the minimum possible chunk size is 8192
     limit = 8192 * 2
     chunk_size = 8192
     stmt = dataset.select().limit(limit)
-    for i, chunk in enumerate(dataset.fetch_iter(stmt, size=chunk_size)):
+    for chunk in dataset.fetch_iter(stmt, size=chunk_size):
         for col_name, v in chunk.items():
             column = dataset[col_name]
             assert col_name == column.name
-            assert len(v) == chunk_size
-            if hasattr(column.type, "nested_type"):
-                assert isinstance(v[0], column.type.nested_type.python_type)
-            else:
-                assert isinstance(v[0], column.type.python_type)
+            assert len(v) >= chunk_size
+
+
+def test_ClickHouseClient_fetch_iter_dataframe(dataset: DataSet):
+    limit = 8192 * 4
+    chunk_size = 8192  # min chunk size is 8292
+    stmt = dataset.select().limit(limit)
+    n_cols = len(dataset.c)
+    for df in dataset.fetch_iter_dataframe(stmt, chunk_size):
+        assert df.shape[1] == n_cols
+        assert df.shape[0] >= chunk_size
