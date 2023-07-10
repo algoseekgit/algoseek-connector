@@ -6,7 +6,41 @@
 Welcome to algoseek-connector's documentation!
 ==============================================
 
-Find here tutorials
+Algoseek-connector is a Python library that enables data retrieval from
+datasets by creating sql-like queries using method chaining:
+
+.. code-block:: python
+
+   import algoseek_connector as ac
+
+   manager = ac.ResourceManager()
+   data_source = manager.create_data_source("clickhouse")
+   group = data_source.groups.USEquityMarketData.fetch()
+   dataset = group.datasets.TradeOnlyMinuteBar.fetch()
+
+   stmt = (
+      dataset.select()
+      .where(dataset.TradeDate > "2015-01-01").
+      .order_by(dataset.Volume)
+      .limit(1000000)
+   )
+
+   df = dataset.fetch_dataframe(stmt)
+
+
+Features:
+
+-  Selecting columns and arbitrary expressions based on columns
+-  Filtering by column value/column expression
+-  Grouping by column(s).
+-  Sorting by column(s).
+-  All common arithmetic, logical operations on dataset columns and function
+   application.
+-  Fetching query results as native Python types or as pandas DataFrames.
+-  Streaming query results.
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2

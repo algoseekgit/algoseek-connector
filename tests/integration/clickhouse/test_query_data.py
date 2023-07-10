@@ -17,8 +17,8 @@ def data_source():
 
 @pytest.fixture(scope="module")
 def dataset(data_source: DataSource):
-    group_name = "USEquityMarketData"
-    dataset_name = "TradeOnlyAdjustedMinuteBar"
+    group_name = "USEquityReferenceData"
+    dataset_name = "BasicAdjustments"
     group = data_source.fetch_datagroup(group_name)
     return group.fetch_dataset(dataset_name)
 
@@ -54,13 +54,13 @@ def test_select_where_filter_year(dataset: DataSet):
     limit = 10
     selected_year = 2015
     stmt = (
-        dataset.select(dataset["FirstTradePrice"], dataset["TradeDate"])
-        .where(func.toYear(dataset["TradeDate"]) == selected_year)
+        dataset.select(dataset["Ticker"], dataset["EffectiveDate"])
+        .where(func.toYear(dataset["EffectiveDate"]) == selected_year)
         .limit(limit)
     )
     result = dataset.fetch(stmt)
 
-    for d in result["TradeDate"]:
+    for d in result["EffectiveDate"]:
         assert d.year == selected_year
     for v in result.values():
         assert len(v) == limit
@@ -69,22 +69,22 @@ def test_select_where_filter_year(dataset: DataSet):
 def test_select_where_logical_and(dataset: DataSet):
     limit = 10
     selected_year = 2015
-    trade_price_filter = 1000
+    adjustment_factor_filter = 0.99
     stmt = (
-        dataset.select(dataset["FirstTradePrice"], dataset["TradeDate"])
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
         .where(
-            (func.toYear(dataset["TradeDate"]) == selected_year)
-            & (dataset["FirstTradePrice"] > trade_price_filter)
+            (func.toYear(dataset["EffectiveDate"]) == selected_year)
+            & (dataset["AdjustmentFactor"] > adjustment_factor_filter)
         )
         .limit(limit)
     )
     result = dataset.fetch(stmt)
 
-    for d in result["TradeDate"]:
+    for d in result["EffectiveDate"]:
         assert d.year == selected_year
 
-    for p in result["FirstTradePrice"]:
-        assert p > trade_price_filter
+    for p in result["AdjustmentFactor"]:
+        assert p > adjustment_factor_filter
 
     for v in result.values():
         assert len(v) == limit
@@ -93,19 +93,19 @@ def test_select_where_logical_and(dataset: DataSet):
 def test_select_where_logical_or(dataset: DataSet):
     limit = 10
     selected_year = 2015
-    trade_price_filter = 1000
+    adjustment_rate_filter = 0.99
     stmt = (
-        dataset.select(dataset["FirstTradePrice"], dataset["TradeDate"])
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
         .where(
-            (func.toYear(dataset["TradeDate"]) == selected_year)
-            | (dataset["FirstTradePrice"] > trade_price_filter)
+            (func.toYear(dataset["EffectiveDate"]) == selected_year)
+            | (dataset["AdjustmentFactor"] > adjustment_rate_filter)
         )
         .limit(limit)
     )
     result = dataset.fetch(stmt)
 
-    for d, p in zip(result["TradeDate"], result["FirstTradePrice"]):
-        assert (d.year == selected_year) or (p > trade_price_filter)
+    for d, p in zip(result["EffectiveDate"], result["AdjustmentFactor"]):
+        assert (d.year == selected_year) or (p > adjustment_rate_filter)
 
     for v in result.values():
         assert len(v) == limit
@@ -115,29 +115,29 @@ def test_select_where_in(dataset: DataSet):
     limit = 10
     selected_years = [2015, 2016, 2018]
     stmt = (
-        dataset.select(dataset["FirstTradePrice"], dataset["TradeDate"])
-        .where(func.toYear(dataset["TradeDate"]).in_(selected_years))
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
+        .where(func.toYear(dataset["EffectiveDate"]).in_(selected_years))
         .limit(limit)
     )
     result = dataset.fetch(stmt)
 
-    for d in result["TradeDate"]:
+    for d in result["EffectiveDate"]:
         assert d.year in selected_years
 
 
 def test_select_where_between(dataset: DataSet):
     limit = 10
-    price_min = 1000
-    price_max = 2000
+    min_factor = 0.985
+    max_factor = 0.995
     stmt = (
-        dataset.select(dataset["FirstTradePrice"], dataset["TradeDate"])
-        .where(dataset["FirstTradePrice"].between(price_min, price_max))
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
+        .where(dataset["AdjustmentFactor"].between(min_factor, max_factor))
         .limit(limit)
     )
     result = dataset.fetch(stmt)
 
-    for p in result["FirstTradePrice"]:
-        assert price_min <= p <= price_max
+    for p in result["AdjustmentFactor"]:
+        assert min_factor <= p <= max_factor
 
 
 def test_select_groupby_filter_year(dataset: DataSet):
@@ -145,11 +145,11 @@ def test_select_groupby_filter_year(dataset: DataSet):
     year_having_filter = 2015
     stmt = (
         dataset.select(
-            func.avg(dataset["FirstTradePrice"]),
-            func.toYear(dataset["TradeDate"]).label(agg_year_label),
+            func.avg(dataset["AdjustmentFactor"]),
+            func.toYear(dataset["EffectiveDate"]).label(agg_year_label),
         )
-        .group_by(func.toYear(dataset["TradeDate"]))
-        .having(func.toYear(dataset["TradeDate"]) == year_having_filter)
+        .group_by(func.toYear(dataset["EffectiveDate"]))
+        .having(func.toYear(dataset["EffectiveDate"]) == year_having_filter)
     )
     result = dataset.fetch(stmt)
 
@@ -158,3 +158,19 @@ def test_select_groupby_filter_year(dataset: DataSet):
 
     for v in result.values():
         assert len(v) == 1
+
+
+def test_select_order_by(dataset: DataSet):
+    limit = 100
+    stmt = (
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
+        .order_by(dataset["AdjustmentFactor"])
+        .limit(limit)
+    )
+    result = dataset.fetch(stmt)
+
+    previous = None
+    for f in result["AdjustmentFactor"]:
+        if previous is not None:
+            assert f >= previous
+        previous = f

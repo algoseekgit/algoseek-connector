@@ -7,6 +7,7 @@ from functools import lru_cache
 from typing import Generator, Optional, cast
 
 import clickhouse_connect
+import sqlparse
 from clickhouse_connect.driver import Client
 from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from pandas import DataFrame
@@ -219,7 +220,12 @@ class ClickHouseClient(ClientProtocol):
         compile_kwargs = {"compile_kwargs": {"render_postcompile": True}}
         compile_kwargs.update(kwargs)
         compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)
-        return CompiledQuery(compiled.string, compiled.params)
+        sql_format_params = {
+            "reindent": True,
+            "indent_width": 4,
+        }
+        compiled_string = sqlparse.format(compiled.string, **sql_format_params)
+        return CompiledQuery(compiled_string, compiled.params)
 
 
 def _create_clickhouse_client(
