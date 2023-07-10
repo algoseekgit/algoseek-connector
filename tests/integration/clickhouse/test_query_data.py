@@ -158,3 +158,19 @@ def test_select_groupby_filter_year(dataset: DataSet):
 
     for v in result.values():
         assert len(v) == 1
+
+
+def test_select_order_by(dataset: DataSet):
+    limit = 100
+    stmt = (
+        dataset.select(dataset["AdjustmentFactor"], dataset["EffectiveDate"])
+        .order_by(dataset["AdjustmentFactor"])
+        .limit(limit)
+    )
+    result = dataset.fetch(stmt)
+
+    previous = None
+    for f in result["AdjustmentFactor"]:
+        if previous is not None:
+            assert f >= previous
+        previous = f
