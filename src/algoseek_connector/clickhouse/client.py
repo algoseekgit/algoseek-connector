@@ -199,7 +199,6 @@ class ClickHouseClient(ClientProtocol):
         compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)
         sql_format_params = {
             "reindent": True,
-            "keyword_case": "upper",
             "indent_width": 4,
         }
         compiled_string = sqlparse.format(compiled.string, **sql_format_params)
