@@ -6,6 +6,7 @@ import os
 from functools import lru_cache
 from typing import TYPE_CHECKING, Generator, Optional, cast
 
+import sqlparse
 from clickhouse_driver import Client
 from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from pandas import DataFrame
@@ -196,7 +197,13 @@ class ClickHouseClient(ClientProtocol):
         compile_kwargs = {"compile_kwargs": {"render_postcompile": True}}
         compile_kwargs.update(kwargs)
         compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)
-        return CompiledQuery(compiled.string, compiled.params)
+        sql_format_params = {
+            "reindent": True,
+            "keyword_case": "upper",
+            "indent_width": 4,
+        }
+        compiled_string = sqlparse.format(compiled.string, **sql_format_params)
+        return CompiledQuery(compiled_string, compiled.params)
 
 
 class ClickHouseTableMetadataFactory:
