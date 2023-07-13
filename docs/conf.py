@@ -31,7 +31,8 @@ html_theme = "alabaster"
 html_static_path = ["_static"]
 
 html_theme_options = {
-    "description": "Connector library for AlgoSeek datasets",
+    "logo": "logo-full.png",
+    "description": "The Python entry point for Algoseek datasets",
     "fixed_sidebar": True,
     "sidebar_width": "300px",
     "page_width": "1000px",
