@@ -20,6 +20,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "sqlalchemy": ("https://docs.sqlalchemy.org/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "requests": ("https://requests.readthedocs.io/en/latest/", None),
 }
 
 templates_path = ["_templates"]
