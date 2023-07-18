@@ -28,7 +28,6 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-clickhouse-driver = {extras = ["lz4"], version = "^0.2.6"}
 requests = "^2.31.0"
 pandas = "^2.0.2"
 clickhouse-sqlalchemy = "^0.2.4"
