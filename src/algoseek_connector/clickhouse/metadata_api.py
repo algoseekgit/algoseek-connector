@@ -9,21 +9,18 @@ APIConsumer : fetch DB table metadata.
 
 import json
 from functools import lru_cache
-from os import getenv
 from pathlib import Path
 from typing import Optional
 
-import requests
-
+from ..metadata_api import BaseAPIConsumer
 from .base import ColumnMetadata, TableMetadata
 
-BASE_URL = "https://metadata-services.algoseek.com/"
-TIMEOUT = 5
 
-
-class APIConsumer:
+class APIConsumer(BaseAPIConsumer):
     """
-    Fetch dataset metadata from metadata services.
+    Fetch ClickHouse DB dataset metadata from metadata services.
+
+    Inherits from :py:class:`algoseek_connector.metadata_api.BaseAPIConsumer`.
 
     Parameters
     ----------
@@ -40,35 +37,6 @@ class APIConsumer:
         If authentication fails or the connection times out.
 
     """
-
-    def __init__(
-        self, user: Optional[str] = None, password: Optional[str] = None
-    ) -> None:
-        if user is None:
-            user = getenv("ALGOSEEK_API_USERNAME")
-
-        if password is None:
-            password = getenv("ALGOSEEK_API_PASSWORD")
-
-        if user is None or password is None:
-            msg = "User and password must be provided as parameters or as environment variables."
-            raise ValueError(msg)
-
-        credentials = {"name": user, "secret": password}
-        login_url = BASE_URL + "api/v1/login/access_token/"
-        response = requests.post(login_url, json=credentials, timeout=TIMEOUT)
-
-        if response.status_code == requests.codes.OK:
-            json_response = response.json()
-            token = json_response["token"]
-            self._auth_expiry_date = json_response["expiry_date"]
-            self._auth_header = {
-                "Authorization": f"Bearer {token}",
-                "accept": "application/json",
-            }
-        else:
-            msg = "Login failed with code {response.status_code}"
-            raise requests.HTTPError(msg)
 
     def get_db_table_metadata(self, group: str, name: str) -> TableMetadata:
         """
@@ -125,20 +93,13 @@ class APIConsumer:
     @lru_cache
     def _get_db_metadata(self) -> dict[str, dict[str, dict]]:
         """List available tables."""
-        url = BASE_URL + "api/v1/public/database_table/"
-        response = requests.get(url, headers=self._auth_header, timeout=TIMEOUT)
-
-        if response.status_code == requests.codes.OK:
-            tables = response.json()
-        else:
-            msg = f"Connection to API failed with code {response.status_code}"
-            raise requests.exceptions.HTTPError(msg)
-
+        db_metadata_endpoint = "public/database_table/"
+        response = self.get(db_metadata_endpoint)
         db_metadata: dict[str, dict[str, dict]] = dict()
-        for t in tables:
-            group, name = t["table_name"].split(".")
+        for table in response.json():
+            group, name = table["table_name"].split(".")
             group_metadata = db_metadata.setdefault(group, dict())
-            group_metadata[name] = t
+            group_metadata[name] = table
         return db_metadata
 
     def _validate_group(self, group: str):

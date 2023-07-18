@@ -1,6 +1,8 @@
 import pytest
 import requests
+
 from algoseek_connector.clickhouse import metadata_api
+from algoseek_connector.metadata_api import ALGOSEEK_API_PASSWORD, ALGOSEEK_API_USERNAME
 
 
 @pytest.fixture(scope="module")
@@ -18,10 +20,7 @@ def test_data_equal_mock_api(api_consumer: metadata_api.APIConsumer):
 def test_APIConsumer_no_user_provided(monkeypatch):
     password = "InvalidPassword"
 
-    def mock_get_env(s):
-        return None
-
-    monkeypatch.setattr(metadata_api, "getenv", mock_get_env)
+    monkeypatch.delenv(ALGOSEEK_API_USERNAME)
 
     with pytest.raises(ValueError):
         metadata_api.APIConsumer(password=password)
@@ -30,10 +29,7 @@ def test_APIConsumer_no_user_provided(monkeypatch):
 def test_APIConsumer_no_password_provided(monkeypatch):
     user = "mock-user"
 
-    def mock_get_env(s):
-        return None
-
-    monkeypatch.setattr(metadata_api, "getenv", mock_get_env)
+    monkeypatch.delenv(ALGOSEEK_API_PASSWORD)
 
     with pytest.raises(ValueError):
         metadata_api.APIConsumer(user=user)
