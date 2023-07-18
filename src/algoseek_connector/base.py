@@ -7,8 +7,6 @@ Classes
 -------
 DataSource
     Manage connection to a Database.
-DataGroupMapping
-    Container class for the DataGroups in a DataSource.
 DataGroup
     Container class for a collection of related Datasets.
 DataSet
@@ -128,6 +126,7 @@ class DataGroupFetcher:
         """Fetch the data group instance."""
         if self._group is None:
             group = DataGroup(self._source, self._name)
+            self._group = group
         else:
             group = self._group
         return group
@@ -236,8 +235,11 @@ class DataSetFetcher:
         """Fetch the dataset."""
         if self._dataset is None:
             group = self._group
-            table = group.client.create_dataset_table(group, self.name)
-            dataset = DataSet(self._group, table)
+            dataset_metadata = group.client.fetch_dataset_metadata(
+                group.name, self.name
+            )
+            dataset = DataSet(self._group, dataset_metadata)
+            self._dataset = dataset
         else:
             dataset = self._dataset
         return dataset
@@ -276,9 +278,11 @@ class DataSet:
 
     """
 
-    def __init__(self, group: "DataGroup", table: Table):
+    def __init__(self, group: "DataGroup", table_metadata: DataSetMetadata):
         self._group = group
-        self._name = table.name.split(".")[-1]  # remove DB name "DBName.TableName"
+        self._name = table_metadata.name
+        table_name = f"{group.name}.{table_metadata.name}"
+        table = Table(table_name, group.metadata, *table_metadata.columns, quote=False)
         self._client = group.client
         self._table = table
         for column in table.c:
@@ -363,7 +367,7 @@ class DataSet:
 
         return select(*columns)
 
-    def fetch(self, stmt: Select) -> dict[str, tuple]:
+    def fetch(self, stmt: Select, **kwargs) -> dict[str, tuple]:
         """
         Fetch data using a select statement.
 
@@ -371,27 +375,40 @@ class DataSet:
         ----------
         stmt : Select
             A SQLAlchemy Select statement created using the select method.
+        kwargs :
+            Optional parameters passed to the underlying ClientProtocol.fetch
+            method.
 
         """
         query = self.client.compile(stmt)
-        return self.client.fetch(query)
+        return self.client.fetch(query, **kwargs)
 
     def fetch_iter(
-        self, stmt: Select, size: int
+        self, stmt: Select, size: int, **kwargs
     ) -> Generator[dict[str, tuple], None, None]:
         """
-        Fetch data using a select statement. Output columns as Numpy arrays.
+        Stream data using a select statement.
 
         Parameters
         ----------
         stmt : Select
             A SQLAlchemy Select statement created using the select method.
+        size : int
+            The size of each data chunk.
+        kwargs :
+            Optional parameters passed to the underlying client
+            fetch_iter method.
+
+        Yields
+        ------
+        dict[str, tuple]
+            A dictionary with column name/column data pairs.
 
         """
         query = self.client.compile(stmt)
-        yield from self.client.fetch_iter(query, size)
+        yield from self.client.fetch_iter(query, size, **kwargs)
 
-    def fetch_dataframe(self, stmt: Select) -> DataFrame:
+    def fetch_dataframe(self, stmt: Select, **kwargs) -> DataFrame:
         """
         Fetch data using a select statement. Output columns as Pandas DataFrame.
 
@@ -399,14 +416,63 @@ class DataSet:
         ----------
         stmt : Select
             A SQLAlchemy Select statement created using the select method.
+        kwargs :
+            Optional parameters passed to the underlying client
+            fetch_dataframe method.
+
+        Returns
+        -------
+        pandas.DataFrame
 
         """
         query = self.client.compile(stmt)
-        return self.client.fetch_dataframe(query)
+        return self.client.fetch_dataframe(query, **kwargs)
+
+    def fetch_iter_dataframe(
+        self, stmt: Select, size: int, **kwargs
+    ) -> Generator[DataFrame, None, None]:
+        """
+        Stream data using a select statement. Output data as Pandas DataFrame.
+
+        Parameters
+        ----------
+        stmt : Select
+            A SQLAlchemy Select statement created using the select method.
+        size : int
+            The size of each data chunk.
+        kwargs :
+            Optional parameters passed to the underlying client
+            fetch_iter_dataframe method.
+
+        Yields
+        ------
+        pandas.DataFrame
+
+        """
+        query = self.client.compile(stmt)
+        yield from self.client.fetch_iter_dataframe(query, size, **kwargs)
 
     def compile(self, stmt: Select) -> "CompiledQuery":
         """Compiles the statement into a dialect-specific SQL string."""
         return self.client.compile(stmt)
+
+
+@dataclass(frozen=True)
+class DataSetMetadata:
+    """
+    Container class for table metadata.
+
+    Attributes
+    ----------
+    name : str
+        The dataset name.
+    columns : list[Column]
+        The dataset columns.
+
+    """
+
+    name: str
+    columns: list[Column]
 
 
 class InvalidDataGroupName(KeyError):
@@ -471,6 +537,9 @@ class ColumnHandle:
         for key in self.__dict__:
             yield self[key]
 
+    def __len__(self) -> int:
+        return len(self.__dict__)
+
     def _ipython_key_completions_(self):  # pragma: no cover
         return self.__dict__.keys()
 
@@ -489,14 +558,14 @@ class FunctionHandle:
 
 
 class ClientProtocol(Protocol):
-    """Interface for DB connection used by the DataSource class."""
+    """Adapter interface for DB clients."""
 
     @abstractmethod
     def compile(self, stmt: Select) -> CompiledQuery:
         """Compile a SQLAlchemy Select statement into a CompiledQuery."""
 
     @abstractmethod
-    def create_dataset_table(self, group: DataGroup, name: str) -> Table:
+    def fetch_dataset_metadata(self, group: str, name: str) -> DataSetMetadata:
         """Create a dataset."""
 
     @abstractmethod
@@ -504,22 +573,22 @@ class ClientProtocol(Protocol):
         """Create a FunctionHandle instance."""
 
     @abstractmethod
-    def fetch(self, query: CompiledQuery) -> dict[str, tuple]:
+    def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
         """Fetch a select query."""
 
     @abstractmethod
     def fetch_iter(
-        self, query: CompiledQuery, size: int
+        self, query: CompiledQuery, size: int, **kwargs
     ) -> Generator[dict[str, tuple], None, None]:
         """Yield a select query in chunks."""
 
     @abstractmethod
-    def fetch_dataframe(self, query: CompiledQuery) -> DataFrame:
+    def fetch_dataframe(self, query: CompiledQuery, **kwargs) -> DataFrame:
         """Fetch a select query and output results as a Pandas DataFrame."""
 
     @abstractmethod
     def fetch_iter_dataframe(
-        self, query: CompiledQuery, size: int
+        self, query: CompiledQuery, size: int, **kwargs
     ) -> Generator[DataFrame, None, None]:
         """Yield a select query in chunks, using pandas DataFrames."""
 
