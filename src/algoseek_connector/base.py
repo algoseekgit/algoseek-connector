@@ -304,23 +304,8 @@ class DataSet:
         """Get the data source client."""
         return self._client
 
-    def _repr_html_(self):  # pragma: no cover
-        """Display the Dataset in jupyter notebooks using HTML."""
-        from pandas import DataFrame
-
-        d = dict()
-        d["name"] = [x.name for x in self._table.columns]
-        d["type"] = [str(x.type) for x in self._table.columns]
-        df = DataFrame(d)
-        df = df.set_index("name")
-        return f"<h3>Dataset: {self.name}</h3>\n{df._repr_html_()}"
-
     def __getitem__(self, key: str) -> Column:
         return self.c[key]
-
-    def _ipython_key_completions_(self):  # pragma: no cover
-        """Add autocomplete integration for keys in Ipython/Jupyter."""
-        return self.c._ipython_key_completions_()
 
     def get_column_handle(self) -> "ColumnHandle":
         """Get a handler object for fast access to dataset columns."""
@@ -455,6 +440,15 @@ class DataSet:
     def compile(self, stmt: Select) -> "CompiledQuery":
         """Compiles the statement into a dialect-specific SQL string."""
         return self.client.compile(stmt)
+
+    def _repr_html_(self):  # pragma: no cover
+        """Display the Dataset in jupyter notebooks using HTML."""
+        desc = "test-description."
+        return _make_dataset_html_description(self.name, desc, self.c)
+
+    def _ipython_key_completions_(self):  # pragma: no cover
+        """Add autocomplete integration for keys in Ipython/Jupyter."""
+        return self.c._ipython_key_completions_()
 
 
 @dataclass(frozen=True)
@@ -599,3 +593,24 @@ class ClientProtocol(Protocol):
     @abstractmethod
     def list_datasets(self, group: str) -> list[str]:
         """List available data groups."""
+
+
+def _make_dataset_html_description(
+    name: str, description: str, column_handle: ColumnHandle
+) -> str:
+    table_content = _make_dataset_html_table(column_handle)
+    html = f"<h2>{name}</h2>" f"<p>{description}</p>" f"{table_content}"
+    return html
+
+
+def _make_dataset_html_table(column_handle: ColumnHandle) -> str:
+    rows = list()
+    for col in column_handle:
+        name = col.name
+        t = str(col.type)
+        description = col.doc
+        column_html = f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
+        rows.append(column_html)
+    html_rows = "\n".join(rows)
+    table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
+    return f"<table>\n{table_header}\n{html_rows}\n</table>"
