@@ -73,6 +73,32 @@ class DataSource:
         """Get the data source client."""
         return self._client
 
+    def execute(
+        self,
+        sql: str,
+        parameters: Optional[dict] = None,
+        output: str = "python",
+        size: Optional[int] = None,
+        **kwargs,
+    ):
+        """
+        Execute raw SQL queries.
+
+        Parameters
+        ----------
+        sql : str
+            Parametrized SQL statement.
+        parameters : dict or None
+            query parameters.
+        output : {"python", "dataframe"}
+            Output format for query results.
+        size : int or None
+            If a size is specified, split the results in chunks of the specified
+            size.
+
+        """
+        return self.client.execute(sql, parameters, output, **kwargs)
+
     def fetch_datagroup(self, name: str) -> "DataGroup":
         """Retrieve a data group."""
         return self.groups[name].fetch()
@@ -567,6 +593,41 @@ class ClientProtocol(Protocol):
         """Create a FunctionHandle instance."""
 
     @abstractmethod
+    def execute(
+        self,
+        sql: str,
+        parameters: Optional[dict],
+        output: str,
+        **kwargs,
+    ):
+        """
+        Execute raw SQL queries.
+
+        Parameters
+        ----------
+        sql : str
+            Parametrized sql query.
+        parameters : dict or None, default=None
+            Query parameters.
+        output : {"python", "dataframe"}
+            Wether to output data using Python native types or Pandas DataFrames.
+        kwargs :
+            Optional parameters passed to clickhouse-connect Client.query
+            method.
+
+        Returns
+        -------
+        dict or pandas.DataFrame
+            If `size` is ``None``.
+
+        Yields
+        ------
+        dict or pandas.DataFrame
+            If `size` is specified.
+
+        """
+
+    @abstractmethod
     def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
         """Fetch a select query."""
 
@@ -594,16 +655,42 @@ class ClientProtocol(Protocol):
     def list_datasets(self, group: str) -> list[str]:
         """List available data groups."""
 
+    @abstractmethod
+    def store_to_s3(
+        self,
+        query: CompiledQuery,
+        path: str,
+        aws_key_id: str,
+        aws_secret_access_key: str,
+    ):
+        """
+        Execute a query and store results into an S3 object.
+
+        Parameters
+        ----------
+        query : CompiledQuery
+        path : str
+            S3 object path to write the query results.
+        aws_key_id : str or None, default=None
+            AWS access key associated with an IAM account. If ``None``, the key
+            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+        aws_secret_access_key : str or None, default=None
+            The secret key associated with the access key. If ``None``, the
+            secret key is retrieved from the environment variable
+            `AWS_SECRET_ACCESS_KEY`.
+
+        """
+
 
 def _make_dataset_html_description(
     name: str, description: str, column_handle: ColumnHandle
-) -> str:
+) -> str:  # pragma: no cover
     table_content = _make_dataset_html_table(column_handle)
     html = f"<h2>{name}</h2>" f"<p>{description}</p>" f"{table_content}"
     return html
 
 
-def _make_dataset_html_table(column_handle: ColumnHandle) -> str:
+def _make_dataset_html_table(column_handle: ColumnHandle) -> str:  # pragma: no cover
     rows = list()
     for col in column_handle:
         name = col.name

@@ -58,6 +58,51 @@ class ClickHouseClient(ClientProtocol):
         functions = ["sum", "average"]
         return FunctionHandle(functions)
 
+    def execute(
+        self,
+        sql: str,
+        parameters: Optional[dict] = None,
+        output: str = "python",
+        **kwargs,
+    ):
+        """
+        Execute raw SQL queries.
+
+        Parameters
+        ----------
+        sql : str
+            Parametrized sql query.
+        parameters : dict or None, default=None
+            Query parameters.
+        output : {"python", "dataframe"}
+            Wether to output data using Python native types or Pandas DataFrames.
+        kwargs :
+            Optional parameters passed to clickhouse-connect Client.query
+            method.
+
+        Returns
+        -------
+        dict or pandas.DataFrame
+            If `size` is ``None``.
+
+        Yields
+        ------
+        dict or pandas.DataFrame
+            If `size` is specified.
+
+        """
+        if parameters is None:
+            parameters = dict()
+        query = CompiledQuery(sql, parameters)
+
+        if output == "python":
+            return self.fetch(query, **kwargs)
+        elif output == "dataframe":
+            return self.fetch_dataframe(query, **kwargs)
+        else:
+            msg = f"Valid outputs are either `python` or `dataframe`. Got {output}."
+            raise ValueError(msg)
+
     def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
         """
         Retrieve data using a select statement.
@@ -227,6 +272,45 @@ class ClickHouseClient(ClientProtocol):
         compiled_string = sqlparse.format(compiled.string, **sql_format_params)
         return CompiledQuery(compiled_string, compiled.params)
 
+    def store_to_s3(
+        self,
+        query: CompiledQuery,
+        path: str,
+        aws_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        **kwargs,
+    ):
+        """
+        Execute a query and store results into an S3 object.
+
+        Parameters
+        ----------
+        query : CompiledQuery
+        path : str
+            S3 object path to write the query results.
+        aws_key_id : str or None, default=None
+            AWS access key associated with an IAM account. If ``None``, the key
+            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+        aws_secret_access_key : str or None, default=None
+            The secret key associated with the access key. If ``None``, the
+            secret key is retrieved from the environment variable
+            `AWS_SECRET_ACCESS_KEY`.
+        kwargs
+            Key-value arguments passed to clickhouse-connect Client.query
+            method.
+
+        """
+        if aws_key_id is None:
+            aws_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+
+        if aws_secret_access_key is None:
+            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+        sql = _create_insert_to_s3_query(
+            query.sql, path, aws_key_id, aws_secret_access_key
+        )
+        self._client.query(sql, query.parameters, **kwargs)
+
 
 def _create_clickhouse_client(
     host: Optional[str],
@@ -248,6 +332,13 @@ def _create_clickhouse_client(
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )
+
+
+def _create_insert_to_s3_query(
+    sql: str, path: str, aws_key_id: str, aws_secret_access_key: str
+) -> str:
+    s3_call = f"s3('{path}', '{aws_key_id}', '{aws_secret_access_key}', CSVWithNames)"
+    return f"INSERT INTO FUNCTION {s3_call}\n {sql}"
 
 
 class MockClickHouseClient(ClickHouseClient):
