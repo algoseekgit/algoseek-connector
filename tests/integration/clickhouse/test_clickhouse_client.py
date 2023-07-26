@@ -19,6 +19,30 @@ def dataset(data_source):
     return group.fetch_dataset(dataset_name)
 
 
+def test_execute_python_types(data_source: DataSource, dataset: DataSet):
+    limit = 10
+    col_name = "TradeDate"
+    stmt = dataset.select(dataset[col_name]).limit(limit)
+    expected = dataset.fetch(stmt)
+
+    group = dataset.group
+    raw_sql = f"SELECT {col_name} FROM {group.name}.{dataset.name} LIMIT {limit}"
+    actual = data_source.execute(raw_sql)
+    assert actual == expected
+
+
+def test_execute_dataframe(data_source: DataSource, dataset: DataSet):
+    limit = 10
+    col_name = "TradeDate"
+    stmt = dataset.select(dataset[col_name]).limit(limit)
+    expected = dataset.fetch_dataframe(stmt)
+
+    group = dataset.group
+    raw_sql = f"SELECT {col_name} FROM {group.name}.{dataset.name} LIMIT {limit}"
+    actual = data_source.execute(raw_sql, output="dataframe")
+    assert expected.equals(actual)
+
+
 def test_ClickHouseClient_list_groups(data_source: DataSource):
     groups = data_source.list_datagroups()
     assert len(groups)
