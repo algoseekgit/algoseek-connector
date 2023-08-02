@@ -76,3 +76,17 @@ def test_get_bucket_group_metadata_invalid_dataset(
     dataset_name = "InvalidDataset"
     with pytest.raises(InvalidDataSetName):
         api_consumer.get_bucket_group_metadata(dataset_name)
+
+
+def test_get_bucket_format(api_consumer: S3DatasetMetadataAPIConsumer):
+    dataset_name = "eq_taq_1min"
+    expected = "us-equity-1min-taq-yyyy"
+    actual = api_consumer.get_dataset_bucket_format(dataset_name)
+    assert actual == expected
+
+
+def test_get_bucket_path_format(api_consumer: S3DatasetMetadataAPIConsumer):
+    dataset_name = "eq_taq_1min"
+    expected = "yyyymmdd/s/sss.csv.gz"
+    actual = api_consumer.get_dataset_bucket_path_format(dataset_name)
+    assert actual == expected

@@ -65,6 +65,48 @@ class S3DatasetMetadataAPIConsumer(BaseAPIConsumer):
         except KeyError:
             raise InvalidDataSetName(name) from None
 
+    def get_dataset_bucket_format(self, name: str) -> str:
+        """
+        Get the bucket name format.
+
+        Parameters
+        ----------
+        name : str
+            The dataset name
+
+        Returns
+        -------
+        str
+
+        Raises
+        ------
+        InvalidDatasetName
+            If an non-existent dataset name is passed.
+        """
+        dataset_metadata = self.get_bucket_group_metadata(name)
+        return dataset_metadata["bucket_name"]
+
+    def get_dataset_bucket_path_format(self, name: str) -> str:
+        """
+        Get the bucket path format.
+
+        Parameters
+        ----------
+        name : str
+            The dataset name
+
+        Returns
+        -------
+        str
+
+        Raises
+        ------
+        InvalidDatasetName
+            If an non-existent dataset name is passed.
+        """
+        dataset_metadata = self.get_bucket_group_metadata(name)
+        return dataset_metadata["path_format"]
+
     def get_bucket_group_metadata(self, dataset: str) -> dict[str, Any]:
         """
         Get the metadata from a primary bucket group.
