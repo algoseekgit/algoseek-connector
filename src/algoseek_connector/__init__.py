@@ -9,11 +9,7 @@ TODO: add examples.
 
 """
 
-from . import base, clickhouse
+from . import base, clickhouse, s3
 from .manager import ResourceManager
 
-__all__ = [
-    "base",
-    "clickhouse",
-    "ResourceManager",
-]
+__all__ = ["base", "clickhouse", "ResourceManager", "s3"]
