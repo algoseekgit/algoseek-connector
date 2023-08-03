@@ -2,12 +2,13 @@ import pytest
 from requests.exceptions import HTTPError
 
 from algoseek_connector.base import InvalidDataGroupName, InvalidDataSetName
-from algoseek_connector.metadata_api import BaseAPIConsumer
+from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
 
 @pytest.fixture(scope="module")
 def api_consumer():
-    return BaseAPIConsumer()
+    token = AuthToken()
+    return BaseAPIConsumer(token)
 
 
 def test_invalid_endpoint_raises_http_error(api_consumer: BaseAPIConsumer):

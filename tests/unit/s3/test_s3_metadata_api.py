@@ -1,12 +1,14 @@
 import pytest
 
 from algoseek_connector.base import InvalidDataSetName
+from algoseek_connector.metadata_api import AuthToken
 from algoseek_connector.s3.metadata_api import S3DatasetMetadataAPIConsumer
 
 
 @pytest.fixture(scope="module")
 def api_consumer():
-    return S3DatasetMetadataAPIConsumer()
+    token = AuthToken()
+    return S3DatasetMetadataAPIConsumer(token)
 
 
 def test_get_bucket_group_metadata(api_consumer: S3DatasetMetadataAPIConsumer):
