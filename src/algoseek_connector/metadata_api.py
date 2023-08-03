@@ -3,16 +3,20 @@ Tools to communicate with Algoseek API metadata.
 
 Provides:
 
-BaseAPIConsumer:
-  Authenticates to metadata-services.
+BaseAPIConsumer
+  Provides a generic get method to fetch data from the different endpoints.
+  Provides functionality to get dataset and datagroup metadata.
 
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
 from os import getenv
-from typing import Optional
+from typing import Any, Optional, Union
 
 import requests
+
+from .base import InvalidDataGroupName, InvalidDataSetName
 
 ALGOSEEK_API_USERNAME = "ALGOSEEK_API_USERNAME"
 ALGOSEEK_API_PASSWORD = "ALGOSEEK_API_PASSWORD"
@@ -74,6 +78,11 @@ class BaseAPIConsumer:
         **kwargs : dict
             Optional parameters to pass to :py:func:`requests.get`
 
+        Raises
+        ------
+        requests.exceptions.HTTPError
+            If a non-existent dataset name is passed.
+
         """
         url = self.base_url + endpoint
         kwargs["headers"] = self._token.create_header()
@@ -85,6 +94,163 @@ class BaseAPIConsumer:
         else:
             msg = f"Connection to API failed with code {response.status_code}"
             raise requests.exceptions.HTTPError(msg)
+
+    @lru_cache
+    def _fetch_dataset_metadata(self) -> dict[str, dict]:
+        """
+        Fetch metadata from all datasets.
+
+        Returns a dictionary that maps datasets text_id to dataset metadata.
+        """
+        endpoint = "public/dataset/"
+        response = self.get(endpoint)
+        return {x["text_id"]: x for x in response.json()}
+
+    @lru_cache
+    def _fetch_datagroup_metadata(self) -> dict[str, dict]:
+        """
+        Fetch metadata from all datagroups.
+
+        Returns a dictionary that maps datagroups text_id to datagroup metadata.
+        """
+        endpoint = "public/data_group/"
+        response = self.get(endpoint)
+        return {x["text_id"]: x for x in response.json()}
+
+    @lru_cache
+    def _data_group_id_to_text_id(self) -> dict[int, str]:
+        """Create a dict that maps datagroups id to text ids."""
+        metadata = self._fetch_datagroup_metadata()
+        return {x["id"]: x["text_id"] for x in metadata.values()}
+
+    @lru_cache
+    def _dataset_id_to_text_id(self) -> dict[int, str]:
+        """Create a dict that maps datasets id to text ids."""
+        metadata = self._fetch_dataset_metadata()
+        return {x["id"]: x["text_id"] for x in metadata.values()}
+
+    def list_datagroups(self) -> list[str]:
+        """Retrieve the text id of all datagroups."""
+        return list(self._fetch_datagroup_metadata())
+
+    def list_datasets(self) -> list[str]:
+        """Retrieve the text id of all datasets."""
+        return list(self._fetch_dataset_metadata())
+
+    def get_datagroup_metadata(self, id_: Union[int, str]) -> dict[str, Any]:
+        """
+        Retrieve metadata from a datagroup.
+
+        Parameters
+        ----------
+        id_ : int or str
+            The data group id. If an int is passed, it is interpreted as the
+            numerical id of the data group. If an str is passed, it is
+            interpreted as the text id of the data group.
+
+        Returns
+        -------
+        dict
+            See the documentation for the `api/v1/public/data_group/{text_id}`
+            endpoint at https://metadata-services.algoseek.com/docs for a
+            description of the expected format.
+
+        Raises
+        ------
+        InvalidDataGroupName
+            If an invalid text id is passed.
+        ValueError
+            If an invalid id is passed.
+
+        See Also
+        --------
+        :py:func:`~algoseek_connector.BaseAPIConsumer.list_datagroups`
+            Provides a list text ids from available datagroups.
+
+        """
+        if isinstance(id_, int):
+            try:
+                text_id = self._data_group_id_to_text_id()[id_]
+            except KeyError:
+                msg = f"{id_} is not a valid datagroup id."
+                raise ValueError(msg) from None
+        else:
+            text_id = id_
+
+        try:
+            return self._fetch_datagroup_metadata()[text_id]
+        except KeyError:
+            raise InvalidDataGroupName(text_id) from None
+
+    def get_dataset_metadata(self, id_: Union[int, str]) -> dict[str, Any]:
+        """
+        Retrieve metadata from a dataset.
+
+        Parameters
+        ----------
+        id_ : int or str
+            The dataset id. If an int is passed, it is interpreted as the
+            numerical id of the dataset. If a str is passed, it is
+            interpreted as the text id of the dataset.
+
+        Returns
+        -------
+        dict
+            See the documentation for the `api/v1/public/dataset/{text_id}`
+            endpoint at https://metadata-services.algoseek.com/docs for a
+            description of the expected format.
+
+        Raises
+        ------
+        InvalidDatasetName
+            If an invalid text id is passed.
+        ValueError
+            If an invalid id is passed.
+
+        See Also
+        --------
+        :py:func:`~algoseek_connector.BaseAPIConsumer.list_datasets`
+            Provides a list text ids from available datasets.
+
+        """
+        if isinstance(id_, int):
+            try:
+                text_id = self._dataset_id_to_text_id()[id_]
+            except KeyError:
+                msg = f"{id_} is not a valid dataset id."
+                raise ValueError(msg) from None
+        else:
+            text_id = id_
+
+        try:
+            return self._fetch_dataset_metadata()[text_id]
+        except KeyError:
+            raise InvalidDataSetName(text_id) from None
+
+    def get_documentation(self, text_id: str) -> dict[str, Any]:
+        """
+        Retrieve the documentation metadata from a dataset.
+
+        Parameters
+        ----------
+        text_id : str
+            The text id of a dataset.
+
+        Raises
+        ------
+        InvalidDatasetName
+            If an invalid text id is passed.
+        ValueError
+            If no documentation is available for the dataset
+
+        """
+        dataset_metadata = self.get_dataset_metadata(text_id)
+        documentation_id = dataset_metadata["documentation_id"]
+        if documentation_id is None:
+            msg = f"Documentation not available for dataset with text_id={text_id}."
+            raise ValueError(msg)
+        endpoint = f"public/documentation/{documentation_id}/"
+        return self.get(endpoint).json()
 
 
 @dataclass(frozen=True)

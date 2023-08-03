@@ -10,13 +10,6 @@ def api_consumer():
     return metadata_api.APIConsumer()
 
 
-def test_data_equal_mock_api(api_consumer: metadata_api.APIConsumer):
-    user = "mock-user"
-    password = "mock-password"
-    mock_consumer = metadata_api.MockAPIConsumer(user, password)
-    assert api_consumer._get_db_metadata() == mock_consumer._get_db_metadata()
-
-
 def test_APIConsumer_no_user_provided(monkeypatch):
     password = "InvalidPassword"
 

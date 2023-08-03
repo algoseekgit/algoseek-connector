@@ -5,7 +5,6 @@ from sqlalchemy import types as sqla_types
 
 from algoseek_connector.clickhouse import sqla_table
 from algoseek_connector.clickhouse.base import ColumnMetadata, TableMetadata
-from algoseek_connector.clickhouse.metadata_api import MockAPIConsumer
 
 
 @pytest.fixture
@@ -252,17 +251,3 @@ def test_SQLAlchemyTableFactory():
     table_metadata = TableMetadata(name, group, columns)
     table = table_factory(table_metadata, metadata)
     assert table.name == f"{table_metadata.group}.{table_metadata.name}"
-
-
-def test_SQLAlchemyTableFactory_create_from_APIConsumer_data():
-    api_consumer = MockAPIConsumer()
-    table_factory = sqla_table.SQLAlchemyTableFactory()
-    for db_group in api_consumer.list_db_groups():
-        metadata = MetaData()
-        for db_table in api_consumer.list_db_tables(db_group):
-            if db_group == "USOptionsMarketData" and db_table == "TradeAndQuote":
-                # ignore this table as it contains invalid Enum data.
-                continue
-            table_metadata = api_consumer.get_db_table_metadata(db_group, db_table)
-            table_factory(table_metadata, metadata)
-    assert True

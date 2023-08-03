@@ -3,8 +3,10 @@
 from functools import lru_cache
 from typing import Any
 
-from ..base import InvalidDataSetName
 from ..metadata_api import BaseAPIConsumer
+
+BUCKET_GROUPS = "bucket_groups"
+CLOUD_STORAGE = "cloud_storage"
 
 
 class S3DatasetMetadataAPIConsumer(BaseAPIConsumer):
@@ -13,78 +15,104 @@ class S3DatasetMetadataAPIConsumer(BaseAPIConsumer):
     @lru_cache
     def _fetch_dataset_metadata(self) -> dict[str, dict]:
         """Fetch metadata from all datasets."""
-        endpoint = "public/cloud_storage/"
-        response = self.get(endpoint)
-        metadata = dict()
-        for dataset_metadata in response.json():
-            bucket_groups = dataset_metadata["bucket_groups"]
-            has_csv_columns = len(dataset_metadata["csv_columns"]) > 0
+        all_metadata = super()._fetch_dataset_metadata()
+        s3_metadata = dict()
+        for dataset_metadata in all_metadata.values():
+            cloud_source_metadata = dataset_metadata[CLOUD_STORAGE]
+            if cloud_source_metadata is None:
+                continue
+            bucket_groups = cloud_source_metadata[BUCKET_GROUPS]
+            has_csv_columns = len(cloud_source_metadata["csv_columns"]) > 0
             has_bucket_groups = isinstance(bucket_groups, list) and len(bucket_groups)
             is_valid_dataset = has_csv_columns and has_bucket_groups
             if is_valid_dataset:
-                dataset_name = dataset_metadata["text_id"]
-                metadata[dataset_name] = dataset_metadata
-        return metadata
+                text_id = dataset_metadata["text_id"]
+                s3_metadata[text_id] = dataset_metadata
+        return s3_metadata
 
     @lru_cache
-    def _fetch_bucket_group_metadata(self) -> dict[int, dict]:
-        """Fetch metadata from all bucket groups."""
-        endpoint = "public/bucket_group/"
-        response = self.get(endpoint)
-        return {x["id"]: x for x in response.json()}
-
-    def list_datasets(self) -> list[str]:
-        """List the name of all datasets."""
-        return list(self._fetch_dataset_metadata())
-
-    def get_dataset_metadata(self, name: str) -> dict[str, Any]:
+    def get_bucket_group(self, id_: int) -> dict[str, Any]:
         """
-        Get a dataset metadata.
+        Fetch metadata from a bucket group.
 
         Parameters
         ----------
-        name : str
-            The dataset name
+        id_ : int
+            The bucket group id.
 
         Returns
         -------
         dict
-            A dictionary with metadata. See
-            https://metadata-services.algoseek.com/docs for
-            `cloud_storage/text_id/{text_id}` for the expected format.
+            The bucket group metadata. See the documentation at
+            https://metadata-services.algoseek.com/docs for the
+            `api/v1/public/bucket_group/{bucket_group_id}` for the expected
+            format.
+
+        Raises
+        ------
+        requests.exceptions.HTTPError
+            If a non-existent bucket group id is passed.
+
+        """
+        endpoint = f"public/bucket_group/{id_}/"
+        return self.get(endpoint).json()
+
+    def get_dataset_primary_bucket_group(self, text_id: str) -> dict[str, Any]:
+        """
+        Get the metadata from the primary bucket group.
+
+        Parameters
+        ----------
+        text_id : str
+            The dataset text id.
+
+        Returns
+        -------
+        dict
+            The bucket group metadata. See the documentation at
+            https://metadata-services.algoseek.com/docs for the
+            `api/v1/public/bucket_group/{bucket_group_id}` endpoint to see
+            the expected format.
 
         Raises
         ------
         InvalidDatasetName
             If an non-existent dataset name is passed.
+        ValueError
+            If no primary bucket group is found for the dataset.
 
         """
-        try:
-            metadata = self._fetch_dataset_metadata()
-            return metadata[name]
-        except KeyError:
-            raise InvalidDataSetName(name) from None
+        dataset_metadata = self.get_dataset_metadata(text_id)
+        cloud_storage = dataset_metadata[CLOUD_STORAGE]
+        primary_bucket_group = None
+        for bucket_group_id in cloud_storage[BUCKET_GROUPS]:
+            bucket_group_metadata = self.get_bucket_group(bucket_group_id)
+            if bucket_group_metadata["is_primary"]:
+                primary_bucket_group = bucket_group_metadata
 
-    def get_dataset_bucket_format(self, name: str) -> str:
+        if primary_bucket_group is None:
+            msg = f"No primary bucket group found for dataset {text_id}."
+            raise ValueError(msg)
+
+        return primary_bucket_group
+
+    def get_dataset_bucket_format(self, text_id: str) -> str:
         """
         Get the bucket name format.
 
         Parameters
         ----------
-        name : str
-            The dataset name
+        text_id : str
+            The dataset text id.
 
         Returns
         -------
         str
+            a template with the format for the bucket name.
 
-        Raises
-        ------
-        InvalidDatasetName
-            If an non-existent dataset name is passed.
         """
-        dataset_metadata = self.get_bucket_group_metadata(name)
-        return dataset_metadata["bucket_name"]
+        bucket_group_metadata = self.get_dataset_primary_bucket_group(text_id)
+        return bucket_group_metadata["bucket_name"]
 
     def get_dataset_bucket_path_format(self, name: str) -> str:
         """
@@ -104,45 +132,5 @@ class S3DatasetMetadataAPIConsumer(BaseAPIConsumer):
         InvalidDatasetName
             If an non-existent dataset name is passed.
         """
-        dataset_metadata = self.get_bucket_group_metadata(name)
-        return dataset_metadata["path_format"]
-
-    def get_bucket_group_metadata(self, dataset: str) -> dict[str, Any]:
-        """
-        Get the metadata from a primary bucket group.
-
-        Parameters
-        ----------
-        dataset : str
-            The dataset name.
-
-        Returns
-        -------
-        dict
-
-        A dictionary with metadata. See
-            https://metadata-services.algoseek.com/docs for
-            `bucket_group/text_id/{text_id}` for the expected format.
-
-        Raises
-        ------
-        ValueError
-            If no primary bucket group is found for the dataset.
-
-        """
-        dataset_metadata = self.get_dataset_metadata(dataset)
-        primary_bucket_group = None
-        for bucket_group in dataset_metadata["bucket_groups"]:
-            bucket_group_metadata = self._fetch_bucket_group_metadata()[bucket_group]
-            if bucket_group_metadata["is_primary"]:
-                primary_bucket_group = bucket_group_metadata
-
-        if primary_bucket_group is None:
-            msg = f"No primary bucket group found for dataset {dataset}."
-            raise ValueError(msg)
-
-        return primary_bucket_group
-
-    def list_bucket_groups(self) -> list[int]:
-        """Get a list of all available bucket groups."""
-        return list(self._fetch_bucket_group_metadata())
+        bucket_group_metadata = self.get_dataset_primary_bucket_group(name)
+        return bucket_group_metadata["path_format"]
