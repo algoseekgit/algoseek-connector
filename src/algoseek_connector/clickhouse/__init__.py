@@ -1,7 +1,4 @@
-"""
-Connector tools for ClickHouse DBMS.
-
-"""
+"""Connector tools for ClickHouse DBMS."""
 
 from . import base, client, metadata_api, sqla_table
 
