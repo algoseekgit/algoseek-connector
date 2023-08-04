@@ -193,7 +193,7 @@ class DataGroup:
 
 class DataSetMapping:
     """
-    Mapping class that stores DataGroups from a DataSource.
+    Mapping class that stores Datasets from a DataGroup.
 
     Implements the Mapping protocol.
     """
