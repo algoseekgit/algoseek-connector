@@ -128,3 +128,10 @@ def test_download_non_existent_file_from_bucket(dev_bucket, tmp_path: Path):
     file_path = tmp_path / "my-file"
     with pytest.raises(ClientError):
         file_object.download_file(file_path)
+
+
+def test_download_overwrite_existing_file(dev_bucket, tmp_path: Path):
+    file_object = dev_bucket.Object("iris.csv")
+    file_path = tmp_path / "iris.csv"
+    file_path.touch()
+    file_object.download_file(file_path)
