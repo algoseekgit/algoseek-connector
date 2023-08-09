@@ -1,0 +1,42 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "python.formatting.provider": "none",
+    "cSpell.enabled": true,
+    "cSpell.words": [
+        "algoseek",
+        "Arda",
+        "ardadb",
+        "ASID",
+        "boto",
+        "botocore",
+        "CLICKHOUSE",
+        "copybutton",
+        "dataframe",
+        "Datagroup",
+        "datagroups",
+        "dtype",
+        "endcoding",
+        "expdate",
+        "genindex",
+        "maxdepth",
+        "modindex",
+        "postcompile",
+        "pytest",
+        "pythonic",
+        "quickstart",
+        "SQLA",
+        "sqlalchemy",
+        "ssmy",
+        "TAGG",
+        "toctree",
+        "toggleprompt"
+    ],
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.analysis.typeCheckingMode": "basic"
+}
