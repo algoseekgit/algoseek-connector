@@ -4,21 +4,22 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import Generator, Optional, cast
+from typing import Generator, Optional
 
 import clickhouse_connect
 import sqlparse
 from clickhouse_connect.driver import Client
 from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from pandas import DataFrame
+from sqlalchemy import Column
 from sqlalchemy.sql import Select
 
-from ..base import ClientProtocol, CompiledQuery, DataSetMetadata, FunctionHandle
-from .base import ColumnMetadata
+from .. import base
+from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
 
 
-class ClickHouseClient(ClientProtocol):
+class ClickHouseClient(base.ClientProtocol):
     """
     Manage dataset retrieval from ClickHouse DB.
 
@@ -41,24 +42,17 @@ class ClickHouseClient(ClientProtocol):
 
     """
 
-    def __init__(
-        self,
-        host: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        port: Optional[int] = None,
-        **kwargs,
-    ):
-        self._client = _create_clickhouse_client(host, user, password, port, **kwargs)
+    def __init__(self, client: Client):
+        self._client = client
         self._column_factory = SQLAlchemyColumnFactory()
         self._dialect = ClickHouseDialect(paramstyle="pyformat")
 
-    def create_function_handle(self) -> FunctionHandle:
+    def create_function_handle(self) -> base.FunctionHandle:
         """Get a FunctionHandler instance."""
         functions = ["sum", "average"]
-        return FunctionHandle(functions)
+        return base.FunctionHandle(functions)
 
-    def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
+    def fetch(self, query: base.CompiledQuery, **kwargs) -> dict[str, tuple]:
         """
         Retrieve data using a select statement.
 
@@ -85,7 +79,7 @@ class ClickHouseClient(ClientProtocol):
         return result
 
     def fetch_iter(
-        self, query: CompiledQuery, size: int, **kwargs
+        self, query: base.CompiledQuery, size: int, **kwargs
     ) -> Generator[dict[str, tuple], None, None]:
         """
         Retrieve data with result streaming using a select statement.
@@ -119,7 +113,7 @@ class ClickHouseClient(ClientProtocol):
             for block in stream:
                 yield {k: v for k, v in zip(column_names, block)}
 
-    def fetch_dataframe(self, query: CompiledQuery, **kwargs) -> DataFrame:
+    def fetch_dataframe(self, query: base.CompiledQuery, **kwargs) -> DataFrame:
         """
         Execute a Select statement and output data as a Pandas DataFrame.
 
@@ -138,7 +132,7 @@ class ClickHouseClient(ClientProtocol):
         return self._client.query_df(query.sql, query.parameters, **kwargs)
 
     def fetch_iter_dataframe(
-        self, query: CompiledQuery, size: int, **kwargs
+        self, query: base.CompiledQuery, size: int, **kwargs
     ) -> Generator[DataFrame, None, None]:
         """
         Yield pandas DataFrame in chunks.
@@ -184,9 +178,9 @@ class ClickHouseClient(ClientProtocol):
         return list(table_names[0]) if table_names else list()
 
     @lru_cache
-    def fetch_dataset_metadata(self, group: str, dataset: str) -> DataSetMetadata:
+    def get_dataset_columns(self, group: str, dataset: str) -> list[Column]:
         """
-        Retrieve a dataset.
+        Create SQLAlchemy columns for the dataset.
 
         Parameters
         ----------
@@ -210,12 +204,12 @@ class ClickHouseClient(ClientProtocol):
         col_names, col_types, _, _, col_descriptions, _, _ = query
         columns = list()
         for col_name, t, description in zip(col_names, col_types, col_descriptions):
-            column_metadata = ColumnMetadata(col_name, t, description)
-            column = self._column_factory(column_metadata)
+            col_description = base.ColumnDescription(col_name, t, description)
+            column = self._column_factory(col_description)
             columns.append(column)
-        return DataSetMetadata(dataset, columns)
+        return columns
 
-    def compile(self, stmt: Select, **kwargs) -> CompiledQuery:
+    def compile(self, stmt: Select, **kwargs) -> base.CompiledQuery:
         """Convert a stmt into an SQL string."""
         compile_kwargs = {"compile_kwargs": {"render_postcompile": True}}
         compile_kwargs.update(kwargs)
@@ -225,14 +219,137 @@ class ClickHouseClient(ClientProtocol):
             "indent_width": 4,
         }
         compiled_string = sqlparse.format(compiled.string, **sql_format_params)
-        return CompiledQuery(compiled_string, compiled.params)
+        return base.CompiledQuery(compiled_string, compiled.params)
 
 
-def _create_clickhouse_client(
-    host: Optional[str],
-    user: Optional[str],
-    password: Optional[str],
-    port: Optional[int],
+class ArdaDBDescriptionProvider(base.DescriptionProvider):
+    """Provide descriptions for ArdaDB datasets."""
+
+    def __init__(self, api: BaseAPIConsumer) -> None:
+        self._api = api
+
+    @lru_cache
+    def _ardadb_group_to_api_group(self) -> dict[str, str]:
+        """Create a dictionary that maps the group name used in ArdaDB to the API name."""
+        api_groups = self._api.list_datagroups()
+        res = dict()
+        for group in api_groups:
+            group_metadata = self._api.get_datagroup_metadata(group)
+            full_name = group_metadata["full_name"]
+            ardadb_group = full_name.replace(" ", "")
+            res[ardadb_group] = group
+        return res
+
+    @lru_cache
+    def _ardadb_dataset_to_api_dataset(self) -> dict[str, str]:
+        """Create a dictionary that maps the dataset name used in ArdaDB to the API name."""
+        api_datasets = self._api.list_datasets()
+        res = dict()
+        for dataset in api_datasets:
+            dataset_metadata = self._api.get_dataset_metadata(dataset)
+            db_metadata = dataset_metadata.get("database_table")
+            if db_metadata is not None:
+                # table name is DBName.TableName
+                ardadb_dataset = db_metadata["table_name"].split(".")[-1]
+                res[ardadb_dataset] = dataset
+        return res
+
+    def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
+        """
+        Get the description of a datagroup.
+
+        Parameters
+        ----------
+        group : str
+            The data group name.
+
+        Returns
+        -------
+        DataGroupDescription
+
+        """
+        try:
+            group_text_id = self._ardadb_group_to_api_group()[group]
+            datagroup_metadata = self._api.get_datagroup_metadata(group_text_id)
+            display_name = datagroup_metadata["display_name"]
+            description = datagroup_metadata["description"]
+        except KeyError:
+            description = ""
+            display_name = group
+        return base.DataGroupDescription(group, description, display_name)
+
+    def get_columns_description(self, dataset: str) -> list[base.ColumnDescription]:
+        """
+        Get the description of the dataset columns.
+
+        Parameters
+        ----------
+        dataset : str
+            The dataset name.
+
+        Returns
+        -------
+        list[ColumnDescription]
+
+        Raises
+        ------
+        InvalidDataSetName
+            Is a non existent dataset name is passed.
+
+        """
+        try:
+            dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
+            dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
+            db_metadata = dataset_metadata["database_table"]
+            columns = list()
+            for column in db_metadata["sql_columns"]:
+                c = base.ColumnDescription(
+                    column["name"], column["data_type_db"], column["description"]
+                )
+                columns.append(c)
+        except KeyError:
+            columns = list()
+        return columns
+
+    def get_dataset_description(
+        self, group: str, dataset: str
+    ) -> base.DataSetDescription:
+        """
+        Get the description of a dataset.
+
+        group : str
+            The datagroup name.
+        dataset : str
+            The dataset name.
+
+        Returns
+        -------
+        DatasetDescription
+
+        Raises
+        ------
+        InvalidDataSetName
+
+        """
+        columns = self.get_columns_description(dataset)
+        try:
+            dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
+            dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
+            display_name = dataset_metadata["display_name"]
+            description = dataset_metadata["long_description"]
+        except KeyError:
+            display_name = dataset
+            description = ""
+        return base.DataSetDescription(
+            dataset, group, columns, display_name, description
+        )
+
+
+def create_clickhouse_client(
+    host: Optional[str] = None,
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+    port: Optional[int] = None,
     **kwargs,
 ) -> Client:
     """Create a ClickHouse DB client."""
@@ -248,29 +365,3 @@ def _create_clickhouse_client(
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )
-
-
-class MockClickHouseClient(ClickHouseClient):
-    """Mock class used for testing query string generation."""
-
-    def __init__(
-        self,
-        host: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        port: Optional[int] = None,
-        secure: bool = False,
-        use_numpy: bool = False,
-        **kwargs,
-    ):
-        self._client = cast(Client, None)
-        self._column_factory = SQLAlchemyColumnFactory()
-        self._dialect = ClickHouseDialect(paramstyle="pyformat")
-
-    def list_datagroups(self) -> list[str]:
-        """Overwrite call to DB in method."""
-        return list()
-
-    def list_datasets(self, group: str) -> list[str]:
-        """Overwrite call to DB in method."""
-        return list()
