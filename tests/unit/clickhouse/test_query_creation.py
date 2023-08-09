@@ -1,10 +1,16 @@
+from typing import cast
+
 import pytest
 import sqlparse
+from clickhouse_connect.driver import Client
 from sqlalchemy import func
 
-from algoseek_connector.base import DataGroup, DataSet, DataSetMetadata, DataSource
-from algoseek_connector.clickhouse.base import ColumnMetadata
-from algoseek_connector.clickhouse.client import MockClickHouseClient
+from algoseek_connector import base
+from algoseek_connector.base import DataGroup, DataSet, DataSetDescription, DataSource
+from algoseek_connector.clickhouse.client import (
+    ArdaDBDescriptionProvider,
+    ClickHouseClient,
+)
 
 sql_format_params = {
     "reindent": True,
@@ -12,24 +18,44 @@ sql_format_params = {
 }
 
 
+class MockClient(ClickHouseClient):
+    def list_datagroups(self):
+        return list()
+
+    def list_datasets(self, group: str):
+        return list()
+
+    def get_dataset_columns(self, group: str, dataset: str):
+        descriptions = [
+            base.ColumnDescription("col1", "Float64", ""),
+            base.ColumnDescription("col2", "Int64", ""),
+            base.ColumnDescription("col3", "DateTime64(3, 'Asia/Istanbul')", ""),
+            base.ColumnDescription("col4", "Enum8('A' = 1, 'B' = 2, 'C' = 3)", ""),
+            base.ColumnDescription("col5", "String", ""),
+        ]
+        columns = list()
+        for c in descriptions:
+            columns.append(self._column_factory(c))
+        return columns
+
+
 @pytest.fixture(scope="module")
 def dataset():
-    client = MockClickHouseClient()
-    data_source = DataSource(client)
-    group_name = "g"
-    dataset_name = "t"
-    group = DataGroup(data_source, group_name)
+    ch_client = cast(Client, None)
+    client = MockClient(ch_client)
+    description_provider = cast(ArdaDBDescriptionProvider, None)
+    data_source = DataSource(client, description_provider)
 
-    columns_metadata = [
-        ColumnMetadata("col1", "Float64", ""),
-        ColumnMetadata("col2", "Int64", ""),
-        ColumnMetadata("col3", "DateTime64(3, 'Asia/Istanbul')", ""),
-        ColumnMetadata("col4", "Enum8('A' = 1, 'B' = 2, 'C' = 3)", ""),
-        ColumnMetadata("col5", "String", ""),
-    ]
-    columns = [client._column_factory(x) for x in columns_metadata]
-    dataset_metadata = DataSetMetadata(dataset_name, columns)
-    return DataSet(group, dataset_metadata)
+    group_name = "g"
+    group_display_name = group_name
+    group_description = base.DataGroupDescription(group_name, "", group_display_name)
+    group = DataGroup(data_source, group_description)
+
+    dataset_name = "t"
+    columns = list()
+    dataset_description = DataSetDescription(dataset_name, group_name, columns)
+
+    return DataSet(group, dataset_description)
 
 
 def test_select_one_column(dataset: DataSet):

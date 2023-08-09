@@ -1,14 +1,20 @@
 import pytest
 
-from algoseek_connector import ResourceManager, base
+from algoseek_connector import base
 from algoseek_connector.base import DataSet, DataSource
+from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
+from algoseek_connector.clickhouse.client import create_clickhouse_client
+from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
 
 @pytest.fixture(scope="module")
 def data_source():
-    # Connect to DB using host, user and password from env variables.
-    manager = ResourceManager()
-    return manager.create_data_source("clickhouse")
+    token = AuthToken()
+    api_consumer = BaseAPIConsumer(token)
+    description_provider = ArdaDBDescriptionProvider(api_consumer)
+    ch_client = create_clickhouse_client()
+    client = ClickHouseClient(ch_client)
+    return DataSource(client, description_provider)
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +49,7 @@ def test_ClickHouseClient_get_dataset(data_source: DataSource):
         group = data_source.fetch_datagroup(group_name)
         for dataset_name in group.list_datasets():
             dataset = group.fetch_dataset(dataset_name)
-            assert dataset_name == dataset.name
+            assert dataset_name == dataset.description.name
 
 
 def test_ClickHouseClient_get_dataset_invalid_dataset_name(
