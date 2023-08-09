@@ -516,6 +516,13 @@ class ColumnDescription:
             type_args = list()
         return type_args
 
+    def html(self) -> str:
+        """Create a description of the column as an HTML row."""
+        name = self.name
+        t = self.type
+        description = self.description
+        return f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
+
 
 class DataSetDescription:
     """
@@ -563,13 +570,7 @@ class DataSetDescription:
         """Create an HTML description of the dataset."""
         rows = list()
         for c in self.columns:
-            name = c.name
-            t = c.type
-            description = c.description
-            column_html = (
-                f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
-            )
-            rows.append(column_html)
+            rows.append(c.html())
         html_rows = "\n".join(rows)
         table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
         table_html = f'<table style="width:66%">\n{table_header}\n{html_rows}\n</table>'
