@@ -1,8 +1,34 @@
 import pytest
 from requests.exceptions import HTTPError
 
+from algoseek_connector import metadata_api
 from algoseek_connector.base import InvalidDataGroupName, InvalidDataSetName
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+
+
+def test_AuthToken_no_user_provided(monkeypatch):
+    password = "InvalidPassword"
+
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME)
+
+    with pytest.raises(ValueError):
+        AuthToken(password=password)
+
+
+def test_AuthToken_no_password_provided(monkeypatch):
+    user = "mock-user"
+
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD)
+
+    with pytest.raises(ValueError):
+        AuthToken(user=user)
+
+
+def test_AuthToken_auth_error():
+    user = "InvalidUsername"
+    password = "InvalidPassword"
+    with pytest.raises(HTTPError):
+        AuthToken(user=user, password=password)
 
 
 @pytest.fixture(scope="module")
