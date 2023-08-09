@@ -9,7 +9,14 @@ Provides:
 """
 
 from .base import ClientProtocol, DataSource
-from .clickhouse.client import ClickHouseClient
+from .clickhouse.client import (
+    ArdaDBDescriptionProvider,
+    ClickHouseClient,
+    create_clickhouse_client,
+)
+from .metadata_api import AuthToken, BaseAPIConsumer
+
+ARDADB = "ardadb"
 
 
 class ResourceManager:
@@ -27,6 +34,9 @@ class ResourceManager:
 
     def __init__(self):
         self._client_factory = ClientProtocolFactory()
+        token = AuthToken()
+        # TODO: add functionality to refresh token.
+        self._api = BaseAPIConsumer(token)
 
     def create_data_source(self, name: str, **kwargs) -> DataSource:
         """
@@ -43,11 +53,16 @@ class ResourceManager:
 
         """
         client = self._client_factory(name, **kwargs)
-        return DataSource(client)
+        if name == ARDADB:
+            description_provider = ArdaDBDescriptionProvider(self._api)
+        else:
+            raise ValueError
+
+        return DataSource(client, description_provider)
 
     def list_data_sources(self) -> list[str]:
         """List available data sources."""
-        sources = ["clickhouse"]
+        sources = [ARDADB]
         return sources
 
 
@@ -55,8 +70,14 @@ class ClientProtocolFactory:
     """Create Client for data sources."""
 
     def __init__(self):
-        self._clients = {"clickhouse": ClickHouseClient}
+        self._clients = {ARDADB: ClickHouseClient}
 
     def __call__(self, client_type: str, **kwargs) -> ClientProtocol:
         """Create a ClientProtocol."""
-        return self._clients[client_type](**kwargs)
+        if client_type == ARDADB:
+            ch_client = create_clickhouse_client(**kwargs)
+            client = ClickHouseClient(ch_client)
+        else:
+            raise ValueError
+
+        return client
