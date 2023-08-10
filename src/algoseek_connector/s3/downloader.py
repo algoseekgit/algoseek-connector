@@ -14,98 +14,20 @@ from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
 from .. import utils
-from .metadata_api import S3DatasetMetadataAPIConsumer
 
-timestamp = Union[datetime.date, str]
-
-
-class S3DatasetDownloader:
-    """Interface to download datasets stored on S3 buckets."""
-
-    def __init__(
-        self, api_user: Optional[str] = None, api_password: Optional[str] = None
-    ) -> None:
-        self._metadata_api = S3DatasetMetadataAPIConsumer(
-            user=api_user, password=api_password
-        )
-
-
-class DownloadableDataset:
-    """Represents a dataset stored on a S3 bucket."""
-
-    def __init__(
-        self,
-        name: str,
-        downloader: "FileDownloader",
-        api_consumer: S3DatasetMetadataAPIConsumer,
-    ) -> None:
-        self._name = name
-        self._downloader = downloader
-        self._api = api_consumer
-
-    @property
-    def name(self) -> str:
-        """Get the dataset name."""
-        return self._name
-
-    def download(
-        self,
-        download_path: Path,
-        date: Union[timestamp, tuple[timestamp, timestamp]],
-        symbols: Union[str, list[str]],
-        expiration_date: Union[timestamp, tuple[timestamp, timestamp], None] = None,
-        n_jobs: Optional[int] = None,
-    ):
-        """
-        Download data from the dataset.
-
-        Parameters
-        ----------
-        download_path : pathlib.Path
-            Path to a directory to download dataset files.
-        date : str, datetime.date or tuple
-            Download data in this date range. Dates can be passed as a str with
-            `yyyymmdd` format or as date objects. If a tuple is passed, it is
-            interpreted as a date range and all dates in the closed interval
-            between the two dates are generated. I a single date is passed,
-            download data from this specific date.
-        symbols : str or list[str]
-            Download data associated with these symbols.
-        expiration date : str, datetime.date or tuple
-            Download data with expiration dates in this date range. Dates must
-            be passed used the same format used for the `date` parameter.
-        n_jobs : int or None, default=None
-            The number of jobs created to download files in a parallel manner.
-            If ``None``, a single worker is used.
-
-        """
-        if not download_path.is_dir():
-            msg = f"{download_path} is not a directory."
-            raise NotADirectoryError(msg)
-
-        filters = S3KeyFilter(date, symbols, expiration_date)
-        bucket_format = self._api.get_dataset_bucket_format(self.name)
-        bucket_name = _get_bucket_name(bucket_format, *filters.date)
-        bucket = BucketWrapper(self._downloader.s3, bucket_name)
-
-        path_format = self._api.get_dataset_bucket_path_format(self.name)
-        key_to_size = _create_key_to_size_dictionary(bucket, path_format, filters)
-        # TODO: raise an error if download size is above a limit
-        # TODO: multi process download.
-        keys = list(key_to_size)
-        self._downloader.download(bucket_name, keys, download_path)
+date_like = Union[datetime.date, str]
 
 
 class FileDownloader:
     """Download files from S3 buckets."""
 
     def __init__(self, session: boto3.Session):
-        self._session = session
+        self.session = session
         self.s3 = _get_s3_client(session)
 
     def copy(self) -> "FileDownloader":
         """Create an independent copy of the current instance."""
-        credentials = self._session.get_credentials()
+        credentials = self.session.get_credentials()
         session = create_boto3_session(
             aws_access_key_id=credentials.access_key,
             aws_secret_access_key=credentials.secret_key,
@@ -194,9 +116,9 @@ class S3KeyFilter:
 
     def __init__(
         self,
-        date: Union[timestamp, tuple[timestamp, timestamp]],
+        date: Union[date_like, tuple[date_like, date_like]],
         symbols: Union[str, list[str]],
-        expiration_date: Union[timestamp, tuple[timestamp, timestamp], None] = None,
+        expiration_date: Union[date_like, tuple[date_like, date_like], None] = None,
     ):
         self.date = _normalize_date_spec(date)
         self.symbols = _normalize_symbol_spec(symbols)
@@ -539,7 +461,7 @@ def _create_key_to_size_dictionary(
 
     """
     key_to_size = dict()
-    for key in generate_object_keys(path_format, filters):
+    for key in _generate_object_keys(path_format, filters):
         try:
             key_to_size[key] = bucket.get_file_size(key)
         except ClientError:
@@ -561,7 +483,7 @@ def _split_into_even_size(keys_to_size: dict[str, int], n: int) -> list[list[str
     return even_sized_groups
 
 
-def generate_object_keys(
+def _generate_object_keys(
     path_format: str, filters: S3KeyFilter
 ) -> Generator[str, None, None]:
     """
@@ -581,7 +503,7 @@ def generate_object_keys(
     """
     prefix_separator = "/"
     name_separator = "."
-    tokens = tokenize_path_format(path_format, prefix_separator, name_separator)
+    tokens = _tokenize_path_format(path_format, prefix_separator, name_separator)
     prefixes = list()
     for t in tokens:
         prefix_generator = _get_prefix_generator(t, filters)
@@ -590,6 +512,16 @@ def generate_object_keys(
 
     for key_parts in product(*prefixes):
         yield "".join(key_parts)
+
+
+def _tokenize_path_format(
+    path_format: str, prefix_sep: str, name_sep: str
+) -> list[S3PathToken]:
+    """Convert path_format specification into a list of tokens."""
+    parts = _split_path_format(path_format, prefix_sep, name_sep)
+    tokens = _create_tokens(parts, prefix_sep, name_sep)
+    tokens = _merge_tokens(tokens)
+    return tokens
 
 
 def _get_prefix_generator(
@@ -610,16 +542,6 @@ def _get_prefix_generator(
             filters.symbols, *filters.expiration_date
         )
     return prefix_generator
-
-
-def tokenize_path_format(
-    path_format: str, prefix_sep: str, name_sep: str
-) -> list[S3PathToken]:
-    """Convert path_format specification into a list of tokens."""
-    parts = _split_path_format(path_format, prefix_sep, name_sep)
-    tokens = _create_tokens(parts, prefix_sep, name_sep)
-    tokens = _merge_tokens(tokens)
-    return tokens
 
 
 def _split_path_format(path_format: str, prefix_sep: str, name_sep: str) -> list[str]:
@@ -702,7 +624,7 @@ def _get_bucket_name(
     # TODO: Currently hardcoded to work with date intervals from a single year.
     prefix_sep = "-"
     name_sep = "."
-    tokens = tokenize_path_format(bucket_format, prefix_sep, name_sep)
+    tokens = _tokenize_path_format(bucket_format, prefix_sep, name_sep)
     if start_date.year != end_date.year:
         start_timestamp = start_date.strftime("%Y%m%d")
         end_timestamp = end_date.strftime("%Y%m%d")
@@ -717,7 +639,7 @@ def _get_bucket_name(
 
 
 def _normalize_date_spec(
-    date: Union[timestamp, tuple[timestamp, timestamp]]
+    date: Union[date_like, tuple[date_like, date_like]]
 ) -> tuple[datetime.date, datetime.date]:
     if isinstance(date, str):
         start_date = end_date = _normalize_date(date)
