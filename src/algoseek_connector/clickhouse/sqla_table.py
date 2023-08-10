@@ -13,22 +13,20 @@ from sqlalchemy.types import TypeEngine
 
 from ..base import ColumnDescription
 
-# TODO: delete TableMetadata occurrences
-
 
 class SQLAlchemyColumnFactory:
-    """Create SQLAlchemy columns using column metadata."""
+    """Create SQLAlchemy columns using column descriptions."""
 
     def __init__(self):
         self.type_mapper = ClickHouseTypeMapper()
 
-    def __call__(self, column_description: ColumnDescription) -> Column:
+    def __call__(self, description: ColumnDescription) -> Column:
         """
         Create a a SQLAlchemy column from a column description.
 
         Parameters
         ----------
-        column_metadata : ColumnDescription
+        description : ColumnDescription
 
         Returns
         -------
@@ -42,10 +40,10 @@ class SQLAlchemyColumnFactory:
             If an invalid type string is passed.
 
         """
-        name = column_description.name
-        T = self.type_mapper.get_type(column_description)
+        name = description.name
+        T = self.type_mapper.get_type(description)
         nullable = isinstance(T, clickhouse_types.Nullable)
-        doc = column_description.description
+        doc = description.description
         return Column(name, T, nullable=nullable, doc=doc, quote=False)
 
 
@@ -99,9 +97,9 @@ class ClickHouseTypes:
     ALIAS = _alias_dict()
     CASE_INSENSITIVE = _case_insensitive_dict()
 
-    def fix_type(self, column_metadata: ColumnDescription):
+    def fix_type(self, description: ColumnDescription):
         """Replace case-insensitive and aliased types with the internally used type."""
-        type_str = column_metadata.get_type_name()
+        type_str = description.get_type_name()
         upper = type_str.upper()
         if upper in self.CASE_INSENSITIVE:
             fixed = self.CASE_INSENSITIVE[upper]
@@ -111,7 +109,7 @@ class ClickHouseTypes:
         else:
             fixed = type_str
         offset = len(type_str)
-        column_metadata.type = fixed + column_metadata.type[offset:]
+        description.type = fixed + description.type[offset:]
 
 
 class ClickHouseTypeMapper:
@@ -173,24 +171,22 @@ class ClickHouseTypeMapper:
                 raise ValueError(msg)
         return T
 
-    def _to_array(self, column_metadata: ColumnDescription) -> clickhouse_types.Array:
-        inner_type_str = column_metadata.get_type_args()[0]
-        inner = ColumnDescription(column_metadata.name, inner_type_str, "")
+    def _to_array(self, description: ColumnDescription) -> clickhouse_types.Array:
+        inner_type_str = description.get_type_args()[0]
+        inner = ColumnDescription(description.name, inner_type_str, "")
         T = self.get_type(inner)
         return clickhouse_types.Array(T)
 
-    def _to_datetime(
-        self, column_metadata: ColumnDescription
-    ) -> clickhouse_types.DateTime:
-        type_args = column_metadata.get_type_args()
+    def _to_datetime(self, description: ColumnDescription) -> clickhouse_types.DateTime:
+        type_args = description.get_type_args()
         timezone = type_args[0].strip("'") if type_args else None
-        # TODO: cast fixes an incorrect type annotation in clickhouse-sqlalchemy
+        # cast fixes an incorrect type annotation in clickhouse-sqlalchemy
         return clickhouse_types.DateTime(cast(bool, timezone))
 
     def _to_datetime64(
-        self, column_metadata: ColumnDescription
+        self, description: ColumnDescription
     ) -> clickhouse_types.DateTime:
-        type_args = column_metadata.get_type_args()
+        type_args = description.get_type_args()
         if len(type_args) == 2:
             precision, timezone = type_args
             timezone = timezone.strip("'")
@@ -199,47 +195,43 @@ class ClickHouseTypeMapper:
             timezone = None
         return clickhouse_types.DateTime64(int(precision), timezone)
 
-    def _to_decimal(
-        self, column_metadata: ColumnDescription
-    ) -> clickhouse_types.Decimal:
-        t = column_metadata.get_type_name()
+    def _to_decimal(self, description: ColumnDescription) -> clickhouse_types.Decimal:
+        t = description.get_type_name()
         if t == "Decimal":
-            precision, scale = column_metadata.get_type_args()
+            precision, scale = description.get_type_args()
         else:
-            scale = column_metadata.get_type_args()[0]
+            scale = description.get_type_args()[0]
             precision = [x for x in ["32", "64", "128", "256"] if x in t][0]
         return clickhouse_types.Decimal(int(precision), int(scale))
 
-    def _to_enum(self, column_metadata: ColumnDescription) -> clickhouse_types.Enum:
+    def _to_enum(self, description: ColumnDescription) -> clickhouse_types.Enum:
         members = dict()
-        args = column_metadata.get_type_args()
+        args = description.get_type_args()
         for arg in args:
             member, value = arg.split("=")
             member = member.strip("' ")
             members[member] = int(value.strip())
-        python_enum = enum.Enum(column_metadata.name, members)
-        ch_enum_class = getattr(clickhouse_types, column_metadata.get_type_name())
+        python_enum = enum.Enum(description.name, members)
+        ch_enum_class = getattr(clickhouse_types, description.get_type_name())
         return ch_enum_class(python_enum)
 
     def _to_fixed_string(
-        self, column_metadata: ColumnDescription
+        self, description: ColumnDescription
     ) -> clickhouse_types.String:
-        length = int(column_metadata.get_type_args()[0])
+        length = int(description.get_type_args()[0])
         return clickhouse_types.String(length)
 
-    def _to_nullable(
-        self, column_metadata: ColumnDescription
-    ) -> clickhouse_types.Nullable:
-        inner_type_str = column_metadata.get_type_args()[0]
-        inner = ColumnDescription(column_metadata.name, inner_type_str, "")
+    def _to_nullable(self, description: ColumnDescription) -> clickhouse_types.Nullable:
+        inner_type_str = description.get_type_args()[0]
+        inner = ColumnDescription(description.name, inner_type_str, "")
         T = self.get_type(inner)
         return clickhouse_types.Nullable(T)
 
     def _to_low_cardinality(
-        self, column_metadata: ColumnDescription
+        self, description: ColumnDescription
     ) -> clickhouse_types.LowCardinality:
-        inner_type_str = column_metadata.get_type_args()[0]
-        inner = ColumnDescription(column_metadata.name, inner_type_str, "")
+        inner_type_str = description.get_type_args()[0]
+        inner = ColumnDescription(description.name, inner_type_str, "")
         T = self.get_type(inner)
         return clickhouse_types.LowCardinality(T)
 
