@@ -132,7 +132,7 @@ class DataGroupFetcher:
             group = self._group
         return group
 
-    def _repr_html_(self):  # pragma: no-cover
+    def _repr_html_(self):  # pragma: no cover
         """Display the DataGroup in jupyter notebooks using HTML."""
         return self.description.html()
 
@@ -195,7 +195,7 @@ class DataGroup:
         """List available datasets."""
         return self._source.client.list_datasets(self.description.name)
 
-    def _repr_html_(self):  # pragma: no-cover
+    def _repr_html_(self):  # pragma: no cover
         """Display the DataGroup in jupyter notebooks using HTML."""
         return self.description.html()
 
@@ -258,7 +258,7 @@ class DataSetFetcher:
             dataset = self._dataset
         return dataset
 
-    def _repr_html_(self):  # pragma: no-cover:
+    def _repr_html_(self):  # pragma: no cover:
         """Display the Dataset in jupyter notebooks using HTML."""
         return self.description.html()
 
@@ -516,7 +516,7 @@ class ColumnDescription:
             type_args = list()
         return type_args
 
-    def html(self) -> str:
+    def html(self) -> str:  # pragma: no cover
         """Create a description of the column as an HTML row."""
         name = self.name
         t = self.type
@@ -566,7 +566,7 @@ class DataSetDescription:
     def __repr__(self):
         return f"DataSetDescription(name={self.name}, group={self.group}, columns={self.columns})"
 
-    def html(self) -> str:
+    def html(self) -> str:  # pragma: no cover
         """Create an HTML description of the dataset."""
         rows = list()
         for c in self.columns:
@@ -605,7 +605,7 @@ class DataGroupDescription:
         else:
             self.display_name = display_name
 
-    def html(self) -> str:
+    def html(self) -> str:  # pragma: no cover
         """Create an HTML description of the data group."""
         return f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>"
 
