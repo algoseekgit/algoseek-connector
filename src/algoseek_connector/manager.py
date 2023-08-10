@@ -8,15 +8,17 @@ Provides:
 
 """
 
-from .base import ClientProtocol, DataSource
+from .base import ClientProtocol, DataSource, DescriptionProvider
 from .clickhouse.client import (
     ArdaDBDescriptionProvider,
     ClickHouseClient,
     create_clickhouse_client,
 )
 from .metadata_api import AuthToken, BaseAPIConsumer
+from .s3 import S3DescriptionProvider, S3DownloaderClient
 
 ARDADB = "ardadb"
+S3 = "s3"
 
 
 class ResourceManager:
@@ -33,7 +35,6 @@ class ResourceManager:
     """
 
     def __init__(self):
-        self._client_factory = ClientProtocolFactory()
         token = AuthToken()
         # TODO: add functionality to refresh token.
         self._api = BaseAPIConsumer(token)
@@ -52,32 +53,30 @@ class ResourceManager:
         DataSource
 
         """
-        client = self._client_factory(name, **kwargs)
+        client = self._create_client(name, **kwargs)
+        description_provider = self._create_description_provider(name)
+        return DataSource(client, description_provider)
+
+    def _create_description_provider(self, name: str) -> DescriptionProvider:
         if name == ARDADB:
             description_provider = ArdaDBDescriptionProvider(self._api)
+        elif name == S3:
+            description_provider = S3DescriptionProvider(self._api)
         else:
             raise ValueError
+        return description_provider
 
-        return DataSource(client, description_provider)
+    def _create_client(self, name, **kwargs) -> ClientProtocol:
+        if name == ARDADB:
+            ch_client = create_clickhouse_client(**kwargs)
+            client = ClickHouseClient(ch_client)
+        elif name == S3:
+            client = S3DownloaderClient(self._api)
+        else:
+            raise ValueError
+        return client
 
     def list_data_sources(self) -> list[str]:
         """List available data sources."""
-        sources = [ARDADB]
+        sources = [ARDADB, S3]
         return sources
-
-
-class ClientProtocolFactory:
-    """Create Client for data sources."""
-
-    def __init__(self):
-        self._clients = {ARDADB: ClickHouseClient}
-
-    def __call__(self, client_type: str, **kwargs) -> ClientProtocol:
-        """Create a ClientProtocol."""
-        if client_type == ARDADB:
-            ch_client = create_clickhouse_client(**kwargs)
-            client = ClickHouseClient(ch_client)
-        else:
-            raise ValueError
-
-        return client
