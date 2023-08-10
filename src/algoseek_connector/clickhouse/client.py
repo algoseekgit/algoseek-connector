@@ -344,13 +344,11 @@ def create_clickhouse_client(
     **kwargs,
 ) -> Client:
     """Create a ClickHouse DB client."""
-    # TODO: fix hardcoded port value
-    default_port = 9000
+    default_port = 8123
     host = host or os.getenv("ALGOSEEK_DATABASE_HOST")
     if port is None:
         port_env = os.getenv("ALGOSEEK_DATABASE_PORT")
         port = default_port if port_env is None else int(port_env)
-    port = 8123
     user = user or os.getenv("ALGOSEEK_DATABASE_USER")
     password = password or os.getenv("ALGOSEEK_DATABASE_PASSWORD")
     return clickhouse_connect.get_client(
