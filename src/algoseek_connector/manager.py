@@ -8,14 +8,8 @@ Provides:
 
 """
 
-from .base import ClientProtocol, DataSource, DescriptionProvider
-from .clickhouse.client import (
-    ArdaDBDescriptionProvider,
-    ClickHouseClient,
-    create_clickhouse_client,
-)
+from . import base, clickhouse, s3
 from .metadata_api import AuthToken, BaseAPIConsumer
-from .s3 import S3DescriptionProvider, S3DownloaderClient
 
 ARDADB = "ardadb"
 S3 = "s3"
@@ -39,7 +33,7 @@ class ResourceManager:
         # TODO: add functionality to refresh token.
         self._api = BaseAPIConsumer(token)
 
-    def create_data_source(self, name: str, **kwargs) -> DataSource:
+    def create_data_source(self, name: str, **kwargs) -> base.DataSource:
         """
         Create a connection to a data source.
 
@@ -55,23 +49,24 @@ class ResourceManager:
         """
         client = self._create_client(name, **kwargs)
         description_provider = self._create_description_provider(name)
-        return DataSource(client, description_provider)
+        return base.DataSource(client, description_provider)
 
-    def _create_description_provider(self, name: str) -> DescriptionProvider:
+    def _create_description_provider(self, name: str) -> base.DescriptionProvider:
         if name == ARDADB:
-            description_provider = ArdaDBDescriptionProvider(self._api)
+            description_provider = clickhouse.ArdaDBDescriptionProvider(self._api)
         elif name == S3:
-            description_provider = S3DescriptionProvider(self._api)
+            description_provider = s3.S3DescriptionProvider(self._api)
         else:
             raise ValueError
         return description_provider
 
-    def _create_client(self, name, **kwargs) -> ClientProtocol:
+    def _create_client(self, name, **kwargs) -> base.ClientProtocol:
         if name == ARDADB:
-            ch_client = create_clickhouse_client(**kwargs)
-            client = ClickHouseClient(ch_client)
+            ch_client = clickhouse.create_clickhouse_client(**kwargs)
+            client = clickhouse.ClickHouseClient(ch_client)
         elif name == S3:
-            client = S3DownloaderClient(self._api)
+            session = s3.create_boto3_session(**kwargs)
+            client = s3.S3DownloaderClient(session, self._api)
         else:
             raise ValueError
         return client
