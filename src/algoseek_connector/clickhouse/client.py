@@ -291,11 +291,6 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         -------
         list[ColumnDescription]
 
-        Raises
-        ------
-        InvalidDataSetName
-            Is a non existent dataset name is passed.
-
         """
         try:
             dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
@@ -325,10 +320,6 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         Returns
         -------
         DatasetDescription
-
-        Raises
-        ------
-        InvalidDataSetName
 
         """
         columns = self.get_columns_description(dataset)
