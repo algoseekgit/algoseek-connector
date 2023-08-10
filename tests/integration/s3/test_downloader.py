@@ -307,7 +307,7 @@ def test_tokenize_path_format(
 ):
     prefix_sep = "/"
     name_sep = "."
-    actual = downloader.tokenize_path_format(path_format, prefix_sep, name_sep)
+    actual = downloader._tokenize_path_format(path_format, prefix_sep, name_sep)
     for t, template_str, placeholders in zip(
         actual, expected_template_parts, expected_placeholders
     ):
@@ -331,7 +331,7 @@ def test_generate_object_keys_equity_data():
         "20230731/D/DEF.csv.gz",
         "20230801/D/DEF.csv.gz",
     }
-    actual = set(downloader.generate_object_keys(path_format, filters))
+    actual = set(downloader._generate_object_keys(path_format, filters))
     assert actual == expected
 
 
@@ -365,7 +365,7 @@ def test_generate_object_keys_futures_data():
         "20230731/DE/DEJ4.csv.gz",
         "20230801/DE/DEJ4.csv.gz",
     }
-    actual = set(downloader.generate_object_keys(path_format, filters))
+    actual = set(downloader._generate_object_keys(path_format, filters))
     assert actual == expected
 
 
@@ -399,7 +399,7 @@ def test_generate_object_keys_futures_data_expdate_with_different_years(tmp_path
         "20230731/DE/DEF4.csv.gz",
         "20230801/DE/DEF4.csv.gz",
     }
-    actual = set(downloader.generate_object_keys(path_format, filters))
+    actual = set(downloader._generate_object_keys(path_format, filters))
     assert actual == expected
 
 
@@ -412,5 +412,5 @@ def test_download_files_from_bucket(dataset_session, tmp_path: Path):
     dates = ("20220303", "20220308")
     filters = downloader.S3KeyFilter(symbols=symbols, date=dates)
 
-    keys = list(downloader.generate_object_keys(path_format, filters))
+    keys = list(downloader._generate_object_keys(path_format, filters))
     file_downloader.download(bucket_name, keys, tmp_path)
