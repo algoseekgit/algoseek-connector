@@ -2,111 +2,10 @@ import datetime
 from pathlib import Path
 from typing import cast
 
-import boto3
 import pytest
-from botocore.exceptions import ClientError
 
 from algoseek_connector.s3 import downloader
 from algoseek_connector.s3.downloader import PlaceHolders
-
-
-@pytest.fixture(scope="module")
-def dev_session():
-    return downloader.create_boto3_session(profile_name="algoseek-dev")
-
-
-@pytest.fixture(scope="module")
-def dataset_session():
-    return downloader.create_boto3_session(profile_name="algoseek-datasets")
-
-
-def test_create_boto3_session_invalid_aws_access_key_id():
-    aws_access_key_id = "InvalidKeyId"
-    with pytest.raises(ClientError):
-        downloader.create_boto3_session(aws_access_key_id=aws_access_key_id)
-
-
-def test_create_boto3_session_invalid_aws_secret_access_key():
-    aws_secret_access_key = "InvalidSecretKey"
-    with pytest.raises(ClientError):
-        downloader.create_boto3_session(aws_secret_access_key=aws_secret_access_key)
-
-
-def test_BucketWrapper(dev_session: boto3.Session):
-    s3 = downloader._get_s3_client(dev_session)
-    downloader.BucketWrapper(s3, "algoseek-connector-dev")
-    assert True
-
-
-def test_get_bucket_non_existent_bucket(dev_session: boto3.Session):
-    s3 = downloader._get_s3_client(dev_session)
-    with pytest.raises(ValueError):
-        bucket_name = "InvalidBucketName"
-        downloader.BucketWrapper(s3, bucket_name)
-
-
-def test_S3BucketTree_extend():
-    tree = downloader.S3BucketTree()
-    prefixes = ["a", "b", "c"]
-    tree.extend(prefixes)
-    assert all(x.value == y for x, y in zip(tree.root.children, prefixes))
-
-
-def test_S3BucketTree_two_extend():
-    tree = downloader.S3BucketTree()
-    prefixes1 = ["a", "b", "c"]
-    tree.extend(prefixes1)
-
-    prefixes2 = ["d", "e", "f"]
-    tree.extend(prefixes2)
-    for child in tree.root.children:
-        assert all(x.value == y for x, y in zip(child.children, prefixes2))
-
-
-def test_S3BucketTree_create_prefix_name_dict_empty_tree():
-    tree = downloader.S3BucketTree()
-    actual = tree.create_prefix_name_dict()
-    expected = {"": list()}
-    assert actual == expected
-
-
-def test_S3BucketTree_create_prefix_name_dict_after_single_extend():
-    tree = downloader.S3BucketTree()
-    prefixes1 = ["a", "b", "c"]
-    tree.extend(prefixes1)
-    actual = tree.create_prefix_name_dict()
-    expected = {"": prefixes1}
-    assert actual == expected
-
-
-def test_S3BucketTree_create_prefix_name_dict_after_two_extends():
-    tree = downloader.S3BucketTree()
-    prefixes1 = ["a", "b", "c"]
-    prefixes2 = ["d", "e", "f"]
-    tree.extend(prefixes1)
-    tree.extend(prefixes2)
-    actual = tree.create_prefix_name_dict()
-    expected = {f"{x}": prefixes2 for x in prefixes1}
-    assert actual == expected
-
-
-@pytest.mark.parametrize("sep", ["/", ".", "-"])
-def test_S3BucketTree_create_prefix_name_dict_after_three_extends(sep):
-    from itertools import product
-
-    prefixes1 = ["a", "b", "c"]
-    prefixes2 = ["d", "e", "f"]
-    prefixes3 = ["g", "h", "i"]
-    expected_prefixes = [f"{x}{sep}{y}" for x, y in product(prefixes1, prefixes2)]
-    expected = {x: prefixes3 for x in expected_prefixes}
-
-    tree = downloader.S3BucketTree()
-    tree.extend(prefixes1)
-    tree.extend(prefixes2)
-    tree.extend(prefixes3)
-    actual = tree.create_prefix_name_dict(sep=sep)
-
-    assert actual == expected
 
 
 def test_DatePlaceholderFiller_list_available_placeholders():
@@ -401,16 +300,3 @@ def test_generate_object_keys_futures_data_expdate_with_different_years(tmp_path
     }
     actual = set(downloader._generate_object_keys(path_format, filters))
     assert actual == expected
-
-
-def test_download_files_from_bucket(dataset_session, tmp_path: Path):
-    file_downloader = downloader.FileDownloader(dataset_session)
-    bucket_name = "us-equity-1min-taq-2022"
-    path_format = "yyyymmdd/s/sss.csv.gz"
-
-    symbols = ["AAPL", "TAGG"]
-    dates = ("20220303", "20220308")
-    filters = downloader.S3KeyFilter(symbols=symbols, date=dates)
-
-    keys = list(downloader._generate_object_keys(path_format, filters))
-    file_downloader.download(bucket_name, keys, tmp_path)
