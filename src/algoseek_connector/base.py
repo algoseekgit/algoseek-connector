@@ -31,15 +31,21 @@ InvalidDataSetName
 
 from __future__ import annotations  # delayed annotations
 
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generator, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Protocol, Union
 
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pathlib import Path
+    from typing import Generator, Optional, Sequence
+
     from pandas import DataFrame
+
+date_like = Union[datetime.date, str]
 
 
 class DataSource:
@@ -249,8 +255,54 @@ class DataSetFetcher:
         """Get the dataset group."""
         return self._group
 
+    @property
+    def source(self) -> DataSource:
+        """Get the data source."""
+        return self._source
+
+    def download(
+        self,
+        download_path: Path,
+        date: Union[date_like, tuple[date_like, date_like]],
+        symbols: Union[str, list[str]],
+        expiration_date: Union[date_like, tuple[date_like, date_like], None] = None,
+    ):
+        """
+        Download data from the dataset.
+
+        Parameters
+        ----------
+        dataset_text_id : str
+            The dataset text id.
+        download_path : pathlib.Path
+            Path to a directory to download dataset files.
+        date : str, datetime.date or tuple
+            Download data in this date range. Dates can be passed as a str with
+            `yyyymmdd` format or as date objects. If a tuple is passed, it is
+            interpreted as a date range and all dates in the closed interval
+            between the two dates are generated. If a single date is passed,
+            download data from this specific date.
+        symbols : str or list[str]
+            Download data associated with these symbols.
+        expiration date : str, datetime.date or tuple
+            Download data with expiration dates in this date range. Dates must
+            be passed used the same format used for the `date` parameter.
+
+        """
+        self.source.client.download(
+            self.description.name, download_path, date, symbols, expiration_date
+        )
+        # TODO: continue here
+
     def fetch(self) -> DataSet:
-        """Fetch the dataset."""
+        """
+        Create a dataset instance.
+
+        DataSet allow to fetch data using SQL-like queries. See
+        :ref:`here <datasets>` for a detailed description on how work with
+        datasets.
+
+        """
         if self._dataset is None:
             dataset = DataSet(self.group, self.description)
             self._dataset = dataset
@@ -563,7 +615,7 @@ class DataSetDescription:
         """Get the table name in the format `group.name`."""
         return f"{self.group}.{self.name}"
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return f"DataSetDescription(name={self.name}, group={self.group}, columns={self.columns})"
 
     def html(self) -> str:  # pragma: no cover
@@ -581,7 +633,6 @@ class DataSetDescription:
         return html
 
 
-@dataclass
 class DataGroupDescription:
     """
     Container class for datagroup metadata.
@@ -604,6 +655,9 @@ class DataGroupDescription:
             self.display_name = name
         else:
             self.display_name = display_name
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"DataGroupDescription({self.name})"
 
     def html(self) -> str:  # pragma: no cover
         """Create an HTML description of the data group."""
@@ -722,6 +776,17 @@ class ClientProtocol(Protocol):
     @abstractmethod
     def create_function_handle(self) -> FunctionHandle:
         """Create a FunctionHandle instance."""
+
+    @abstractmethod
+    def download(
+        self,
+        dataset: str,
+        download_path: Path,
+        date: Union[date_like, tuple[date_like, date_like]],
+        symbols: Union[str, list[str]],
+        expiration_date: Union[date_like, tuple[date_like, date_like]],
+    ):
+        """Download data from the dataset."""
 
     @abstractmethod
     def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
