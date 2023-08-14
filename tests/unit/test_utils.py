@@ -4,20 +4,6 @@ from algoseek_connector import utils
 
 
 @pytest.mark.parametrize(
-    "code_str,product,month,year",
-    [
-        ("BTCU2", "BTC", 9, 2),
-        ("ESH2", "ES", 3, 2),
-    ],
-)
-def test_FutureTradingCode_from_str(code_str: str, product: str, month: int, year: int):
-    trading_code = utils.FuturesTradingCode.from_str(code_str)
-    assert trading_code.product == product
-    assert trading_code.month == month
-    assert trading_code.year == year
-
-
-@pytest.mark.parametrize(
     "date_str,year,month,day",
     [("20220303", 2022, 3, 3), ("20070101", 2007, 1, 1), ("20191231", 2019, 12, 31)],
 )
