@@ -3,7 +3,6 @@
 import datetime
 import enum
 import re
-from dataclasses import dataclass
 
 
 class ExpirationMonthCode(enum.Enum):
@@ -21,39 +20,6 @@ class ExpirationMonthCode(enum.Enum):
     V = 10
     X = 11
     Z = 12
-
-
-@dataclass(frozen=True)
-class FuturesTradingCode:
-    """Storage class for futures trading code data."""
-
-    product: str
-    month: int
-    year: int
-
-    @staticmethod
-    def from_str(code: str) -> "FuturesTradingCode":
-        """Create a new instance from a code string."""
-        if len(code) <= 2:
-            msg = "Invalid code format."
-            raise ValueError(msg)
-
-        product = code[:-2]
-
-        try:
-            month_code = code[-2]
-            month = ExpirationMonthCode[month_code].value
-        except KeyError:
-            msg = f"{code[-2]} is not a valid month code."
-            raise ValueError(msg)
-
-        try:
-            year = int(code[-1])
-        except ValueError:
-            msg = f"{code[-1]} is not a valid year code."
-            raise ValueError(msg)
-
-        return FuturesTradingCode(product, month, year)
 
 
 def yyyymmdd_str_to_date(date_str: str) -> datetime.date:
