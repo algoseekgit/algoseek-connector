@@ -35,12 +35,8 @@ class BaseAPIConsumer:
 
     Parameters
     ----------
-    user : str or None, default=None
-        User name for API login. If ``None``, it tries to get the username
-        from the environment variable `ALGOSEEK_API_USERNAME`.
-    password : str
-        Password for API login. If ``None``, it tries to get the username
-        from the environment variable `ALGOSEEK_API_PASSWORD`.
+    token : AuthToken
+        The API authentication token.
 
     Raises
     ------
@@ -66,7 +62,7 @@ class BaseAPIConsumer:
 
         To be used as a base method to request data.
 
-        Manages authentication. Sets a default timeout of 5 s.
+        Sets a default timeout of 5 s.
 
         Parameters
         ----------
@@ -252,7 +248,7 @@ class BaseAPIConsumer:
 
 class AuthToken:
     """
-    Generates an authentication token.
+    Create and store an authentication token for API login.
 
     Parameters
     ----------
