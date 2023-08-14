@@ -284,7 +284,7 @@ class DataSetFetcher:
             download data from this specific date.
         symbols : str or list[str]
             Download data associated with these symbols.
-        expiration date : str, datetime.date or tuple
+        expiration date : str, datetime.date, tuple or None, default=None
             Download data with expiration dates in this date range. Dates must
             be passed used the same format used for the `date` parameter.
 
@@ -784,7 +784,7 @@ class ClientProtocol(Protocol):
         download_path: Path,
         date: Union[date_like, tuple[date_like, date_like]],
         symbols: Union[str, list[str]],
-        expiration_date: Union[date_like, tuple[date_like, date_like]],
+        expiration_date: Union[date_like, tuple[date_like, date_like], None],
     ):
         """Download data from the dataset."""
 
