@@ -27,11 +27,15 @@ class FileDownloader:
 
     def copy(self) -> "FileDownloader":
         """Create an independent copy of the current instance."""
-        credentials = self.session.get_credentials()
-        session = create_boto3_session(
-            aws_access_key_id=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key,
-        )
+        profile_name = self.session.profile_name
+        if profile_name == "default":
+            credentials = self.session.get_credentials()
+            session = create_boto3_session(
+                aws_access_key_id=credentials.access_key,
+                aws_secret_access_key=credentials.secret_key,
+            )
+        else:
+            session = create_boto3_session(profile_name=profile_name)
         return FileDownloader(session)
 
     def download(self, bucket_name: str, keys: list[str], download_path: Path):
@@ -68,7 +72,7 @@ class BucketWrapper:
     def __init__(self, s3_client: BaseClient, bucket_name: str) -> None:
         bucket = s3_client.Bucket(bucket_name)
         if bucket.creation_date is None:
-            msg = "Bucket with name {bucket} not found."
+            msg = f"Bucket with name {bucket_name} not found."
             raise ValueError(msg)
         self._bucket = bucket
 
@@ -165,108 +169,6 @@ class S3PathToken:
     token_type: TokenType
     type: PlaceholderType
     placeholders: set[PlaceHolders]
-
-
-class S3BucketTree:
-    """Tree that stores Filtered objects names in a bucket."""
-
-    class Node:
-        """
-        Tree node. Represent objects prefixes and names.
-
-        Parameters
-        ----------
-        value : str or None, default=None
-            Value stored in the node.
-
-        """
-
-        def __init__(self, value: str):
-            self.value = value
-            self.children: list["S3BucketTree.Node"] = list()
-
-        def add_children(self, children: list[str]):
-            """
-            Add children to the node.
-
-            Parameters
-            ----------
-            children : list[str]
-                Values used for children.
-
-            """
-            self.children.extend([S3BucketTree.Node(x) for x in children])
-
-        def __iter__(self):
-            yield from self.children
-
-    def __init__(self) -> None:
-        self.root = self.Node("")
-
-    def extend(self, prefixes: list[str]) -> None:
-        """
-        Add new prefixes/names to the node.
-
-        Parameters
-        ----------
-        Prefixes : list[str]
-            Prefixes/names used to extend the tree.
-
-        """
-        stack = [self.root]
-        while stack:
-            node = stack.pop()
-            if node.children:
-                stack.extend(node.children)
-            else:
-                node.add_children(prefixes)
-
-    def create_prefix_name_dict(self, sep: str = "/") -> dict[str, list[str]]:
-        """
-        Create a dictionary of prefixes to list of object names.
-
-        Parameters
-        ----------
-        sep : str, default="/"
-            Prefix separator.
-
-        Returns
-        -------
-        dict[str, list[str]]
-            Keys are prefixes in the bucket and values are list of object names
-            without prefixes.
-
-        """
-
-        def traverse(
-            node: "S3BucketTree.Node",
-            current_path: str,
-            directories: dict[str, list[str]],
-            sep: str,
-        ):
-            if node.children:
-                if current_path and node.value:
-                    current_path += sep + node.value
-                else:
-                    current_path = node.value
-
-                for child in node.children:
-                    traverse(child, current_path, directories, sep)
-            else:
-                names = directories.setdefault(current_path, list())
-                if node.value:
-                    names.append(node.value)
-
-        directories = dict()
-        traverse(self.root, "", directories, sep)
-        return directories
-
-
-class S3ObjectKeyGenerator:
-    """Generate S3 object keys using a name specification."""
-
-    def __init__(self, name_format: str) -> None:
-        pass
 
 
 class BasePrefixGenerator(ABC):
@@ -440,7 +342,52 @@ class FuturesPlaceholderFiller(BasePlaceholderFiller):
         return self.get_ss() + self.get_my()
 
 
-def _create_key_to_size_dictionary(
+def create_boto3_session(
+    profile_name: Optional[str] = None,
+    aws_access_key_id: Optional[str] = None,
+    aws_secret_access_key: Optional[str] = None,
+) -> boto3.Session:
+    """
+    Create a Session instance.
+
+    Parameters
+    ----------
+    profile_name : str or None, default=None
+        A profile name defined in `~/.aws/credentials`. If a profile name is
+        specified, the access key and secret key are retrieved from this file
+        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
+        ignored. If ``None``, this field is ignored.
+    aws_access_key_id : str or None, default=None
+        The AWS access key associated with an IAM user or role. If ``None``,
+        the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+    aws_secret_access_key : str or None, default=None
+        Thee secret key associated with the access key. If ``None``, the key is
+        retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+
+    Returns
+    -------
+    boto3.Session
+
+    Raises
+    ------
+    botocore.exception.ClientError
+        If the credentials are not valid.
+
+    """
+    if profile_name is None:
+        if aws_access_key_id is None:
+            aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        if aws_secret_access_key is None:
+            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+        session = boto3.Session(aws_access_key_id, aws_secret_access_key)
+    else:
+        session = boto3.Session(profile_name=profile_name)
+    _validate_session(session)
+    return session
+
+
+def create_key_to_size_dictionary(
     bucket: BucketWrapper, path_format: str, filters: S3KeyFilter
 ) -> dict[str, int]:
     """
@@ -618,9 +565,10 @@ def _merge_tokens(tokens: list[S3PathToken]) -> list[S3PathToken]:
     return merged
 
 
-def _get_bucket_name(
+def get_bucket_name(
     bucket_format: str, start_date: datetime.date, end_date: datetime.date
 ) -> str:
+    """Get the bucket name from a bucket format template."""
     # TODO: Currently hardcoded to work with date intervals from a single year.
     prefix_sep = "-"
     name_sep = "."
@@ -677,51 +625,6 @@ def _normalize_date(date):
         msg = f"{date} is not a supported format for date."
         raise ValueError(msg)
     return normalized
-
-
-def create_boto3_session(
-    profile_name: Optional[str] = None,
-    aws_access_key_id: Optional[str] = None,
-    aws_secret_access_key: Optional[str] = None,
-) -> boto3.Session:
-    """
-    Create a Session instance.
-
-    Parameters
-    ----------
-    profile_name : str or None, default=None
-        A profile name defined in `~/.aws/credentials`. If a profile name is
-        specified, the access key and secret key are retrieved from this file
-        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
-        ignored. If ``None``, this field is ignored.
-    aws_access_key_id : str or None, default=None
-        The AWS access key associated with an IAM user or role. If ``None``,
-        the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
-    aws_secret_access_key : str or None, default=None
-        Thee secret key associated with the access key. If ``None``, the key is
-        retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
-
-    Returns
-    -------
-    boto3.Session
-
-    Raises
-    ------
-    botocore.exception.ClientError
-        If the credentials are not valid.
-
-    """
-    if profile_name is None:
-        if aws_access_key_id is None:
-            aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-        if aws_secret_access_key is None:
-            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
-        session = boto3.Session(aws_access_key_id, aws_secret_access_key)
-    else:
-        session = boto3.Session(profile_name=profile_name)
-    _validate_session(session)
-    return session
 
 
 def _get_s3_client(session: boto3.Session) -> BaseClient:
