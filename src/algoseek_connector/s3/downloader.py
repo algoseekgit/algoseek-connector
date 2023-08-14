@@ -62,7 +62,7 @@ class FileDownloader:
 
             try:
                 bucket.download_file(key, key_download_path)
-            except ClientError:
+            except ClientError:  # ignore missing files.
                 continue
 
 
@@ -116,7 +116,14 @@ class BucketWrapper:
 
 
 class S3KeyFilter:
-    """Container class for object filter boundaries."""
+    """
+    Stores filter values for filtering objects in S3 buckets.
+
+    date : str, date or tuple
+    symbols : str or list[str]
+    expiration_date : str, date or tuple
+
+    """
 
     def __init__(
         self,
@@ -140,7 +147,7 @@ class TokenType(enum.Enum):
 
 
 class PlaceholderType(enum.Enum):
-    """Fields associated with placeholders."""
+    """Value type associated with a placeholder."""
 
     none = 1
     date = 2
@@ -149,7 +156,7 @@ class PlaceholderType(enum.Enum):
     futures = 5
 
 
-class PlaceHolders(enum.Enum):
+class PlaceHolder(enum.Enum):
     """Placeholders values for S3 object names."""
 
     yyyymmdd = 1
@@ -168,7 +175,7 @@ class S3PathToken:
     template: str
     token_type: TokenType
     type: PlaceholderType
-    placeholders: set[PlaceHolders]
+    placeholders: set[PlaceHolder]
 
 
 class BasePrefixGenerator(ABC):
@@ -179,7 +186,7 @@ class BasePrefixGenerator(ABC):
         """Create a list of placeholder filler."""
 
     def create_fill_values(
-        self, template: str, placeholders: list[PlaceHolders]
+        self, template: str, placeholders: list[PlaceHolder]
     ) -> list[str]:
         """Create a list of fill values for S3 objects."""
         return [x.fill(template, placeholders) for x in self.create_fillers()]
@@ -256,11 +263,11 @@ class BasePlaceholderFiller(ABC):
 
     """
 
-    def create_fill_values(self, placeholders: list[PlaceHolders]) -> dict[str, str]:
+    def create_fill_values(self, placeholders: list[PlaceHolder]) -> dict[str, str]:
         """Create values to fill a string template."""
         placeholder_to_value = dict()
         for p in placeholders:
-            if isinstance(p, PlaceHolders):
+            if isinstance(p, PlaceHolder):
                 name = p.name
                 placeholder_func = getattr(self, f"get_{name}")
                 placeholder_to_value[name] = placeholder_func()
@@ -268,7 +275,7 @@ class BasePlaceholderFiller(ABC):
                 raise ValueError(f"{p} is not a Placeholder instance.")
         return placeholder_to_value
 
-    def fill(self, template: str, placeholders: list[PlaceHolders]) -> str:
+    def fill(self, template: str, placeholders: list[PlaceHolder]) -> str:
         """Replace the placeholder values in the template to generate a prefix string."""
         placeholder_to_value = self.create_fill_values(placeholders)
         return template.format(**placeholder_to_value)
@@ -434,7 +441,7 @@ def _generate_object_keys(
     path_format: str, filters: S3KeyFilter
 ) -> Generator[str, None, None]:
     """
-    Yield a object keys compatible with the filters provided.
+    Yield object keys compatible with the filters provided.
 
     Parameters
     ----------
@@ -517,7 +524,7 @@ def _create_tokens(
     tokens.append(last)
     for part in parts:
         try:
-            placeholder = PlaceHolders[part]
+            placeholder = PlaceHolder[part]
             placeholder_type = _get_placeholder_type(placeholder)
             template = f"{{{part}}}"
         except KeyError:
@@ -533,12 +540,12 @@ def _create_tokens(
     return tokens
 
 
-def _get_placeholder_type(placeholder: PlaceHolders) -> PlaceholderType:
-    if placeholder in [PlaceHolders.s, PlaceHolders.sss]:
+def _get_placeholder_type(placeholder: PlaceHolder) -> PlaceholderType:
+    if placeholder in [PlaceHolder.s, PlaceHolder.sss]:
         t = PlaceholderType.symbol
-    elif placeholder in [PlaceHolders.yyyy, PlaceHolders.yyyymmdd]:
+    elif placeholder in [PlaceHolder.yyyy, PlaceHolder.yyyymmdd]:
         t = PlaceholderType.date
-    elif placeholder == PlaceHolders.expdate:
+    elif placeholder == PlaceHolder.expdate:
         t = PlaceholderType.expiration_date
     else:
         t = PlaceholderType.futures
