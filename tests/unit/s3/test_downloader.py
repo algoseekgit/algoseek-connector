@@ -214,6 +214,121 @@ def test_tokenize_path_format(
         assert t.placeholders == placeholders
 
 
+def test_S3KeyFilter_using_single_date_str():
+    year, month, day = 2023, 8, 1
+    date = f"{year}{month:02d}{day:02d}"
+    expected_start_date = datetime.date(year, month, day)
+    symbols = ["ABC", "CDE"]
+    key_filter = downloader.S3KeyFilter(date, symbols)
+    start_date, end_date = key_filter.date
+    assert start_date == end_date
+    assert start_date == expected_start_date
+
+
+def test_S3KeyFilter_using_single_date():
+    year, month, day = 2023, 8, 1
+    expected_start_date = datetime.date(year, month, day)
+    symbols = ["ABC", "CDE"]
+    key_filter = downloader.S3KeyFilter(expected_start_date, symbols)
+    start_date, end_date = key_filter.date
+    assert expected_start_date == start_date
+    assert start_date == end_date
+
+
+def test_S3KeyFilter_using_date_str_tuple():
+    start_year, start_month, start_day = 2023, 8, 1
+    end_year, end_month, end_day = 2023, 8, 1
+    expected_start_date = datetime.date(start_year, start_month, start_day)
+    expected_end_date = datetime.date(end_year, end_month, end_day)
+    start_date_str = f"{start_year}{start_month:02d}{start_day:02d}"
+    end_date_str = f"{end_year}{end_month:02d}{end_day:02d}"
+    symbols = ["ABC", "CDE"]
+    key_filter = downloader.S3KeyFilter((start_date_str, end_date_str), symbols)
+    actual_start_date, actual_end_date = key_filter.date
+    assert actual_start_date == expected_start_date
+    assert actual_end_date == expected_end_date
+
+
+def test_S3KeyFilter_using_date_tuple():
+    start_year, start_month, start_day = 2023, 8, 1
+    end_year, end_month, end_day = 2023, 8, 1
+    expected_start_date = datetime.date(start_year, start_month, start_day)
+    expected_end_date = datetime.date(end_year, end_month, end_day)
+    symbols = ["ABC", "CDE"]
+    date = (expected_start_date, expected_end_date)
+    key_filter = downloader.S3KeyFilter(date, symbols)
+    actual_start_date, actual_end_date = key_filter.date
+    assert actual_start_date == expected_start_date
+    assert actual_end_date == expected_end_date
+
+
+def test_S3KeyFilter_invalid_date_range():
+    start_year, start_month, start_day = 2023, 8, 1
+    end_year, end_month, end_day = 2023, 7, 1
+    expected_start_date = datetime.date(start_year, start_month, start_day)
+    expected_end_date = datetime.date(end_year, end_month, end_day)
+    symbols = ["ABC", "CDE"]
+    date = (expected_start_date, expected_end_date)
+    with pytest.raises(ValueError):
+        downloader.S3KeyFilter(date, symbols)
+
+
+def test_S3KeyFilter_using_single_symbol_str():
+    date = "20230801"
+    symbol = "ABC"
+    expected_symbols = [symbol]
+    key_filter = downloader.S3KeyFilter(date, symbol)
+    actual_symbols = key_filter.symbols
+    assert actual_symbols == expected_symbols
+
+
+def test_S3KeyFilter_using_multiple_symbols_str():
+    date = "20230801"
+    expected_symbols = ["ABC", "CDE", "FGH"]
+    key_filter = downloader.S3KeyFilter(date, expected_symbols)
+    actual_symbols = key_filter.symbols
+    assert actual_symbols == expected_symbols
+
+
+def test_S3KeyFilter_expiration_date_is_none():
+    date = "20230801"
+    expected_symbols = ["ABC", "CDE", "FGH"]
+    key_filter = downloader.S3KeyFilter(date, expected_symbols)
+    assert key_filter.expiration_date is None
+
+
+def test_S3KeyFilter_expiration_date_single_expiration_date():
+    date = "20230701"
+    year, month, day = 2023, 8, 1
+    expiration_date_str = f"{year}{month:02d}{day:02d}"
+    expected_expiration_date = datetime.date(year, month, day)
+    symbols = ["ABC", "CDE"]
+    key_filter = downloader.S3KeyFilter(
+        date, symbols, expiration_date=expiration_date_str
+    )
+    start_expiration_date, end_expiration_date = cast(tuple, key_filter.expiration_date)
+    assert start_expiration_date == end_expiration_date
+    assert start_expiration_date == expected_expiration_date
+
+
+def test_S3KeyFilter_expiration_date_expiration_date_range():
+    date = "20230701"
+    start_year, start_month, start_day = 2023, 8, 1
+    start_expiration_date_str = f"{start_year}{start_month:02d}{start_day:02d}"
+    end_year, end_month, end_day = 2023, 8, 10
+    end_expiration_date_str = f"{end_year}{end_month:02d}{end_day:02d}"
+    expected_start_expiration_date = datetime.date(start_year, start_month, start_day)
+    expected_end_expiration_date = datetime.date(end_year, end_month, end_day)
+    expiration_date_str = (start_expiration_date_str, end_expiration_date_str)
+    symbols = ["ABC", "CDE"]
+    key_filter = downloader.S3KeyFilter(
+        date, symbols, expiration_date=expiration_date_str
+    )
+    start_expiration_date, end_expiration_date = cast(tuple, key_filter.expiration_date)
+    assert start_expiration_date == expected_start_expiration_date
+    assert end_expiration_date == expected_end_expiration_date
+
+
 def test_generate_object_keys_equity_data():
     path_format = "yyyymmdd/s/sss.csv.gz"
     symbols = ["ABC", "DEF"]
