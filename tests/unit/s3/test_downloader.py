@@ -5,20 +5,20 @@ from typing import cast
 import pytest
 
 from algoseek_connector.s3 import downloader
-from algoseek_connector.s3.downloader import PlaceHolders
+from algoseek_connector.s3.downloader import PlaceHolder
 
 
 def test_DatePlaceholderFiller_list_available_placeholders():
     placeholders = downloader.DatePlaceholderFiller.list_available_placeholders()
     assert len(placeholders) == 2
-    assert downloader.PlaceHolders.yyyy.name in placeholders
-    assert downloader.PlaceHolders.yyyymmdd.name in placeholders
+    assert downloader.PlaceHolder.yyyy.name in placeholders
+    assert downloader.PlaceHolder.yyyymmdd.name in placeholders
 
 
 def test_DatePlaceholderFiller_create_fill_values_yyyy():
     today = datetime.date.today()
     filler = downloader.DatePlaceholderFiller(today)
-    placeholder = PlaceHolders.yyyy
+    placeholder = PlaceHolder.yyyy
     expected = {placeholder.name: str(today.year)}
     actual = filler.create_fill_values([placeholder])
     assert actual == expected
@@ -27,7 +27,7 @@ def test_DatePlaceholderFiller_create_fill_values_yyyy():
 def test_DatePlaceholderFiller_create_fill_values_yyyymmdd():
     today = datetime.date.today()
     filler = downloader.DatePlaceholderFiller(today)
-    placeholder = PlaceHolders.yyyymmdd
+    placeholder = PlaceHolder.yyyymmdd
     expected = {placeholder.name: today.strftime("%Y%m%d")}
     actual = filler.create_fill_values([placeholder])
     assert actual == expected
@@ -37,10 +37,10 @@ def test_DatePlaceholderFiller_create_fill_values_yyyymmdd_and_yyyy():
     today = datetime.date.today()
     filler = downloader.DatePlaceholderFiller(today)
     expected = {
-        PlaceHolders.yyyymmdd.name: today.strftime("%Y%m%d"),
-        PlaceHolders.yyyy.name: str(today.year),
+        PlaceHolder.yyyymmdd.name: today.strftime("%Y%m%d"),
+        PlaceHolder.yyyy.name: str(today.year),
     }
-    placeholders = [PlaceHolders.yyyy, PlaceHolders.yyyymmdd]
+    placeholders = [PlaceHolder.yyyy, PlaceHolder.yyyymmdd]
     actual = filler.create_fill_values(placeholders)
     assert actual == expected
 
@@ -49,7 +49,7 @@ def test_DatePlaceholderFiller_create_fill_values_invalid_placeholder():
     today = datetime.date.today()
     filler = downloader.DatePlaceholderFiller(today)
     with pytest.raises(ValueError):
-        placeholder = cast(PlaceHolders, "invalid")
+        placeholder = cast(PlaceHolder, "invalid")
         filler.create_fill_values([placeholder])
 
 
@@ -58,7 +58,7 @@ def test_DatePlaceholderFiller_fill():
     filler = downloader.DatePlaceholderFiller(date)
     template = "{yyyy}-myfile-{yyyymmdd}"
     expected = "2023-myfile-20230729"
-    placeholders = [PlaceHolders.yyyy, PlaceHolders.yyyymmdd]
+    placeholders = [PlaceHolder.yyyy, PlaceHolder.yyyymmdd]
     actual = filler.fill(template, placeholders)
     assert actual == expected
 
@@ -66,14 +66,14 @@ def test_DatePlaceholderFiller_fill():
 def test_TickerPlaceholderFiller_list_available_placeholders():
     placeholders = downloader.SymbolPlaceholderFiller.list_available_placeholders()
     assert len(placeholders) == 2
-    assert downloader.PlaceHolders.s.name in placeholders
-    assert downloader.PlaceHolders.sss.name in placeholders
+    assert downloader.PlaceHolder.s.name in placeholders
+    assert downloader.PlaceHolder.sss.name in placeholders
 
 
 def test_SymbolPlaceholderFIller_create_fill_values_s():
     symbol = "ABC"
     filler = downloader.SymbolPlaceholderFiller(symbol)
-    placeholder = PlaceHolders.s
+    placeholder = PlaceHolder.s
     expected = {placeholder.name: symbol[0]}
     actual = filler.create_fill_values([placeholder])
     assert actual == expected
@@ -82,7 +82,7 @@ def test_SymbolPlaceholderFIller_create_fill_values_s():
 def test_SymbolPlaceholderFIller_create_fill_values_sss():
     symbol = "ABC"
     filler = downloader.SymbolPlaceholderFiller(symbol)
-    placeholder = PlaceHolders.sss
+    placeholder = PlaceHolder.sss
     expected = {placeholder.name: symbol}
     actual = filler.create_fill_values([placeholder])
     assert actual == expected
@@ -91,8 +91,8 @@ def test_SymbolPlaceholderFIller_create_fill_values_sss():
 def test_SymbolPlaceholderFiller_create_fill_values_s_and_sss():
     symbol = "ABC"
     filler = downloader.SymbolPlaceholderFiller(symbol)
-    expected = {PlaceHolders.sss.name: symbol, PlaceHolders.s.name: symbol[0]}
-    placeholders = [PlaceHolders.s, PlaceHolders.sss]
+    expected = {PlaceHolder.sss.name: symbol, PlaceHolder.s.name: symbol[0]}
+    placeholders = [PlaceHolder.s, PlaceHolder.sss]
     actual = filler.create_fill_values(placeholders)
     assert actual == expected
 
@@ -101,7 +101,7 @@ def test_SymbolPlaceholderFiller_create_fill_values_invalid_placeholder():
     symbol = "ABC"
     filler = downloader.SymbolPlaceholderFiller(symbol)
     with pytest.raises(ValueError):
-        placeholder = cast(downloader.PlaceHolders, "invalid")
+        placeholder = cast(downloader.PlaceHolder, "invalid")
         filler.create_fill_values([placeholder])
 
 
@@ -109,7 +109,7 @@ def test_SymbolPlaceholderFiller_fill():
     ticker = "ABC"
     filler = downloader.SymbolPlaceholderFiller(ticker)
     template = "my-bucket-root/{s}/{sss}"
-    placeholders = [PlaceHolders.s, PlaceHolders.sss]
+    placeholders = [PlaceHolder.s, PlaceHolder.sss]
     actual = filler.fill(template, placeholders)
     expected = "my-bucket-root/A/ABC"
     assert actual == expected
@@ -120,7 +120,7 @@ def test_DatePrefixGenerator_single_date():
     prefix_generator = downloader.DatePrefixGenerator(start_date, end_date)
 
     template = "my-bucket-root/{yyyymmdd}"
-    placeholders = [PlaceHolders.yyyymmdd]
+    placeholders = [PlaceHolder.yyyymmdd]
     actual = prefix_generator.create_fill_values(template, placeholders)
     expected = ["my-bucket-root/20230729"]
     assert actual == expected
@@ -132,7 +132,7 @@ def test_DatePrefixGenerator_date_range():
     prefix_generator = downloader.DatePrefixGenerator(start_date, end_date)
 
     template = "my-bucket-root/{yyyymmdd}"
-    placeholders = [PlaceHolders.yyyymmdd]
+    placeholders = [PlaceHolder.yyyymmdd]
     actual = prefix_generator.create_fill_values(template, placeholders)
     expected = [
         "my-bucket-root/20230729",
@@ -148,7 +148,7 @@ def test_SymbolPrefixGenerator_single_ticker():
     prefix_generator = downloader.SymbolPrefixGenerator(symbols)
 
     template = "my-bucket-root/{s}/{sss}"
-    placeholders = [PlaceHolders.s, PlaceHolders.sss]
+    placeholders = [PlaceHolder.s, PlaceHolder.sss]
     actual = prefix_generator.create_fill_values(template, placeholders)
     expected = ["my-bucket-root/A/ABC"]
     assert actual == expected
@@ -159,7 +159,7 @@ def test_TickerPrefixGenerator_multiple_tickers():
     prefix_generator = downloader.SymbolPrefixGenerator(symbols)
 
     template = "my-bucket-root/{s}/{sss}"
-    placeholders = [PlaceHolders.s, PlaceHolders.sss]
+    placeholders = [PlaceHolder.s, PlaceHolder.sss]
     actual = prefix_generator.create_fill_values(template, placeholders)
     expected = [
         "my-bucket-root/A/ABC",
@@ -196,7 +196,7 @@ def test_split_path_format(path_format, expected):
         (
             "yyyymmdd/s/sss.csv.gz",
             ["{yyyymmdd}/", "{s}/{sss}.csv.gz"],
-            [{PlaceHolders.yyyymmdd}, {PlaceHolders.s, PlaceHolders.sss}],
+            [{PlaceHolder.yyyymmdd}, {PlaceHolder.s, PlaceHolder.sss}],
         ),
         ("so_detailed.csv", ["so_detailed.csv"], [set()]),
     ],
