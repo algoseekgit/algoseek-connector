@@ -83,6 +83,19 @@ def test_S3DatasetDownloader_download_equity_data(
         assert file_path.exists()
 
 
+def test_S3DatasetDownloader_download_invalid_ticker_does_not_raise_exceptions(
+    dataset_downloader: S3DatasetDownloader, tmp_path: Path
+):
+    date = ("20230701", "20230705")
+    symbols = ["INVALID-SYMBOL"]
+    download_path = tmp_path / "data"
+    download_path.mkdir()
+    dataset_text_id = "eq_taq_1min"
+
+    dataset_downloader.download(dataset_text_id, download_path, date, symbols)
+    assert not list(download_path.glob("*"))  # check that no files were downloaded
+
+
 def test_S3DatasetDownloader_download_exceed_max_download_size_raises_error(
     dataset_downloader: S3DatasetDownloader, tmp_path: Path, monkeypatch
 ):
@@ -94,6 +107,19 @@ def test_S3DatasetDownloader_download_exceed_max_download_size_raises_error(
 
     monkeypatch.setattr(ac.s3.client, "MAX_DOWNLOAD_SIZE", 10)
     with pytest.raises(ac.s3.client.DownloadLimitExceededError):
+        dataset_downloader.download(dataset_text_id, download_path, date, symbols)
+
+
+def test_S3DatasetDownloader_download_from_multiple_years_raises_error(
+    dataset_downloader: S3DatasetDownloader, tmp_path: Path
+):
+    date = ("20220701", "20230705")
+    symbols = ["AMZN", "AAPL"]
+    download_path = tmp_path / "data"
+    download_path.mkdir()
+    dataset_text_id = "eq_taq_1min"
+
+    with pytest.raises(ValueError):
         dataset_downloader.download(dataset_text_id, download_path, date, symbols)
 
 
