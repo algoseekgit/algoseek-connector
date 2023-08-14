@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import Generator, Optional
+from pathlib import Path
+from typing import Generator, Optional, Union
 
 import clickhouse_connect
 import sqlparse
@@ -13,6 +14,8 @@ from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from pandas import DataFrame
 from sqlalchemy import Column
 from sqlalchemy.sql import Select
+
+from algoseek_connector.base import date_like
 
 from .. import base
 from ..metadata_api import BaseAPIConsumer
@@ -51,6 +54,17 @@ class ClickHouseClient(base.ClientProtocol):
         """Get a FunctionHandler instance."""
         functions = ["sum", "average"]
         return base.FunctionHandle(functions)
+
+    def download(
+        self,
+        dataset: str,
+        download_path: Path,
+        date: Union[date_like, tuple[date_like, date_like]],
+        symbols: Union[str, list[str]],
+        expiration_date: Union[date_like, tuple[date_like, date_like]],
+    ):  # pragma: no cover
+        """Not implemented."""
+        raise NotImplementedError
 
     def fetch(self, query: base.CompiledQuery, **kwargs) -> dict[str, tuple]:
         """
