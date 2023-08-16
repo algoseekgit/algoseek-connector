@@ -5,14 +5,19 @@ from clickhouse_sqlalchemy import types as clickhouse_types
 from sqlalchemy import func
 
 from algoseek_connector.base import DataSet, DataSource
-from algoseek_connector.clickhouse.client import ClickHouseClient
+from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
+from algoseek_connector.clickhouse.client import create_clickhouse_client
+from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
 
 @pytest.fixture(scope="module")
 def data_source():
-    # Connect to DB using host, user and password from env variables.
-
-    return DataSource(ClickHouseClient())
+    token = AuthToken()
+    api_consumer = BaseAPIConsumer(token)
+    description_provider = ArdaDBDescriptionProvider(api_consumer)
+    ch_client = create_clickhouse_client()
+    client = ClickHouseClient(ch_client)
+    return DataSource(client, description_provider)
 
 
 @pytest.fixture(scope="module")

@@ -1,14 +1,23 @@
-import pytest
+from typing import cast
 
-from algoseek_connector import ResourceManager, base
+import pytest
+from pandas import DataFrame
+
+from algoseek_connector import base
 from algoseek_connector.base import DataSet, DataSource
+from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
+from algoseek_connector.clickhouse.client import create_clickhouse_client
+from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
 
 @pytest.fixture(scope="module")
 def data_source():
-    # Connect to DB using host, user and password from env variables.
-    manager = ResourceManager()
-    return manager.create_data_source("clickhouse")
+    token = AuthToken()
+    api_consumer = BaseAPIConsumer(token)
+    description_provider = ArdaDBDescriptionProvider(api_consumer)
+    ch_client = create_clickhouse_client()
+    client = ClickHouseClient(ch_client)
+    return DataSource(client, description_provider)
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +35,8 @@ def test_execute_python_types(data_source: DataSource, dataset: DataSet):
     expected = dataset.fetch(stmt)
 
     group = dataset.group
-    raw_sql = f"SELECT {col_name} FROM {group.name}.{dataset.name} LIMIT {limit}"
+    table_name = f"{group.description.name}.{dataset.description.name}"
+    raw_sql = f"SELECT {col_name} FROM {table_name} LIMIT {limit}"
     actual = data_source.execute(raw_sql)
     assert actual == expected
 
@@ -36,10 +46,11 @@ def test_execute_dataframe(data_source: DataSource, dataset: DataSet):
     col_name = "TradeDate"
     stmt = dataset.select(dataset[col_name]).limit(limit)
     expected = dataset.fetch_dataframe(stmt)
-
     group = dataset.group
-    raw_sql = f"SELECT {col_name} FROM {group.name}.{dataset.name} LIMIT {limit}"
-    actual = data_source.execute(raw_sql, output="dataframe")
+    table_name = f"{group.description.name}.{dataset.description.name}"
+
+    raw_sql = f"SELECT {col_name} FROM {table_name} LIMIT {limit}"
+    actual = cast(DataFrame, data_source.execute(raw_sql, output="dataframe"))
     assert expected.equals(actual)
 
 
@@ -67,7 +78,7 @@ def test_ClickHouseClient_get_dataset(data_source: DataSource):
         group = data_source.fetch_datagroup(group_name)
         for dataset_name in group.list_datasets():
             dataset = group.fetch_dataset(dataset_name)
-            assert dataset_name == dataset.name
+            assert dataset_name == dataset.description.name
 
 
 def test_ClickHouseClient_get_dataset_invalid_dataset_name(

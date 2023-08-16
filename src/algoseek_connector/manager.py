@@ -8,8 +8,11 @@ Provides:
 
 """
 
-from .base import ClientProtocol, DataSource
-from .clickhouse.client import ClickHouseClient
+from . import base, clickhouse, s3
+from .metadata_api import AuthToken, BaseAPIConsumer
+
+ARDADB = "ardadb"
+S3 = "s3"
 
 
 class ResourceManager:
@@ -26,9 +29,11 @@ class ResourceManager:
     """
 
     def __init__(self):
-        self._client_factory = ClientProtocolFactory()
+        token = AuthToken()
+        # TODO: add functionality to refresh token.
+        self._api = BaseAPIConsumer(token)
 
-    def create_data_source(self, name: str, **kwargs) -> DataSource:
+    def create_data_source(self, name: str, **kwargs) -> base.DataSource:
         """
         Create a connection to a data source.
 
@@ -42,21 +47,31 @@ class ResourceManager:
         DataSource
 
         """
-        client = self._client_factory(name, **kwargs)
-        return DataSource(client)
+        client = self._create_client(name, **kwargs)
+        description_provider = self._create_description_provider(name)
+        return base.DataSource(client, description_provider)
+
+    def _create_description_provider(self, name: str) -> base.DescriptionProvider:
+        if name == ARDADB:
+            description_provider = clickhouse.ArdaDBDescriptionProvider(self._api)
+        elif name == S3:
+            description_provider = s3.S3DescriptionProvider(self._api)
+        else:
+            raise ValueError
+        return description_provider
+
+    def _create_client(self, name, **kwargs) -> base.ClientProtocol:
+        if name == ARDADB:
+            ch_client = clickhouse.create_clickhouse_client(**kwargs)
+            client = clickhouse.ClickHouseClient(ch_client)
+        elif name == S3:
+            session = s3.create_boto3_session(**kwargs)
+            client = s3.S3DownloaderClient(session, self._api)
+        else:
+            raise ValueError
+        return client
 
     def list_data_sources(self) -> list[str]:
         """List available data sources."""
-        sources = ["clickhouse"]
+        sources = [ARDADB, S3]
         return sources
-
-
-class ClientProtocolFactory:
-    """Create Client for data sources."""
-
-    def __init__(self):
-        self._clients = {"clickhouse": ClickHouseClient}
-
-    def __call__(self, client_type: str, **kwargs) -> ClientProtocol:
-        """Create a ClientProtocol."""
-        return self._clients[client_type](**kwargs)

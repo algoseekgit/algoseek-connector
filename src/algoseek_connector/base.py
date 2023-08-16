@@ -31,15 +31,21 @@ InvalidDataSetName
 
 from __future__ import annotations  # delayed annotations
 
+import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generator, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Protocol, Union
 
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pathlib import Path
+    from typing import Generator, Optional, Sequence
+
     from pandas import DataFrame
+
+date_like = Union[datetime.date, str]
 
 
 class DataSource:
@@ -50,28 +56,29 @@ class DataSource:
 
     Attributes
     ----------
+    client : ClientProtocol
+        Provide the connection to the actual data source.
+    description_provider : DescriptionProvider
+        Provide descriptions and metadata for data groups and datasets.
     groups : DataGroupMapping
-        Maintains the collection of available DataGroups.
-
+        Maintain the collection of available DataGroups.
 
     Methods
     -------
-    get_datagroup:
+    fetch_datagroup:
         Retrieve a data group from the data source.
     list_datagroups:
         List available data groups.
 
     """
 
-    def __init__(self, client: ClientProtocol):
-        self._client = client
-        groups = [DataGroupFetcher(self, x) for x in self._client.list_datagroups()]
+    def __init__(
+        self, client: ClientProtocol, description_provider: DescriptionProvider
+    ):
+        self.description_provider = description_provider
+        self.client = client
+        groups = [DataGroupFetcher(self, x) for x in self.client.list_datagroups()]
         self.groups = DataGroupMapping(*groups)
-
-    @property
-    def client(self) -> ClientProtocol:
-        """Get the data source client."""
-        return self._client
 
     def execute(
         self,
@@ -80,7 +87,7 @@ class DataSource:
         output: str = "python",
         size: Optional[int] = None,
         **kwargs,
-    ):
+    ) -> Union[dict, DataFrame]:
         """
         Execute raw SQL queries.
 
@@ -117,7 +124,7 @@ class DataGroupMapping:
 
     def __init__(self, *groups: "DataGroupFetcher"):
         for g in groups:
-            setattr(self, g.name, g)
+            setattr(self, g.description.name, g)
 
     def __len__(self):
         return len(self.__dict__)
@@ -136,26 +143,30 @@ class DataGroupMapping:
 
 
 class DataGroupFetcher:
-    """PlaceHolder class to fetch DataGroups."""
+    """Placeholder class that fetch DataGroups."""
 
     def __init__(self, source: DataSource, name: str) -> None:
         self._source = source
-        self._name = name
+        self._description = source.description_provider.get_datagroup_description(name)
         self._group = None
 
     @property
-    def name(self) -> str:
+    def description(self) -> DataGroupDescription:
         """Get the group name."""
-        return self._name
+        return self._description
 
     def fetch(self) -> "DataGroup":
         """Fetch the data group instance."""
         if self._group is None:
-            group = DataGroup(self._source, self._name)
+            group = DataGroup(self._source, self.description)
             self._group = group
         else:
             group = self._group
         return group
+
+    def _repr_html_(self):  # pragma: no cover
+        """Display the DataGroup in jupyter notebooks using HTML."""
+        return self.description.html()
 
 
 class DataGroup:
@@ -166,8 +177,8 @@ class DataGroup:
     ----------
     source : DataSource
         The data source where the data groups belongs.
-    name :  str
-        The data group name.
+    description :  DataGroupDescription
+        The data group description.
 
     Methods
     -------
@@ -178,24 +189,24 @@ class DataGroup:
 
     """
 
-    def __init__(self, source: "DataSource", name: str) -> None:
-        self._client = source.client
-        self._name = name
+    def __init__(self, source: DataSource, description: DataGroupDescription) -> None:
+        self._source = source
+        self._description = description
         self.metadata = MetaData()
         datasets = [DataSetFetcher(self, x) for x in self.list_datasets()]
         self.datasets = DataSetMapping(*datasets)
 
     @property
-    def client(self) -> ClientProtocol:
-        """Get the data source client."""
-        return self._client
+    def description(self) -> DataGroupDescription:
+        """Get the data group description."""
+        return self._description
 
     @property
-    def name(self) -> str:
-        """Get the data group name."""
-        return self._name
+    def source(self) -> DataSource:
+        """Get the data source."""
+        return self._source
 
-    def fetch_dataset(self, name: str) -> "DataSet":
+    def fetch_dataset(self, name: str) -> DataSet:
         """
         Load a dataset from a data source.
 
@@ -214,19 +225,23 @@ class DataGroup:
 
     def list_datasets(self) -> list[str]:
         """List available datasets."""
-        return self.client.list_datasets(self.name)
+        return self._source.client.list_datasets(self.description.name)
+
+    def _repr_html_(self):  # pragma: no cover
+        """Display the DataGroup in jupyter notebooks using HTML."""
+        return self.description.html()
 
 
 class DataSetMapping:
     """
-    Mapping class that stores DataGroups from a DataSource.
+    Mapping class that stores Datasets from a DataGroup.
 
     Implements the Mapping protocol.
     """
 
-    def __init__(self, *datasets: "DataSetFetcher"):
+    def __init__(self, *datasets: DataSetFetcher):
         for ds in datasets:
-            setattr(self, ds.name, ds)
+            setattr(self, ds.description.name, ds)
 
     def __len__(self):
         return len(self.__dict__)
@@ -234,7 +249,7 @@ class DataSetMapping:
     def __iter__(self) -> Generator[str, None, None]:
         yield from self.__dict__
 
-    def __getitem__(self, key: str) -> "DataSetFetcher":
+    def __getitem__(self, key: str) -> DataSetFetcher:
         try:
             return self.__dict__[key]
         except KeyError:
@@ -249,26 +264,78 @@ class DataSetFetcher:
 
     def __init__(self, group: DataGroup, name: str):
         self._group = group
-        self._name = name
+        self._source = group.source
+        group_name = self.group.description.name
+        self._description = group.source.description_provider.get_dataset_description(
+            group_name, name
+        )
         self._dataset = None
 
     @property
-    def name(self) -> str:
+    def description(self) -> DataSetDescription:
         """Get the dataset name."""
-        return self._name
+        return self._description
 
-    def fetch(self) -> "DataSet":
-        """Fetch the dataset."""
+    @property
+    def group(self) -> DataGroup:
+        """Get the dataset group."""
+        return self._group
+
+    @property
+    def source(self) -> DataSource:
+        """Get the data source."""
+        return self._source
+
+    def download(
+        self,
+        download_path: Path,
+        date: Union[date_like, tuple[date_like, date_like]],
+        symbols: Union[str, list[str]],
+        expiration_date: Union[date_like, tuple[date_like, date_like], None] = None,
+    ):
+        """
+        Download data from the dataset.
+
+        Parameters
+        ----------
+        download_path : pathlib.Path
+            Path to a directory to download dataset files.
+        date : str, datetime.date or tuple
+            Download data in this date range. Dates can be passed as a str with
+            `yyyymmdd` format or as date objects. If a tuple is passed, it is
+            interpreted as a date range and all dates in the closed interval
+            between the two dates are generated. If a single date is passed,
+            download data from this specific date.
+        symbols : str or list[str]
+            Download data associated with these symbols.
+        expiration date : str, datetime.date, tuple or None, default=None
+            Download data with expiration dates in this date range. Dates must
+            be passed using the same format used for the `date` parameter.
+
+        """
+        self.source.client.download(
+            self.description.name, download_path, date, symbols, expiration_date
+        )
+
+    def fetch(self) -> DataSet:
+        """
+        Create a dataset instance.
+
+        DataSet allow to fetch data using SQL-like queries. See
+        :ref:`here <datasets>` for a detailed description on how work with
+        datasets.
+
+        """
         if self._dataset is None:
-            group = self._group
-            dataset_metadata = group.client.fetch_dataset_metadata(
-                group.name, self.name
-            )
-            dataset = DataSet(self._group, dataset_metadata)
+            dataset = DataSet(self.group, self.description)
             self._dataset = dataset
         else:
             dataset = self._dataset
         return dataset
+
+    def _repr_html_(self):  # pragma: no cover:
+        """Display the Dataset in jupyter notebooks using HTML."""
+        return self.description.html()
 
 
 class DataSet:
@@ -278,12 +345,16 @@ class DataSet:
     See :ref:`here <datasets>` for a detailed description on how work with
     datasets.
 
-    Parameters
+    Attributes
     ----------
+    c : ColumnHandle
+        A handle object for dataset columns.
+    description : DataSetDescription
+        The dataset description.
     group : DataGroup
         The data group where the dataset will be included.
-    table : sqlalchemy.Table
-        Store table name and columns.
+    source : DataSource
+        The data source of the dataset.
 
     Methods
     -------
@@ -304,21 +375,24 @@ class DataSet:
 
     """
 
-    def __init__(self, group: "DataGroup", table_metadata: DataSetMetadata):
+    def __init__(self, group: DataGroup, description: DataSetDescription):
         self._group = group
-        self._name = table_metadata.name
-        table_name = f"{group.name}.{table_metadata.name}"
-        table = Table(table_name, group.metadata, *table_metadata.columns, quote=False)
-        self._client = group.client
+        self._description = description
+        self._source = group.source
+        group_name = group.description.name
+        dataset_name = description.name
+        table_name = f"{group_name}.{dataset_name}"
+        columns = self.source.client.get_dataset_columns(group_name, dataset_name)
+        table = Table(table_name, group.metadata, *columns, quote=False)
         self._table = table
         for column in table.c:
             setattr(self, column.name, column)
         self.c = ColumnHandle(table)
 
     @property
-    def name(self) -> str:
+    def description(self) -> DataSetDescription:
         """Get the dataset name."""
-        return self._name
+        return self._description
 
     @property
     def group(self) -> DataGroup:
@@ -326,20 +400,20 @@ class DataSet:
         return self._group
 
     @property
-    def client(self) -> ClientProtocol:
+    def source(self) -> DataSource:
         """Get the data source client."""
-        return self._client
+        return self._source
 
     def __getitem__(self, key: str) -> Column:
         return self.c[key]
 
-    def get_column_handle(self) -> "ColumnHandle":
+    def get_column_handle(self) -> ColumnHandle:
         """Get a handler object for fast access to dataset columns."""
         return ColumnHandle(self._table)
 
-    def get_function_handle(self) -> "FunctionHandle":
+    def get_function_handle(self) -> FunctionHandle:
         """Get a handle for fast access to supported functions."""
-        return self.client.create_function_handle()
+        return self.source.client.create_function_handle()
 
     def select(
         self, *args: Column, exclude: Optional[Sequence[Column]] = None
@@ -391,8 +465,8 @@ class DataSet:
             method.
 
         """
-        query = self.client.compile(stmt)
-        return self.client.fetch(query, **kwargs)
+        query = self.source.client.compile(stmt)
+        return self.source.client.fetch(query, **kwargs)
 
     def fetch_iter(
         self, stmt: Select, size: int, **kwargs
@@ -416,8 +490,8 @@ class DataSet:
             A dictionary with column name/column data pairs.
 
         """
-        query = self.client.compile(stmt)
-        yield from self.client.fetch_iter(query, size, **kwargs)
+        query = self.source.client.compile(stmt)
+        yield from self.source.client.fetch_iter(query, size, **kwargs)
 
     def fetch_dataframe(self, stmt: Select, **kwargs) -> DataFrame:
         """
@@ -436,8 +510,8 @@ class DataSet:
         pandas.DataFrame
 
         """
-        query = self.client.compile(stmt)
-        return self.client.fetch_dataframe(query, **kwargs)
+        query = self.source.client.compile(stmt)
+        return self.source.client.fetch_dataframe(query, **kwargs)
 
     def fetch_iter_dataframe(
         self, stmt: Select, size: int, **kwargs
@@ -460,39 +534,157 @@ class DataSet:
         pandas.DataFrame
 
         """
-        query = self.client.compile(stmt)
-        yield from self.client.fetch_iter_dataframe(query, size, **kwargs)
+        query = self.source.client.compile(stmt)
+        yield from self.source.client.fetch_iter_dataframe(query, size, **kwargs)
 
-    def compile(self, stmt: Select) -> "CompiledQuery":
+    def compile(self, stmt: Select) -> CompiledQuery:
         """Compiles the statement into a dialect-specific SQL string."""
-        return self.client.compile(stmt)
+        return self.source.client.compile(stmt)
 
     def _repr_html_(self):  # pragma: no cover
         """Display the Dataset in jupyter notebooks using HTML."""
-        desc = "test-description."
-        return _make_dataset_html_description(self.name, desc, self.c)
+        return self.description.html()
 
     def _ipython_key_completions_(self):  # pragma: no cover
         """Add autocomplete integration for keys in Ipython/Jupyter."""
         return self.c._ipython_key_completions_()
 
 
-@dataclass(frozen=True)
-class DataSetMetadata:
+@dataclass
+class ColumnDescription:
     """
-    Container class for table metadata.
+    Store column metadata from a dataset.
+
+    Returns
+    -------
+    name : str
+        The column name.
+    type : str
+        The column type.
+    description : str
+        The column description
+
+    """
+
+    name: str
+    type: str
+    description: str
+
+    def get_type_name(self) -> str:
+        """Get the type name."""
+        ind = self.type.find("(")
+        if ind == -1:  # no args
+            type_name = self.type
+        else:
+            type_name = self.type[:ind]
+        return type_name
+
+    def get_type_args(self) -> list[str]:
+        """Get the type arguments."""
+        open_ind = self.type.find("(")
+        if open_ind != -1:
+            close_ind = -1
+            type_args = [
+                x.strip() for x in self.type[open_ind + 1 : close_ind].split(",")
+            ]
+        else:
+            type_args = list()
+        return type_args
+
+    def html(self) -> str:  # pragma: no cover
+        """Create a description of the column as an HTML row."""
+        name = self.name
+        t = self.type
+        description = self.description
+        return f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
+
+
+class DataSetDescription:
+    """
+    Store data used to create dataset instances.
 
     Attributes
     ----------
     name : str
         The dataset name.
-    columns : list[Column]
+    group : str
+        The datagroup name.
+    description : str
+        The dataset description
+    columns : list[ColumnMetadata] or None, default=None
         The dataset columns.
 
     """
 
-    name: str
-    columns: list[Column]
+    def __init__(
+        self,
+        name: str,
+        group: str,
+        columns: list[ColumnDescription],
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        self.name = name
+        self.group = group
+        self.columns = columns
+        if display_name is None:
+            display_name = name
+        self.display_name = display_name
+        if description is None:
+            description = ""
+        self.description = description
+
+    def get_table_name(self) -> str:
+        """Get the table name in the format `group.name`."""
+        return f"{self.group}.{self.name}"
+
+    def __repr__(self):  # pragma: no cover
+        return f"DataSetDescription(name={self.name}, group={self.group}, columns={self.columns})"
+
+    def html(self) -> str:  # pragma: no cover
+        """Create an HTML description of the dataset."""
+        rows = list()
+        for c in self.columns:
+            rows.append(c.html())
+        html_rows = "\n".join(rows)
+        table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
+        table_html = f'<table style="width:66%">\n{table_header}\n{html_rows}\n</table>'
+
+        html = (
+            f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>" f"{table_html}"
+        )
+        return html
+
+
+class DataGroupDescription:
+    """
+    Container class for datagroup metadata.
+
+    Attributes
+    ----------
+    name : str
+        The data group name.
+    display_name : str
+        Name used for pretty print.
+    description : str
+        The data group description.
+
+    """
+
+    def __init__(self, name: str, description: str, display_name: Optional[str] = None):
+        self.name = name
+        self.description = description
+        if display_name is None:
+            self.display_name = name
+        else:
+            self.display_name = display_name
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"DataGroupDescription({self.name})"
+
+    def html(self) -> str:  # pragma: no cover
+        """Create an HTML description of the data group."""
+        return f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>"
 
 
 class InvalidDataGroupName(KeyError):
@@ -577,6 +769,22 @@ class FunctionHandle:
             setattr(self, f, getattr(func, f))
 
 
+class DescriptionProvider(Protocol):
+    """Provide descriptions for datagroups, datasets and columns."""
+
+    @abstractmethod
+    def get_datagroup_description(self, group: str) -> DataGroupDescription:
+        """Get the description of a datagroup."""
+
+    @abstractmethod
+    def get_dataset_description(self, group: str, dataset: str) -> DataSetDescription:
+        """Get the description of a dataset."""
+
+    @abstractmethod
+    def get_columns_description(self, dataset: str) -> list[ColumnDescription]:
+        """Get the description of columns in a dataset."""
+
+
 class ClientProtocol(Protocol):
     """Adapter interface for DB clients."""
 
@@ -585,8 +793,8 @@ class ClientProtocol(Protocol):
         """Compile a SQLAlchemy Select statement into a CompiledQuery."""
 
     @abstractmethod
-    def fetch_dataset_metadata(self, group: str, name: str) -> DataSetMetadata:
-        """Create a dataset."""
+    def get_dataset_columns(self, group: str, name: str) -> list[Column]:
+        """Create a dataset metadata instance."""
 
     @abstractmethod
     def create_function_handle(self) -> FunctionHandle:
@@ -626,6 +834,16 @@ class ClientProtocol(Protocol):
             If `size` is specified.
 
         """
+
+    def download(
+        self,
+        dataset: str,
+        download_path: Path,
+        date: Union[date_like, tuple[date_like, date_like]],
+        symbols: Union[str, list[str]],
+        expiration_date: Union[date_like, tuple[date_like, date_like], None],
+    ):
+        """Download data from the dataset."""
 
     @abstractmethod
     def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
@@ -680,24 +898,3 @@ class ClientProtocol(Protocol):
             `AWS_SECRET_ACCESS_KEY`.
 
         """
-
-
-def _make_dataset_html_description(
-    name: str, description: str, column_handle: ColumnHandle
-) -> str:  # pragma: no cover
-    table_content = _make_dataset_html_table(column_handle)
-    html = f"<h2>{name}</h2>" f"<p>{description}</p>" f"{table_content}"
-    return html
-
-
-def _make_dataset_html_table(column_handle: ColumnHandle) -> str:  # pragma: no cover
-    rows = list()
-    for col in column_handle:
-        name = col.name
-        t = str(col.type)
-        description = col.doc
-        column_html = f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
-        rows.append(column_html)
-    html_rows = "\n".join(rows)
-    table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
-    return f"<table>\n{table_header}\n{html_rows}\n</table>"
