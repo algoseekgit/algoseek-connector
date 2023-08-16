@@ -15,9 +15,8 @@ from pandas import DataFrame
 from sqlalchemy import Column
 from sqlalchemy.sql import Select
 
-from algoseek_connector.base import date_like
-
 from .. import base
+from ..base import date_like
 from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
 
