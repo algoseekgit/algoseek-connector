@@ -272,8 +272,6 @@ class DataSetFetcher:
 
         Parameters
         ----------
-        dataset_text_id : str
-            The dataset text id.
         download_path : pathlib.Path
             Path to a directory to download dataset files.
         date : str, datetime.date or tuple
@@ -286,13 +284,12 @@ class DataSetFetcher:
             Download data associated with these symbols.
         expiration date : str, datetime.date, tuple or None, default=None
             Download data with expiration dates in this date range. Dates must
-            be passed used the same format used for the `date` parameter.
+            be passed using the same format used for the `date` parameter.
 
         """
         self.source.client.download(
             self.description.name, download_path, date, symbols, expiration_date
         )
-        # TODO: continue here
 
     def fetch(self) -> DataSet:
         """
