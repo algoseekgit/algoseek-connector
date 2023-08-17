@@ -1,4 +1,3 @@
-import hashlib
 import os
 from pathlib import Path
 
@@ -6,23 +5,16 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-
-def sha1_digest(path: Path) -> str:
-    """Compute the SHA-1 hexadecimal digest of a file."""
-    BUF_SIZE = 64 * 1024
-    sha1 = hashlib.sha1()
-    with open(path, "rb") as f:
-        while True:
-            data = f.read(BUF_SIZE)
-            if not data:
-                break
-            sha1.update(data)
-    return sha1.hexdigest()
+from algoseek_connector.utils import is_file_equal
 
 
-def is_file_equal(file: Path, other: Path) -> bool:
-    """Compare two files using SHA-1 digest of each file."""
-    return sha1_digest(file) == sha1_digest(other)
+def check_object_exists(obj):
+    try:
+        obj.last_modified
+        check = True
+    except ClientError:
+        check = False
+    return check
 
 
 @pytest.fixture(scope="module")
@@ -135,3 +127,28 @@ def test_download_overwrite_existing_file(dev_bucket, tmp_path: Path):
     file_path = tmp_path / "iris.csv"
     file_path.touch()
     file_object.download_file(file_path)
+
+
+def test_upload_file_to_bucket(dev_bucket, tmp_path: Path):
+    key = "test-file.txt"
+    file_path = tmp_path / key
+    with open(file_path, "wt") as f:
+        f.write("Hello World!\n")
+
+    # check that the object does not exist before uploading
+    obj = dev_bucket.Object(key)
+    assert not check_object_exists(obj)
+
+    # upload and check that the object exists
+    dev_bucket.upload_file(file_path, key)
+    assert check_object_exists(obj)
+
+    # delete the file object
+    obj.delete()
+    assert not check_object_exists(obj)
+
+
+def test_delete_file_non_existent_file_does_not_raise_error(dev_bucket):
+    key = "InvalidObjectKey"
+    obj = dev_bucket.Object(key)
+    obj.delete()
