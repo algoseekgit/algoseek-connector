@@ -80,32 +80,6 @@ class DataSource:
         groups = [DataGroupFetcher(self, x) for x in self.client.list_datagroups()]
         self.groups = DataGroupMapping(*groups)
 
-    def execute(
-        self,
-        sql: str,
-        parameters: Optional[dict] = None,
-        output: str = "python",
-        size: Optional[int] = None,
-        **kwargs,
-    ) -> Union[dict, DataFrame]:
-        """
-        Execute raw SQL queries.
-
-        Parameters
-        ----------
-        sql : str
-            Parametrized SQL statement.
-        parameters : dict or None
-            query parameters.
-        output : {"python", "dataframe"}
-            Output format for query results.
-        size : int or None
-            If a size is specified, split the results in chunks of the specified
-            size.
-
-        """
-        return self.client.execute(sql, parameters, output, **kwargs)
-
     def fetch_datagroup(self, name: str) -> "DataGroup":
         """Retrieve a data group."""
         return self.groups[name].fetch()
@@ -452,6 +426,32 @@ class DataSet:
 
         return select(*columns)
 
+    def execute(
+        self,
+        sql: str,
+        parameters: Optional[dict] = None,
+        output: str = "python",
+        size: Optional[int] = None,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Execute raw SQL queries.
+
+        Parameters
+        ----------
+        sql : str
+            Parametrized SQL statement.
+        parameters : dict or None
+            query parameters.
+        output : {"python", "dataframe"}
+            Output format for query results.
+        size : int or None
+            If a size is specified, split the results in chunks of the specified
+            size.
+
+        """
+        return self.source.client.execute(sql, parameters, output, **kwargs)
+
     def fetch(self, stmt: Select, **kwargs) -> dict[str, tuple]:
         """
         Fetch data using a select statement.
@@ -540,6 +540,48 @@ class DataSet:
     def compile(self, stmt: Select) -> CompiledQuery:
         """Compiles the statement into a dialect-specific SQL string."""
         return self.source.client.compile(stmt)
+
+    def store_to_s3(
+        self,
+        stmt: Select,
+        bucket: str,
+        key: str,
+        profile_name: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+    ):
+        """
+        Execute a query and store results into an S3 object.
+
+        Parameters
+        ----------
+        stmt : Select
+            A SQLAlchemy Select statement created using the select method.
+        bucket : str
+            The bucket name used to store the query.
+        key : str
+            The name of the object where the query is going to be stored.
+        profile_name : str or None, default=None
+        A profile name defined in `~/.aws/credentials`. If a profile name is
+        specified, the access key and secret key are retrieved from this file
+        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
+        ignored. If ``None``, this field is ignored.
+        aws_access_key_id : str or None, default=None
+            The AWS access key associated with an IAM user or role. If ``None``,
+            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
+            variable.
+        aws_secret_access_key : str or None, default=None
+            Thee secret key associated with the access key. If ``None``, the key
+            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+        kwargs
+            Key-value arguments passed to clickhouse-connect Client.query
+            method.
+
+        """
+        query = self.compile(stmt)
+        self.source.client.store_to_s3(
+            query, bucket, key, profile_name, aws_access_key_id, aws_secret_access_key
+        )
 
     def _repr_html_(self):  # pragma: no cover
         """Display the Dataset in jupyter notebooks using HTML."""
@@ -807,7 +849,7 @@ class ClientProtocol(Protocol):
         parameters: Optional[dict],
         output: str,
         **kwargs,
-    ):
+    ) -> Union[dict, DataFrame]:
         """
         Execute raw SQL queries.
 
@@ -877,9 +919,11 @@ class ClientProtocol(Protocol):
     def store_to_s3(
         self,
         query: CompiledQuery,
-        path: str,
-        aws_key_id: str,
-        aws_secret_access_key: str,
+        bucket: str,
+        key: str,
+        profile_name: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
     ):
         """
         Execute a query and store results into an S3 object.
@@ -887,14 +931,21 @@ class ClientProtocol(Protocol):
         Parameters
         ----------
         query : CompiledQuery
-        path : str
-            S3 object path to write the query results.
-        aws_key_id : str or None, default=None
+        bucket : str
+            The bucket name used to store the query.
+        key : str
+            The name of the object where the query is going to be stored.
+        profile_name : str or None, default=None
+            A profile name in the AWS `credentials` file.
+        aws_access_key_id : str or None, default=None
             AWS access key associated with an IAM account. If ``None``, the key
             is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
         aws_secret_access_key : str or None, default=None
             The secret key associated with the access key. If ``None``, the
             secret key is retrieved from the environment variable
             `AWS_SECRET_ACCESS_KEY`.
+        kwargs
+            Key-value arguments passed to clickhouse-connect Client.query
+            method.
 
         """
