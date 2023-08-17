@@ -2,7 +2,9 @@
 
 import datetime
 import enum
+import hashlib
 import re
+from pathlib import Path
 
 
 class ExpirationMonthCode(enum.Enum):
@@ -81,3 +83,21 @@ def remove_duplicates_preserve_order(input_list: list[str]) -> list[str]:
     """Create a copy of a list with duplicates removed maintaining the order."""
     seen = set()
     return [x for x in input_list if not (x in seen or seen.add(x))]
+
+
+def sha1_digest(path: Path) -> str:
+    """Compute the SHA-1 hexadecimal digest of a file."""
+    BUF_SIZE = 64 * 1024
+    sha1 = hashlib.sha1()
+    with open(path, "rb") as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            sha1.update(data)
+    return sha1.hexdigest()
+
+
+def is_file_equal(file: Path, other: Path) -> bool:
+    """Compare two files using SHA-1 digest of each file."""
+    return sha1_digest(file) == sha1_digest(other)
