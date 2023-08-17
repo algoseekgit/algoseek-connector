@@ -6,6 +6,8 @@ from botocore.exceptions import ClientError
 
 from algoseek_connector.s3 import downloader
 
+DEV_BUCKET = "algoseek-connector-dev"
+
 
 @pytest.fixture(scope="module")
 def dev_session():
@@ -45,16 +47,42 @@ def test_create_boto3_session_using_profile():
 
 
 def test_BucketWrapper(dev_session: boto3.Session):
-    s3 = downloader._get_s3_client(dev_session)
-    downloader.BucketWrapper(s3, "algoseek-connector-dev")
+    s3 = downloader.get_s3_client(dev_session)
+    downloader.BucketWrapper(s3, DEV_BUCKET)
     assert True
 
 
 def test_get_bucket_non_existent_bucket(dev_session: boto3.Session):
-    s3 = downloader._get_s3_client(dev_session)
+    s3 = downloader.get_s3_client(dev_session)
     with pytest.raises(ValueError):
         bucket_name = "InvalidBucketName"
         downloader.BucketWrapper(s3, bucket_name)
+
+
+def test_BucketWrapper_check_exists_object_false(dev_session: boto3.Session):
+    s3 = downloader.get_s3_client(dev_session)
+    bucket = downloader.BucketWrapper(s3, DEV_BUCKET)
+    key = "NonExistentObjectKey"
+    assert not bucket.check_object_exists(key)
+
+
+def test_BucketWrapper_upload_file(dev_session: boto3.Session, tmp_path: Path):
+    s3 = downloader.get_s3_client(dev_session)
+    bucket = downloader.BucketWrapper(s3, DEV_BUCKET)
+    key = "test-file.txt"
+
+    file_path = tmp_path / key
+    with open(file_path, "wt") as f:
+        f.write("Hello, World!\n")
+
+    # upload file and check that it exists.
+    assert not bucket.check_object_exists(key)
+    bucket.upload_file(key, file_path)
+    assert bucket.check_object_exists(key)
+
+    # delete file
+    bucket.delete_file(key)
+    assert not bucket.check_object_exists(key)
 
 
 def test_FileDownloader_download(dataset_session, tmp_path: Path):

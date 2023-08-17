@@ -23,7 +23,7 @@ class FileDownloader:
 
     def __init__(self, session: boto3.Session):
         self.session = session
-        self.s3 = _get_s3_client(session)
+        self.s3 = get_s3_client(session)
 
     def copy(self) -> "FileDownloader":
         """Create an independent copy of the current instance."""
@@ -76,6 +76,35 @@ class BucketWrapper:
             raise ValueError(msg)
         self._bucket = bucket
 
+    def check_object_exists(self, key: str) -> bool:
+        """
+        Check if an object exists.
+
+        Parameters
+        ----------
+        key : str
+            The object key.
+
+        Returns
+        -------
+        bool
+
+        """
+        try:
+            self._bucket.Object(key).last_modified
+            res = True
+        except ClientError:
+            res = False
+        return res
+
+    def delete_file(self, key: str):
+        """
+        Delete a file.
+
+        If the file does not exists, no exceptions are raised.
+        """
+        self._bucket.Object(key).delete()
+
     def download_file(self, key: str, download_path: Path):
         """
         Download a file from a bucket.
@@ -113,6 +142,34 @@ class BucketWrapper:
         """
         file_object = self._bucket.Object(key)
         return file_object.content_length
+
+    def get_object_url(self, key: str) -> str:
+        """
+        Get the URL of an object.
+
+        No validations/exist checks are performed on the key.
+
+        """
+        bucket_name = self._bucket.name
+        location_metadata = self._bucket.meta.client.get_bucket_location(
+            Bucket=bucket_name
+        )
+        location = location_metadata["LocationConstraint"]
+        return f"https://s3-{location}.amazonaws.com/{bucket_name}/{key}"
+
+    def upload_file(self, key: str, upload_path: Path):
+        """
+        Upload a file into the bucket.
+
+        Parameters
+        ----------
+        key : str
+            The key of the object uploaded.
+        upload_path : Path
+            The path of the uploaded file.
+
+        """
+        self._bucket.upload_file(upload_path, key)
 
 
 class S3KeyFilter:
@@ -634,7 +691,8 @@ def _normalize_date(date):
     return normalized
 
 
-def _get_s3_client(session: boto3.Session) -> BaseClient:
+def get_s3_client(session: boto3.Session) -> BaseClient:
+    """Create a S3 client."""
     return cast(BaseClient, session.resource("s3"))
 
 
