@@ -134,11 +134,13 @@ class S3DownloaderClient(base.ClientProtocol):
         path: str,
         aws_key_id: str,
         aws_secret_access_key: str,
-    ):
+    ):  # pragma: no cover
         """Download query to S3."""
         raise NotImplementedError
 
-    def execute(self, sql: str, parameters: dict | None, output: str, **kwargs):
+    def execute(
+        self, sql: str, parameters: Optional[dict], output: str, **kwargs
+    ):  # pragma: no cover
         """Execute raw SQL query."""
         raise NotImplementedError
 
