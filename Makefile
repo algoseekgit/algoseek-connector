@@ -26,4 +26,5 @@ learning-tests:
 # Run all tests and check code coverage.
 .PHONY: coverage
 coverage:
-	poetry run pytest --cov=src tests && coverage html
+	poetry run pytest --cov=src tests
+	poetry run coverage html
