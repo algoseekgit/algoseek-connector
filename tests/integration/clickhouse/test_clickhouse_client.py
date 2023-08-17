@@ -1,13 +1,18 @@
+from pathlib import Path
 from typing import cast
 
 import pytest
 from pandas import DataFrame
 
-from algoseek_connector import base
+from algoseek_connector import base, s3
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from algoseek_connector.utils import is_file_equal
+
+DEV_BUCKET = "algoseek-connector-dev"
+AWS_DEV_PROFILE = "algoseek-dev"
 
 
 @pytest.fixture(scope="module")
@@ -28,7 +33,7 @@ def dataset(data_source):
     return group.fetch_dataset(dataset_name)
 
 
-def test_execute_python_types(data_source: DataSource, dataset: DataSet):
+def test_execute_python_types(dataset: DataSet):
     limit = 10
     col_name = "TradeDate"
     stmt = dataset.select(dataset[col_name]).limit(limit)
@@ -37,11 +42,11 @@ def test_execute_python_types(data_source: DataSource, dataset: DataSet):
     group = dataset.group
     table_name = f"{group.description.name}.{dataset.description.name}"
     raw_sql = f"SELECT {col_name} FROM {table_name} LIMIT {limit}"
-    actual = data_source.execute(raw_sql)
+    actual = dataset.execute(raw_sql)
     assert actual == expected
 
 
-def test_execute_dataframe(data_source: DataSource, dataset: DataSet):
+def test_execute_dataframe(dataset: DataSet):
     limit = 10
     col_name = "TradeDate"
     stmt = dataset.select(dataset[col_name]).limit(limit)
@@ -50,8 +55,19 @@ def test_execute_dataframe(data_source: DataSource, dataset: DataSet):
     table_name = f"{group.description.name}.{dataset.description.name}"
 
     raw_sql = f"SELECT {col_name} FROM {table_name} LIMIT {limit}"
-    actual = cast(DataFrame, data_source.execute(raw_sql, output="dataframe"))
+    actual = cast(DataFrame, dataset.execute(raw_sql, output="dataframe"))
     assert expected.equals(actual)
+
+
+def test_execute_invalid_output(dataset: DataSet):
+    limit = 10
+    col_name = "TradeDate"
+    group = dataset.group
+    table_name = f"{group.description.name}.{dataset.description.name}"
+    raw_sql = f"SELECT {col_name} FROM {table_name} LIMIT {limit}"
+    with pytest.raises(ValueError):
+        output = "invalid-output-format"
+        dataset.execute(raw_sql, output=output)
 
 
 def test_ClickHouseClient_list_groups(data_source: DataSource):
@@ -129,3 +145,65 @@ def test_ClickHouseClient_fetch_iter_dataframe(dataset: DataSet):
     for df in dataset.fetch_iter_dataframe(stmt, chunk_size):
         assert df.shape[1] == n_cols
         assert df.shape[0] >= chunk_size
+
+
+def test_ClickHouseClient_store_to_s3_non_existing_bucket_raises_value_error(
+    dataset: DataSet,
+):
+    stmt = dataset.select().limit(5)
+    bucket = "InvalidAlgoseekConnectorBucket"
+    key = "query-data.csv"
+    profile = AWS_DEV_PROFILE
+    with pytest.raises(ValueError):
+        dataset.store_to_s3(stmt, bucket, key, profile_name=profile)
+
+
+def test_ClickHouseClient_store_to_s3(dataset: DataSet, tmp_path: Path):
+    stmt = dataset.select().limit(5)
+    bucket = DEV_BUCKET
+    key = "test-query-data.csv"
+    profile = AWS_DEV_PROFILE
+
+    dataset.store_to_s3(stmt, bucket, key, profile_name=profile)
+
+    # download uploaded data
+    boto3_session = s3.create_boto3_session(profile_name=profile)
+    s3_client = s3.downloader.get_s3_client(boto3_session)
+    bucket = s3.downloader.BucketWrapper(s3_client, bucket)
+    s3_file_download_path = tmp_path / "downloaded-from-s3.csv"
+    bucket.download_file(key, s3_file_download_path)
+
+    # execute a raw query and store data into a csv file
+    clickhouse_client = dataset.source.client._client
+    compiled_query = dataset.compile(stmt)
+    raw_stmt_str = compiled_query.sql + "\n FORMAT CSVWithNames"
+    csv_str = clickhouse_client.raw_query(raw_stmt_str, compiled_query.parameters)
+    expected_file_path = tmp_path / "csv-from-clickhouse.csv"
+    with open(expected_file_path, "wb") as f:
+        f.write(csv_str)
+
+    # compare csv files from s3 and converted to csv
+    assert is_file_equal(s3_file_download_path, expected_file_path)
+
+    # delete uploaded file
+    bucket.delete_file(key)
+
+
+def test_ClickHouseClient_store_to_s3_overwrite_raises_error(
+    dataset: DataSet, tmp_path: Path
+):
+    stmt = dataset.select().limit(5)
+    bucket = DEV_BUCKET
+    key = "test-query-data.csv"
+
+    # store file and try to overwrite
+    dataset.store_to_s3(stmt, bucket, key, profile_name=AWS_DEV_PROFILE)
+    with pytest.raises(ValueError):
+        dataset.store_to_s3(stmt, bucket, key, profile_name=AWS_DEV_PROFILE)
+
+    # delete stored file
+    profile = AWS_DEV_PROFILE
+    boto3_session = s3.create_boto3_session(profile_name=profile)
+    s3_client = s3.downloader.get_s3_client(boto3_session)
+    bucket = s3.downloader.BucketWrapper(s3_client, bucket)
+    bucket.delete_file(key)

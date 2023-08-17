@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Generator, Optional, Union
+from typing import Generator, Optional, Union, cast
 
 import clickhouse_connect
 import sqlparse
@@ -15,7 +15,7 @@ from pandas import DataFrame
 from sqlalchemy import Column
 from sqlalchemy.sql import Select
 
-from .. import base
+from .. import base, s3
 from ..base import date_like
 from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
@@ -282,8 +282,10 @@ class ClickHouseClient(base.ClientProtocol):
     def store_to_s3(
         self,
         query: base.CompiledQuery,
-        path: str,
-        aws_key_id: Optional[str] = None,
+        bucket: str,
+        key: str,
+        profile_name: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
         aws_secret_access_key: Optional[str] = None,
         **kwargs,
     ):
@@ -293,28 +295,50 @@ class ClickHouseClient(base.ClientProtocol):
         Parameters
         ----------
         query : CompiledQuery
-        path : str
-            S3 object path to write the query results.
-        aws_key_id : str or None, default=None
-            AWS access key associated with an IAM account. If ``None``, the key
-            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+        bucket : str
+            The bucket name used to store the query.
+        key : str
+            The name of the object where the query is going to be stored.
+        profile_name : str or None, default=None
+            A profile name defined in `~/.aws/credentials`. If a profile name is
+            specified, the access key and secret key are retrieved from this
+            file and the parameters `aws_access_key_id` and
+            `aws_secret_access_key` are ignored. If ``None``, this field is
+            ignored.
+        aws_access_key_id : str or None, default=None
+            The AWS access key associated with an IAM user or role. If ``None``,
+            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
+            variable.
         aws_secret_access_key : str or None, default=None
-            The secret key associated with the access key. If ``None``, the
-            secret key is retrieved from the environment variable
-            `AWS_SECRET_ACCESS_KEY`.
+            Thee secret key associated with the access key. If ``None``, the key
+            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
 
-        """
-        if aws_key_id is None:
-            aws_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        Raises
+        ------
+        ValueError
+            If a non-existing bucket name is passed or if trying to overwrite
+            an existing object.
 
-        if aws_secret_access_key is None:
-            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        """
+        # check access to bucket and if object does not exist
+        boto3_session = s3.create_boto3_session(
+            profile_name, aws_access_key_id, aws_secret_access_key
+        )
+        s3_client = s3.downloader.get_s3_client(boto3_session)
+        bucket_obj = s3.downloader.BucketWrapper(s3_client, bucket)
+        if bucket_obj.check_object_exists(key):
+            msg = f"Object with key={key} already exists in bucket {bucket}."
+            raise ValueError(msg)
+        url = bucket_obj.get_object_url(key)
+        credentials = boto3_session.get_credentials()
+        aws_key_id = cast(str, credentials.access_key)
+        aws_secret_access_key = cast(str, credentials.secret_key)
 
         sql = _create_insert_to_s3_query(
-            query.sql, path, aws_key_id, aws_secret_access_key
+            query.sql, url, aws_key_id, aws_secret_access_key
         )
         self._client.query(sql, query.parameters, **kwargs)
 
@@ -454,7 +478,7 @@ def create_clickhouse_client(
 
 
 def _create_insert_to_s3_query(
-    sql: str, path: str, aws_key_id: str, aws_secret_access_key: str
+    sql: str, url: str, aws_key_id: str, aws_secret_access_key: str
 ) -> str:
-    s3_call = f"s3('{path}', '{aws_key_id}', '{aws_secret_access_key}', CSVWithNames)"
+    s3_call = f"s3('{url}', '{aws_key_id}', '{aws_secret_access_key}', CSVWithNames)"
     return f"INSERT INTO FUNCTION {s3_call}\n {sql}"
