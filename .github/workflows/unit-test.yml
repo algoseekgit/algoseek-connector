@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
     branches:
       - add-github-workflow
-  pull_request:
-  push:
-    branches: [master]
 
 jobs:
   test:
