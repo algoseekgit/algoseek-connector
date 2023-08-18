@@ -34,7 +34,6 @@ class ResourceManager:
 
     def __init__(self):
         token = AuthToken()
-        # TODO: add functionality to refresh token.
         self._api = BaseAPIConsumer(token)
 
     def create_data_source(self, name: str, **kwargs) -> base.DataSource:
