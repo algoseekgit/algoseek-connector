@@ -37,38 +37,12 @@ make dev-install
 
 If `make` is not available, run:
 
-    poetry install --with dev && pre-commit install
+    poetry install --with dev,docs
+    pre-commit install
 
 ## Testing
 
-Testing requires access to Algoseek metadata API. Set user/pass using the
-environment variables `ALGOSEEK_API_USERNAME` and `ALGOSEEK_API_PASSWORD`.
-
-Testing requires access to the ClickHouse Database. Set host address, port,
-user and password using the environment variables `ALGOSEEK_DATABASE_HOST`,
-`ALGOSEEK_DATABASE_PORT`, `ALGOSEEK_DATABASE_USER` and
-`ALGOSEEK_DATABASE_PASSWORD`.
-
-Unit tests:
-
-```sh
-make tests
-```
-
-Integration tests:
-
-Currently, integration tests require access to the ClickHouse database. See
-the instructions above to connect to the DB.
-
-```sh
-poetry run pytest tests
-```
-
-Code coverage:
-
-```sh
-make coverage
-```
+Refer to the README inside the tests directory.
 
 # Building the docs
 

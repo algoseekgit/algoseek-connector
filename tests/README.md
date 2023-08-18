@@ -3,6 +3,24 @@
 The library tests are grouped in three different types: integration, learning and
 unit.
 
+## Tests setup
+
+Testing requires access to Algoseek metadata API, ArdaDB and S3 buckets.
+
+
+- **Metadata API**: Set user/pass using the environment variables
+`ALGOSEEK_API_USERNAME` and `ALGOSEEK_API_PASSWORD`.
+
+- **ArdaDB**: Set host address, port, user and password using the environment
+variables `ALGOSEEK_ARDADB_HOST`, `ALGOSEEK_ARDADB_USER` and `ALGOSEEK_ARDADB_PASSWORD`.
+
+- **S3**: Set access to dataset buckets setting the variables `ALGOSEEK_AWS_PROFILE`
+to get the credentials from ~/.aws/credentials or set user/password using the
+`ALGOSEEK_AWS_ACCESS_KEY_ID` and `ALGOSEEK_AWS_SECRET_ACCESS_KEY` environment
+variables. Also, For writing to S3 buckets, access to the development buckets
+needs to be set using the environment variables `ALGOSEEK_DEV_AWS_ACCESS_KEY_ID`
+and `ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY`
+
 ## Unit tests
 
 Check basic library component functionality. They do not connect to external
@@ -33,4 +51,11 @@ Learning tests are executed with the following command:
 
     make learning-tests
 
+
+## Check code coverage
+
+Code coverage is tested using the pytest-coverage plugin. Code coverage is
+executed with the following command:
+
+    make coverage
 
