@@ -562,17 +562,14 @@ class DataSet:
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-        A profile name defined in `~/.aws/credentials`. If a profile name is
-        specified, the access key and secret key are retrieved from this file
-        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
-        ignored. If ``None``, this field is ignored.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            The AWS access key associated with an IAM user or role. If ``None``,
-            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
-            variable.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            Thee secret key associated with the access key. If ``None``, the key
-            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
@@ -970,14 +967,14 @@ class ClientProtocol(Protocol):
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-            A profile name in the AWS `credentials` file.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            AWS access key associated with an IAM account. If ``None``, the key
-            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            The secret key associated with the access key. If ``None``, the
-            secret key is retrieved from the environment variable
-            `AWS_SECRET_ACCESS_KEY`.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
