@@ -1,7 +1,8 @@
 # algoseek-connector testing
 
 The library tests are grouped in three different types: integration, learning and
-unit.
+unit. Integration and learning tests need access external resources to run.
+See the next section on how to setup access to resources to execute tests.
 
 ## Tests setup
 
@@ -23,9 +24,9 @@ and `ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY`
 
 ## Unit tests
 
-Check basic library component functionality. They do not connect to external
-data sources such as DB or REST APIs. If necessary, external connections are
-mocked.
+Check basic library component functionality. This type of tests do not connect to
+external data sources such as DB or REST APIs. If necessary, external
+connections are mocked.
 
 Unit test are executed with the following command:
 
