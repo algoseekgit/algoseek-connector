@@ -95,6 +95,8 @@ class BaseAPIConsumer:
 
         Returns a dictionary that maps datasets text_id to dataset metadata.
         """
+        # _fetch methods retrieves all metadata from the API so future calls
+        # are simply a dictionary lookup.
         endpoint = "public/dataset/"
         response = self.get(endpoint)
         return {x["text_id"]: x for x in response.json()}
@@ -109,6 +111,16 @@ class BaseAPIConsumer:
         endpoint = "public/data_group/"
         response = self.get(endpoint)
         return {x["text_id"]: x for x in response.json()}
+
+    @lru_cache
+    def _fetch_dataset_platform_metadata(self) -> dict[str, dict]:
+        """
+        Fetch platform metadata for all datasets.
+
+        Returns a dictionary that maps datasets text_id to dataset metadata.
+        """
+        endpoint = "public/dataset/platform/frontend/"
+        return {x["text_id"]: x for x in self.get(endpoint).json()}
 
     @lru_cache
     def _data_group_id_to_text_id(self) -> dict[int, str]:
@@ -244,6 +256,47 @@ class BaseAPIConsumer:
             raise ValueError(msg)
         endpoint = f"public/documentation/{documentation_id}/"
         return self.get(endpoint).json()
+
+    @lru_cache
+    def get_time_granularity_metadata(self, id_: int) -> dict[str, Any]:
+        """
+        Retrieve time granularity metadata.
+
+        Parameters
+        ----------
+        id_ : int
+            The granularity id.
+
+        Raises
+        ------
+        HTTPError
+            If a non-existent id is passed.
+
+        """
+        endpoint = f"public/time_granularity/{id_}/"
+        return self.get(endpoint).json()
+
+    def get_platform_dataset_metadata(self, text_id: str) -> dict[str, Any]:
+        """
+        Retrieve dataset metadata used in the platform.
+
+        Parameters
+        ----------
+        text_id : str
+            The text id of a dataset.
+
+        Raises
+        ------
+        ValueError
+            If metadata is not available for the specified text id.
+
+        """
+        platform_metadata = self._fetch_dataset_platform_metadata()
+        try:
+            return platform_metadata[text_id]
+        except KeyError:
+            msg = f"Platform metadata not available for dataset {text_id}."
+            raise ValueError(msg)
 
 
 class AuthToken:

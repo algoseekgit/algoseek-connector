@@ -652,9 +652,16 @@ class DataSetDescription:
     group : str
         The datagroup name.
     description : str
-        The dataset description
+        The dataset description.
     columns : list[ColumnMetadata] or None, default=None
         The dataset columns.
+    display_name : str or None, default=None
+        The display name of the dataset.
+    granularity : str or None, default=None
+        The time granularity of the dataset.
+    pdf_url : str or None, default=None
+        URL to PDF documentation.
+    sample_data_url : str or None, default=None
 
     """
 
@@ -665,16 +672,33 @@ class DataSetDescription:
         columns: list[ColumnDescription],
         display_name: Optional[str] = None,
         description: Optional[str] = None,
+        granularity: Optional[str] = None,
+        pdf_url: Optional[str] = None,
+        sample_data_url: Optional[str] = None,
     ) -> None:
         self.name = name
         self.group = group
         self.columns = columns
+
         if display_name is None:
             display_name = name
         self.display_name = display_name
+
         if description is None:
             description = ""
         self.description = description
+
+        if granularity is None:
+            granularity = ""
+        self.granularity = granularity
+
+        if pdf_url is None:
+            pdf_url = ""
+        self.pdf_url = pdf_url
+
+        if sample_data_url:
+            sample_data_url = ""
+        self.sample_data_url = sample_data_url
 
     def get_table_name(self) -> str:
         """Get the table name in the format `group.name`."""
@@ -691,9 +715,19 @@ class DataSetDescription:
         html_rows = "\n".join(rows)
         table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
         table_html = f'<table style="width:66%">\n{table_header}\n{html_rows}\n</table>'
+        info_html = f"<strong>Time granularity:</strong> {self.granularity}"
+
+        if self.pdf_url:
+            info_html += f' | <a href="{self.pdf_url}">PDF documentation</a>'
+
+        if self.sample_data_url:
+            info_html += f' | <a href="{self.sample_data_url}">Sample data</a>'
 
         html = (
-            f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>" f"{table_html}"
+            f"<h2>{self.display_name}</h2>\n"
+            f"<p>{self.description}</p>\n"
+            f"<p>{info_html}</html>"
+            f"{table_html}"
         )
         return html
 

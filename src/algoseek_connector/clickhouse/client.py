@@ -445,15 +445,44 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         """
         columns = self.get_columns_description(dataset)
         try:
+            # datasets not available on the API will raise KeyError.
             dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
             dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
             display_name = dataset_metadata["display_name"]
             description = dataset_metadata["long_description"]
+
+            # search platform metadata if available
+            try:
+                platform_metadata = self._api.get_platform_dataset_metadata(
+                    dataset_text_id
+                )
+                pdf_url = platform_metadata["documentation_link"]
+                sample_data_url = platform_metadata["sample_data_url"]
+            except ValueError:
+                pdf_url = None
+                sample_data_url = None
+
+            granularity_id = dataset_metadata["time_granularity_id"]
+            granularity_metadata = self._api.get_time_granularity_metadata(
+                granularity_id
+            )
+            granularity = granularity_metadata["display_name"]
         except KeyError:
-            display_name = dataset
-            description = ""
+            display_name = None
+            description = None
+            pdf_url = None
+            sample_data_url = None
+            granularity = None
+
         return base.DataSetDescription(
-            dataset, group, columns, display_name, description
+            dataset,
+            group,
+            columns,
+            display_name,
+            description,
+            granularity,
+            pdf_url,
+            sample_data_url,
         )
 
 
