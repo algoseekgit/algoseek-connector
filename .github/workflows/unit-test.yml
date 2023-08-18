@@ -1,9 +1,7 @@
 name: "unit-test: pytest"
 
 on:
-  workflow_dispatch:
-    branches:
-      - add-github-workflow
+  push:
 
 jobs:
   test:
