@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 from requests.exceptions import HTTPError
 
@@ -32,9 +34,50 @@ def test_AuthToken_auth_error():
 
 
 @pytest.fixture(scope="module")
-def api_consumer():
+def auth_token():
+    return AuthToken()
+
+
+def test_AuthToken_expiration_date():
+    now = datetime.utcnow()
     token = AuthToken()
-    return BaseAPIConsumer(token)
+    assert token.expiry_date > now
+
+
+def test_AuthToken_refresh():
+    token = AuthToken()
+    # set a dummy expiration date
+    token._expiry_date = datetime.utcnow()
+    now = datetime.utcnow()
+    token.refresh()
+    assert now < token.expiry_date
+
+
+def test_AuthToken_refresh_raises_value_error_if_user_env_variable_is_not_set(
+    monkeypatch,
+):
+    token = AuthToken()
+    # set a dummy expiration date
+    token._expiry_date = datetime.utcnow()
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME)
+    with pytest.raises(ValueError):
+        token.refresh()
+
+
+def test_AuthToken_refresh_raises_value_error_if_password_env_variable_is_not_set(
+    monkeypatch,
+):
+    token = AuthToken()
+    # set a dummy expiration date
+    token._expiry_date = datetime.utcnow()
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD)
+    with pytest.raises(ValueError):
+        token.refresh()
+
+
+@pytest.fixture(scope="module")
+def api_consumer(auth_token):
+    return BaseAPIConsumer(auth_token)
 
 
 def test_invalid_endpoint_raises_http_error(api_consumer: BaseAPIConsumer):

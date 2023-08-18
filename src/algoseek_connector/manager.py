@@ -7,12 +7,16 @@ Provides:
     Creates available data sources.
 
 """
+import os
 
 from . import base, clickhouse, s3
 from .metadata_api import AuthToken, BaseAPIConsumer
 
 ARDADB = "ardadb"
 S3 = "s3"
+ALGOSEEK_AWS_PROFILE = "ALGOSEEK_AWS_PROFILE"
+ALGOSEEK_AWS_ACCESS_KEY_ID = "ALGOSEEK_AWS_ACCESS_KEY_ID"
+ALGOSEEK_AWS_SECRET_ACCESS_KEY = "ALGOSEEK_AWS_SECRET_ACCESS_KEY"
 
 
 class ResourceManager:
@@ -30,7 +34,6 @@ class ResourceManager:
 
     def __init__(self):
         token = AuthToken()
-        # TODO: add functionality to refresh token.
         self._api = BaseAPIConsumer(token)
 
     def create_data_source(self, name: str, **kwargs) -> base.DataSource:
@@ -65,7 +68,18 @@ class ResourceManager:
             ch_client = clickhouse.create_clickhouse_client(**kwargs)
             client = clickhouse.ClickHouseClient(ch_client)
         elif name == S3:
-            session = s3.create_boto3_session(**kwargs)
+            profile_name = kwargs.get("profile_name", os.getenv(ALGOSEEK_AWS_PROFILE))
+            aws_access_key_id = kwargs.get(
+                "aws_access_key_id", os.getenv(ALGOSEEK_AWS_ACCESS_KEY_ID)
+            )
+            aws_secret_access_key = kwargs.get(
+                "aws_secret_access_key", os.getenv(ALGOSEEK_AWS_SECRET_ACCESS_KEY)
+            )
+            session = s3.create_boto3_session(
+                profile_name=profile_name,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+            )
             client = s3.S3DownloaderClient(session, self._api)
         else:
             raise ValueError

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import cast
 
@@ -12,7 +13,9 @@ from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 from algoseek_connector.utils import is_file_equal
 
 DEV_BUCKET = "algoseek-connector-dev"
-AWS_DEV_PROFILE = "algoseek-dev"
+ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
+# TODO: fix dev credentials loading.
 
 
 @pytest.fixture(scope="module")
@@ -153,21 +156,34 @@ def test_ClickHouseClient_store_to_s3_non_existing_bucket_raises_value_error(
     stmt = dataset.select().limit(5)
     bucket = "InvalidAlgoseekConnectorBucket"
     key = "query-data.csv"
-    profile = AWS_DEV_PROFILE
     with pytest.raises(ValueError):
-        dataset.store_to_s3(stmt, bucket, key, profile_name=profile)
+        dataset.store_to_s3(
+            stmt,
+            bucket,
+            key,
+            aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+        )
 
 
 def test_ClickHouseClient_store_to_s3(dataset: DataSet, tmp_path: Path):
     stmt = dataset.select().limit(5)
     bucket = DEV_BUCKET
     key = "test-query-data.csv"
-    profile = AWS_DEV_PROFILE
 
-    dataset.store_to_s3(stmt, bucket, key, profile_name=profile)
+    dataset.store_to_s3(
+        stmt,
+        bucket,
+        key,
+        aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+    )
 
     # download uploaded data
-    boto3_session = s3.create_boto3_session(profile_name=profile)
+    boto3_session = s3.create_boto3_session(
+        aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+    )
     s3_client = s3.downloader.get_s3_client(boto3_session)
     bucket = s3.downloader.BucketWrapper(s3_client, bucket)
     s3_file_download_path = tmp_path / "downloaded-from-s3.csv"
@@ -197,13 +213,27 @@ def test_ClickHouseClient_store_to_s3_overwrite_raises_error(
     key = "test-query-data.csv"
 
     # store file and try to overwrite
-    dataset.store_to_s3(stmt, bucket, key, profile_name=AWS_DEV_PROFILE)
+    dataset.store_to_s3(
+        stmt,
+        bucket,
+        key,
+        aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+    )
     with pytest.raises(ValueError):
-        dataset.store_to_s3(stmt, bucket, key, profile_name=AWS_DEV_PROFILE)
+        dataset.store_to_s3(
+            stmt,
+            bucket,
+            key,
+            aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+        )
 
     # delete stored file
-    profile = AWS_DEV_PROFILE
-    boto3_session = s3.create_boto3_session(profile_name=profile)
+    boto3_session = s3.create_boto3_session(
+        aws_access_key_id=ALGOSEEK_DEV_AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY,
+    )
     s3_client = s3.downloader.get_s3_client(boto3_session)
     bucket = s3.downloader.BucketWrapper(s3_client, bucket)
     bucket.delete_file(key)

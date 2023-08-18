@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -26,7 +27,8 @@ def bucket_metadata(api):
 
 @pytest.fixture(scope="module")
 def boto3_session():
-    return create_boto3_session(profile_name="algoseek-datasets")
+    profile_str = os.getenv("ALGOSEEK_AWS_PROFILE")
+    return create_boto3_session(profile_name=profile_str)
 
 
 @pytest.fixture(scope="module")

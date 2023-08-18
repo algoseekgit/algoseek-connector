@@ -562,17 +562,14 @@ class DataSet:
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-        A profile name defined in `~/.aws/credentials`. If a profile name is
-        specified, the access key and secret key are retrieved from this file
-        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
-        ignored. If ``None``, this field is ignored.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            The AWS access key associated with an IAM user or role. If ``None``,
-            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
-            variable.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            Thee secret key associated with the access key. If ``None``, the key
-            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
@@ -652,9 +649,16 @@ class DataSetDescription:
     group : str
         The datagroup name.
     description : str
-        The dataset description
+        The dataset description.
     columns : list[ColumnMetadata] or None, default=None
         The dataset columns.
+    display_name : str or None, default=None
+        The display name of the dataset.
+    granularity : str or None, default=None
+        The time granularity of the dataset.
+    pdf_url : str or None, default=None
+        URL to PDF documentation.
+    sample_data_url : str or None, default=None
 
     """
 
@@ -665,16 +669,33 @@ class DataSetDescription:
         columns: list[ColumnDescription],
         display_name: Optional[str] = None,
         description: Optional[str] = None,
+        granularity: Optional[str] = None,
+        pdf_url: Optional[str] = None,
+        sample_data_url: Optional[str] = None,
     ) -> None:
         self.name = name
         self.group = group
         self.columns = columns
+
         if display_name is None:
             display_name = name
         self.display_name = display_name
+
         if description is None:
             description = ""
         self.description = description
+
+        if granularity is None:
+            granularity = ""
+        self.granularity = granularity
+
+        if pdf_url is None:
+            pdf_url = ""
+        self.pdf_url = pdf_url
+
+        if sample_data_url:
+            sample_data_url = ""
+        self.sample_data_url = sample_data_url
 
     def get_table_name(self) -> str:
         """Get the table name in the format `group.name`."""
@@ -691,9 +712,19 @@ class DataSetDescription:
         html_rows = "\n".join(rows)
         table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
         table_html = f'<table style="width:66%">\n{table_header}\n{html_rows}\n</table>'
+        info_html = f"<strong>Time granularity:</strong> {self.granularity}"
+
+        if self.pdf_url:
+            info_html += f' | <a href="{self.pdf_url}">PDF documentation</a>'
+
+        if self.sample_data_url:
+            info_html += f' | <a href="{self.sample_data_url}">Sample data</a>'
 
         html = (
-            f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>" f"{table_html}"
+            f"<h2>{self.display_name}</h2>\n"
+            f"<p>{self.description}</p>\n"
+            f"<p>{info_html}</html>"
+            f"{table_html}"
         )
         return html
 
@@ -936,14 +967,14 @@ class ClientProtocol(Protocol):
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-            A profile name in the AWS `credentials` file.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            AWS access key associated with an IAM account. If ``None``, the key
-            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            The secret key associated with the access key. If ``None``, the
-            secret key is retrieved from the environment variable
-            `AWS_SECRET_ACCESS_KEY`.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.

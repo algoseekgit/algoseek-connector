@@ -11,7 +11,7 @@ BaseAPIConsumer
     Provides functionality to get dataset and datagroup metadata.
 
 """
-
+from datetime import datetime
 from functools import lru_cache
 from os import getenv
 from typing import Any, Optional, Union
@@ -77,6 +77,7 @@ class BaseAPIConsumer:
             If a non-existent dataset name is passed.
 
         """
+        self._token.refresh()
         url = self.base_url + endpoint
         kwargs["headers"] = self._token.create_header()
         kwargs.setdefault("timeout", 5)
@@ -95,6 +96,8 @@ class BaseAPIConsumer:
 
         Returns a dictionary that maps datasets text_id to dataset metadata.
         """
+        # _fetch methods retrieves all metadata from the API so future calls
+        # are simply a dictionary lookup.
         endpoint = "public/dataset/"
         response = self.get(endpoint)
         return {x["text_id"]: x for x in response.json()}
@@ -109,6 +112,16 @@ class BaseAPIConsumer:
         endpoint = "public/data_group/"
         response = self.get(endpoint)
         return {x["text_id"]: x for x in response.json()}
+
+    @lru_cache
+    def _fetch_dataset_platform_metadata(self) -> dict[str, dict]:
+        """
+        Fetch platform metadata for all datasets.
+
+        Returns a dictionary that maps datasets text_id to dataset metadata.
+        """
+        endpoint = "public/dataset/platform/frontend/"
+        return {x["text_id"]: x for x in self.get(endpoint).json()}
 
     @lru_cache
     def _data_group_id_to_text_id(self) -> dict[int, str]:
@@ -245,6 +258,47 @@ class BaseAPIConsumer:
         endpoint = f"public/documentation/{documentation_id}/"
         return self.get(endpoint).json()
 
+    @lru_cache
+    def get_time_granularity_metadata(self, id_: int) -> dict[str, Any]:
+        """
+        Retrieve time granularity metadata.
+
+        Parameters
+        ----------
+        id_ : int
+            The granularity id.
+
+        Raises
+        ------
+        HTTPError
+            If a non-existent id is passed.
+
+        """
+        endpoint = f"public/time_granularity/{id_}/"
+        return self.get(endpoint).json()
+
+    def get_platform_dataset_metadata(self, text_id: str) -> dict[str, Any]:
+        """
+        Retrieve dataset metadata used in the platform.
+
+        Parameters
+        ----------
+        text_id : str
+            The text id of a dataset.
+
+        Raises
+        ------
+        ValueError
+            If metadata is not available for the specified text id.
+
+        """
+        platform_metadata = self._fetch_dataset_platform_metadata()
+        try:
+            return platform_metadata[text_id]
+        except KeyError:
+            msg = f"Platform metadata not available for dataset {text_id}."
+            raise ValueError(msg)
+
 
 class AuthToken:
     """
@@ -252,9 +306,14 @@ class AuthToken:
 
     Parameters
     ----------
-    login_endpoint : str
+    login_url : str or None
+        The login endpoint. If ``None``, the default login URL is used.
     user : str
+        The user name to login into the API. If ``None``, the user name is
+        retrieved from the environment variable `ALGOSEEK_API_USERNAME`.
     password : str
+        The User password. If ``None``, the password is retrieved from the
+        environment variable `ALGOSEEK_API_PASSWORD`.
     **kwargs : dict
         Optional parameters passed to :py:func:`requests.post`
 
@@ -270,6 +329,8 @@ class AuthToken:
         if login_url is None:
             login_url = BASE_URL + "login/access_token/"
 
+        self._login_url = login_url
+
         if user is None:
             user = getenv(ALGOSEEK_API_USERNAME)
 
@@ -279,23 +340,19 @@ class AuthToken:
         if user is None or password is None:
             msg = "User and password must be provided as parameters or as environment variables."
             raise ValueError(msg)
-        credentials = {"name": user, "secret": password}
-        response = requests.post(login_url, json=credentials, **kwargs)
 
-        if response.status_code == requests.codes.OK:
-            json_response = response.json()
-            self._token = json_response["token"]
-            self._expiry_date = json_response["expiry_date"]
-        else:
-            msg = "Login failed with code {response.status_code}"
-            raise requests.HTTPError(msg)
+        login_metadata = _get_login_metadata(user, password, login_url)
+        self._token = login_metadata["token"]
+        exp_date_str = login_metadata["expiry_date"]
+        self._expiry_date = datetime.fromisoformat(exp_date_str)
 
     @property
     def token(self) -> str:
         """Get the auth token string."""
         return self._token
 
-    def expiry_date(self) -> str:
+    @property
+    def expiry_date(self) -> datetime:
         """Get the token expiry date."""
         return self._expiry_date
 
@@ -305,3 +362,37 @@ class AuthToken:
             "Authorization": f"Bearer {self.token}",
             "accept": "application/json",
         }
+
+    def refresh(self):
+        """Try to obtain a new token using credentials stored on env variables."""
+        if self.expiry_date < datetime.utcnow():
+            user = getenv(ALGOSEEK_API_USERNAME)
+            if user is None:
+                msg = (
+                    "Automatic metadata API token refresh failed. User name must "
+                    "be set in the environment variable ALGOSEEK_API_USER."
+                )
+                raise ValueError(msg)
+            password = getenv(ALGOSEEK_API_PASSWORD)
+
+            if password is None:
+                msg = (
+                    "Automatic metadata API token refresh failed. Password must "
+                    "be set in the environment variable ALGOSEEK_API_PASSWORD."
+                )
+                raise ValueError(msg)
+            login_metadata = _get_login_metadata(user, password, self._login_url)
+            self._token = login_metadata["token"]
+            exp_date_str = login_metadata["expiry_date"]
+            self._expiry_date = datetime.fromisoformat(exp_date_str)
+
+
+def _get_login_metadata(user: str, password: str, url: str, **kwargs) -> dict[str, str]:
+    credentials = {"name": user, "secret": password}
+    response = requests.post(url, json=credentials, **kwargs)
+
+    if response.status_code == requests.codes.OK:
+        return response.json()
+    else:
+        msg = "Login failed with code {response.status_code}"
+        raise requests.HTTPError(msg)
