@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import boto3
@@ -11,12 +12,17 @@ DEV_BUCKET = "algoseek-connector-dev"
 
 @pytest.fixture(scope="module")
 def dev_session():
-    return downloader.create_boto3_session(profile_name="algoseek-dev")
+    user = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    password = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
+    return downloader.create_boto3_session(
+        aws_access_key_id=user, aws_secret_access_key=password
+    )
 
 
 @pytest.fixture(scope="module")
 def dataset_session():
-    return downloader.create_boto3_session(profile_name="algoseek-datasets")
+    profile = os.getenv("ALGOSEEK_AWS_PROFILE")
+    return downloader.create_boto3_session(profile_name=profile)
 
 
 def test_create_boto3_session_invalid_aws_access_key_id():
@@ -27,7 +33,7 @@ def test_create_boto3_session_invalid_aws_access_key_id():
 
 def test_create_boto3_session_invalid_aws_secret_access_key():
     aws_secret_access_key = "InvalidSecretKey"
-    with pytest.raises(ClientError):
+    with pytest.raises(TypeError):
         downloader.create_boto3_session(aws_secret_access_key=aws_secret_access_key)
 
 

@@ -19,8 +19,8 @@ def check_object_exists(obj):
 
 @pytest.fixture(scope="module")
 def session():
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
     return boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
 
 
@@ -37,7 +37,7 @@ def dev_bucket(s3_resource):
 def test_create_session_with_invalid_user():
     # passing invalid user/key is possible.
     access_key = "InvalidAccessKeyID"
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
     session = boto3.Session(
         aws_access_key_id=access_key, aws_secret_access_key=secret_key
     )
@@ -50,7 +50,7 @@ def test_create_session_with_invalid_user():
 
 
 def test_create_session_with_invalid_secret_access_key():
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
     secret_key = "InvalidSecretKey"
     session = boto3.Session(
         aws_access_key_id=access_key, aws_secret_access_key=secret_key

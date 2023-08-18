@@ -18,8 +18,7 @@ def ardadb(manager):
 
 @pytest.fixture(scope="module")
 def s3(manager: ac.ResourceManager):
-    config = {"profile_name": "algoseek-datasets"}
-    return manager.create_data_source(ac.manager.S3, **config)
+    return manager.create_data_source(ac.manager.S3)
 
 
 def test_list_data_sources(manager: ac.ResourceManager):

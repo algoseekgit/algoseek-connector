@@ -20,6 +20,11 @@ from ..base import date_like
 from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
 
+ALGOSEEK_ARDADB_HOST = "ALGOSEEK_ARDADB_HOST"
+ALGOSEEK_ARDADB_PORT = "ALGOSEEK_ARDADB_PORT"
+ALGOSEEK_ARDADB_USERNAME = "ALGOSEEK_ARDADB_USERNAME"
+ALGOSEEK_ARDADB_PASSWORD = "ALGOSEEK_ARDADB_PASSWORD"
+
 
 class ClickHouseClient(base.ClientProtocol):
     """
@@ -29,16 +34,16 @@ class ClickHouseClient(base.ClientProtocol):
     ----------
     host : str or None, default=None
         Host address running a ClickHouse server. If ``None``, the address is
-        set through the environment variable `ALGOSEEK_DATABASE_HOST`.
+        set through the environment variable `ALGOSEEK_ARDADB_HOST`.
     port : int or None, default=None
         port ClickHouse server is bound to. If ``None``, the port is set
-        through the environment variable `ALGOSEEK_DATABASE_PORT`.
+        through the environment variable `ALGOSEEK_ARDADB_PORT`.
     user : str or None, default=None
         Database user. If ``None``, the user is set through the environment
-        variable `ALGOSEEK_DATABASE_USER`.
+        variable `ALGOSEEK_ARDADB_USERNAME`.
     password : str or None, default=None
         User's password. If ``None``, the password is set through the
-        environment variable `ALGOSEEK_DATABASE_PASSWORD`.
+        environment variable `ALGOSEEK_ARDADB_PASSWORD`.
     **kwargs : dict
         Optional arguments passed to clickhouse_connect.get_client.
 
@@ -300,18 +305,14 @@ class ClickHouseClient(base.ClientProtocol):
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-            A profile name defined in `~/.aws/credentials`. If a profile name is
-            specified, the access key and secret key are retrieved from this
-            file and the parameters `aws_access_key_id` and
-            `aws_secret_access_key` are ignored. If ``None``, this field is
-            ignored.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            The AWS access key associated with an IAM user or role. If ``None``,
-            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
-            variable.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            Thee secret key associated with the access key. If ``None``, the key
-            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
@@ -495,12 +496,12 @@ def create_clickhouse_client(
 ) -> Client:
     """Create a ClickHouse DB client."""
     default_port = 8123
-    host = host or os.getenv("ALGOSEEK_DATABASE_HOST")
+    host = host or os.getenv(ALGOSEEK_ARDADB_HOST)
     if port is None:
-        port_env = os.getenv("ALGOSEEK_DATABASE_PORT")
+        port_env = os.getenv(ALGOSEEK_ARDADB_PORT)
         port = default_port if port_env is None else int(port_env)
-    user = user or os.getenv("ALGOSEEK_DATABASE_USER")
-    password = password or os.getenv("ALGOSEEK_DATABASE_PASSWORD")
+    user = user or os.getenv(ALGOSEEK_ARDADB_USERNAME)
+    password = password or os.getenv(ALGOSEEK_ARDADB_PASSWORD)
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )

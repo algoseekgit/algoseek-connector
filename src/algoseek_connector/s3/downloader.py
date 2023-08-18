@@ -2,7 +2,6 @@
 
 import datetime
 import enum
-import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from itertools import product
@@ -417,16 +416,14 @@ def create_boto3_session(
     Parameters
     ----------
     profile_name : str or None, default=None
-        A profile name defined in `~/.aws/credentials`. If a profile name is
-        specified, the access key and secret key are retrieved from this file
-        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
-        ignored. If ``None``, this field is ignored.
+        If a profile name is specified, the access key and secret key are
+        retrieved from the file `~/.aws/credentials`, and the parameters
+        `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+        ``None``, this field is ignored.
     aws_access_key_id : str or None, default=None
-        The AWS access key associated with an IAM user or role. If ``None``,
-        the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+        The AWS access key associated with an IAM user or role.
     aws_secret_access_key : str or None, default=None
-        Thee secret key associated with the access key. If ``None``, the key is
-        retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+        Thee secret key associated with the access key.
 
     Returns
     -------
@@ -434,16 +431,13 @@ def create_boto3_session(
 
     Raises
     ------
+    TypeError
+        If a secret key is provided but not user is provided.
     botocore.exception.ClientError
         If the credentials are not valid.
 
     """
     if profile_name is None:
-        if aws_access_key_id is None:
-            aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-        if aws_secret_access_key is None:
-            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
         session = boto3.Session(aws_access_key_id, aws_secret_access_key)
     else:
         session = boto3.Session(profile_name=profile_name)
