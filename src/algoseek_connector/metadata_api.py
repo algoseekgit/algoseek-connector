@@ -189,7 +189,7 @@ class BaseAPIConsumer:
 
         See Also
         --------
-        :py:func:`~algoseek_connector.BaseAPIConsumer.list_datagroups`
+        :py:func:`~algoseek_connector.metadata_api.BaseAPIConsumer.list_datagroups`
             Provides a list text ids from available datagroups.
 
         """
@@ -234,7 +234,7 @@ class BaseAPIConsumer:
 
         See Also
         --------
-        :py:func:`~algoseek_connector.BaseAPIConsumer.list_datasets`
+        :py:func:`~algoseek_connector.metadata_api.BaseAPIConsumer.list_datasets`
             Provides a list text ids from available datasets.
 
         """
