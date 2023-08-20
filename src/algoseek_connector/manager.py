@@ -44,6 +44,9 @@ class ResourceManager:
         ----------
         name : str
             Name of an available data source.
+        kwargs : dict
+            Key-value parameters passed to the ClientProtocol used by the
+            data source.
 
         Returns
         -------

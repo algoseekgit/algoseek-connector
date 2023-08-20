@@ -47,6 +47,38 @@ class ClickHouseClient(base.ClientProtocol):
     **kwargs : dict
         Optional arguments passed to clickhouse_connect.get_client.
 
+    Methods
+    -------
+    create_function_handle:
+        Create a FunctionHandle instance.
+    execute:
+        Execute raw SQL queries.
+    download:
+        Not Implemented.
+    fetch:
+        Retrieve data in Python native format using
+        :py:class:`sqlalchemy.sql.selectable.Select`.
+    fetch_iter:
+        Retrieve data in Python native format using
+        :py:class:`sqlalchemy.sql.selectable.Select`. Stream results.
+    fetch_dataframe:
+        Retrieve data as a Pandas DataFrame using
+        :py:class:`sqlalchemy.sql.selectable.Select`.
+    fetch_iter_dataframe:
+        Retrieve data as a Pandas DataFrame using
+        :py:class:`sqlalchemy.sql.selectable.Select`. Stream results.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset_columns:
+        Create a list of :py:class:`sqlalchemy.Column` for a dataset.
+    compile:
+        Converts a :py:class:`sqlalchemy.sql.selectable.Select` into a
+        :py:class:`~algoseek_connector.base.CompiledQuery.`
+    Store_to_s3:
+        Store query results into a S3 object.
+
     """
 
     def __init__(self, client: Client):
@@ -76,7 +108,7 @@ class ClickHouseClient(base.ClientProtocol):
         parameters : dict or None, default=None
             Query parameters.
         output : {"python", "dataframe"}
-            Wether to output data using Python native types or Pandas DataFrames.
+            Wether to output data using a dictionary or a Pandas DataFrame.
         kwargs :
             Optional parameters passed to clickhouse-connect Client.query
             method.
@@ -84,12 +116,6 @@ class ClickHouseClient(base.ClientProtocol):
         Returns
         -------
         dict or pandas.DataFrame
-            If `size` is ``None``.
-
-        Yields
-        ------
-        dict or pandas.DataFrame
-            If `size` is specified.
 
         """
         if parameters is None:

@@ -43,6 +43,25 @@ class BaseAPIConsumer:
     requests.exceptions.HTTPError
         If authentication fails or the connection times out.
 
+    Methods
+    -------
+    get:
+        Request data from an endpoint using the GET method.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset_metadata:
+        Get the metadata of a dataset.
+    get_datagroup_metadata:
+        Get the metadata of a data group.
+    get_documentation:
+        Get the documentation metadata of a dataset.
+    get_time_granularity_metadata:
+        Get the time granularity metadata.
+    get_platform_dataset_metadata:
+        Get the dataset metadata used in the platform frontend.
+
     """
 
     def __init__(self, token: "AuthToken", base_url: Optional[str] = None) -> None:
@@ -316,6 +335,13 @@ class AuthToken:
         environment variable `ALGOSEEK_API_PASSWORD`.
     **kwargs : dict
         Optional parameters passed to :py:func:`requests.post`
+
+    Methods
+    -------
+    create_header:
+        Create a header with credentials to make queries.
+    refresh:
+        Update the token using credentials stored on environment variables.
 
     """
 

@@ -19,7 +19,42 @@ date_like = Union[datetime.date, str]
 
 
 class S3DownloaderClient(base.ClientProtocol):
-    """ClientProtocol for downloading files from S3."""
+    """
+    ClientProtocol for downloading files from S3.
+
+    Parameters
+    ----------
+    session : boto3.Session
+    api: :py:class:`algoseek_connector.metadata_api.BaseAPIConsumer`
+
+    Methods
+    -------
+    create_function_handle:
+        Not Implemented.
+    execute:
+        Not Implemented.
+    download:
+        Download dataset files using filters.
+    fetch:
+        Not Implemented.
+    fetch_iter:
+        Not Implemented.
+    fetch_dataframe:
+        Not Implemented.
+    fetch_iter_dataframe:
+        Not Implemented.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset_columns:
+        Not Implemented.
+    compile:
+        Not Implemented.
+    Store_to_s3:
+        Not Implemented.
+
+    """
 
     def __init__(self, session: Session, api: BaseAPIConsumer):
         self.api = api
