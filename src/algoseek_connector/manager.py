@@ -52,6 +52,11 @@ class ResourceManager:
         -------
         DataSource
 
+        See also
+        --------
+        :py:func:`~algoseek_connector.ResourceManager.list_data_sources`
+            Provides a list text ids from available data sources.
+
         """
         client = self._create_client(name, **kwargs)
         description_provider = self._create_description_provider(name)
@@ -63,7 +68,8 @@ class ResourceManager:
         elif name == S3:
             description_provider = s3.S3DescriptionProvider(self._api)
         else:
-            raise ValueError
+            msg = f"{name} is not a valid data source."
+            raise ValueError(msg)
         return description_provider
 
     def _create_client(self, name, **kwargs) -> base.ClientProtocol:
