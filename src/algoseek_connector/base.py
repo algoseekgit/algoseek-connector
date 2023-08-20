@@ -7,10 +7,20 @@ Classes
 -------
 DataSource
     Manage connection to a Database.
+DataGroupMapping
+    Mapping class that stores a collection DataGroupFetcher instances.
+DataGroupFetcher
+    A lightweight representation of a DataGroup. Manages creation of DataGroup instances.
 DataGroup
     Container class for a collection of related Datasets.
+DataSetMapping
+    Mapping class that stores a collection of DataSetFetcher instances.
+DataSetFetcher
+    A lightweight representation of a DataSet. Manages dataset files download
+    and creation of DataSet instances.
 DataSet
-    Represents a Table in a Database. Allows to query data from a data source.
+    A representation of a DataSet using SQLAlchemy Tables and Columns. Manages
+    creation of SQL-like queries and data retrieval from data sources.
 CompiledQuery
     Container class for a query created using a DataSet.
 ColumnHandle
@@ -19,6 +29,8 @@ FunctionHandle
     Container class for functions allowed in a database query.
 ClientProtocol
     Interface to connect to different databases.
+DescriptionProvider
+    Interface that provides dataset and data groups description metadata.
 
 Exceptions
 ----------
@@ -130,7 +142,7 @@ class DataGroupFetcher:
         return self._description
 
     def fetch(self) -> "DataGroup":
-        """Fetch the data group instance."""
+        """Create the data group instance."""
         if self._group is None:
             group = DataGroup(self._source, self.description)
             self._group = group
@@ -234,7 +246,20 @@ class DataSetMapping:
 
 
 class DataSetFetcher:
-    """Placeholder class that fetch dataset."""
+    """
+    Lightweight representation of a dataset.
+
+    Manages creation of DataSet instances for querying data using SQL and
+    data downloading.
+
+    Methods
+    -------
+    download:
+        Download data files.
+    fetch:
+        Create a DataSet instance.
+
+    """
 
     def __init__(self, group: DataGroup, name: str):
         self._group = group
@@ -650,7 +675,7 @@ class DataSetDescription:
         The datagroup name.
     description : str
         The dataset description.
-    columns : list[ColumnMetadata] or None, default=None
+    columns : list[ColumnDescription] or None, default=None
         The dataset columns.
     display_name : str or None, default=None
         The display name of the dataset.
@@ -843,7 +868,7 @@ class FunctionHandle:
 
 
 class DescriptionProvider(Protocol):
-    """Provide descriptions for datagroups, datasets and columns."""
+    """Interface that provide descriptions for datagroups, datasets and columns."""
 
     @abstractmethod
     def get_datagroup_description(self, group: str) -> DataGroupDescription:
