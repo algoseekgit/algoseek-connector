@@ -11,7 +11,7 @@ from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 def test_AuthToken_no_user_provided(monkeypatch):
     password = "InvalidPassword"
 
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME)
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME_ENV)
 
     with pytest.raises(ValueError):
         AuthToken(password=password)
@@ -20,7 +20,7 @@ def test_AuthToken_no_user_provided(monkeypatch):
 def test_AuthToken_no_password_provided(monkeypatch):
     user = "mock-user"
 
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD)
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD_ENV)
 
     with pytest.raises(ValueError):
         AuthToken(user=user)
@@ -59,7 +59,7 @@ def test_AuthToken_refresh_raises_value_error_if_user_env_variable_is_not_set(
     token = AuthToken()
     # set a dummy expiration date
     token._expiry_date = datetime.utcnow()
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME)
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME_ENV)
     with pytest.raises(ValueError):
         token.refresh()
 
@@ -70,7 +70,7 @@ def test_AuthToken_refresh_raises_value_error_if_password_env_variable_is_not_se
     token = AuthToken()
     # set a dummy expiration date
     token._expiry_date = datetime.utcnow()
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD)
+    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD_ENV)
     with pytest.raises(ValueError):
         token.refresh()
 

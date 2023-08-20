@@ -20,10 +20,10 @@ from ..base import date_like
 from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
 
-ALGOSEEK_ARDADB_HOST = "ALGOSEEK_ARDADB_HOST"
-ALGOSEEK_ARDADB_PORT = "ALGOSEEK_ARDADB_PORT"
-ALGOSEEK_ARDADB_USERNAME = "ALGOSEEK_ARDADB_USERNAME"
-ALGOSEEK_ARDADB_PASSWORD = "ALGOSEEK_ARDADB_PASSWORD"
+ALGOSEEK_ARDADB_HOST_ENV = "ALGOSEEK_ARDADB_HOST"
+ALGOSEEK_ARDADB_PORT_ENV = "ALGOSEEK_ARDADB_PORT"
+ALGOSEEK_ARDADB_USERNAME_ENV = "ALGOSEEK_ARDADB_USERNAME"
+ALGOSEEK_ARDADB_PASSWORD_ENV = "ALGOSEEK_ARDADB_PASSWORD"
 
 
 class ClickHouseClient(base.ClientProtocol):
@@ -522,12 +522,12 @@ def create_clickhouse_client(
 ) -> Client:
     """Create a ClickHouse DB client."""
     default_port = 8123
-    host = host or os.getenv(ALGOSEEK_ARDADB_HOST)
+    host = host or os.getenv(ALGOSEEK_ARDADB_HOST_ENV)
     if port is None:
-        port_env = os.getenv(ALGOSEEK_ARDADB_PORT)
+        port_env = os.getenv(ALGOSEEK_ARDADB_PORT_ENV)
         port = default_port if port_env is None else int(port_env)
-    user = user or os.getenv(ALGOSEEK_ARDADB_USERNAME)
-    password = password or os.getenv(ALGOSEEK_ARDADB_PASSWORD)
+    user = user or os.getenv(ALGOSEEK_ARDADB_USERNAME_ENV)
+    password = password or os.getenv(ALGOSEEK_ARDADB_PASSWORD_ENV)
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )

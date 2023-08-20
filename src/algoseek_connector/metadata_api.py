@@ -1,5 +1,5 @@
 """
-Tools to communicate with Algoseek API metadata.
+Tools to communicate with Algoseek metadata API.
 
 Provides:
 
@@ -20,8 +20,10 @@ import requests
 
 from .base import InvalidDataGroupName, InvalidDataSetName
 
-ALGOSEEK_API_USERNAME = "ALGOSEEK_API_USERNAME"
-ALGOSEEK_API_PASSWORD = "ALGOSEEK_API_PASSWORD"
+# name of env variables used for credential storage
+ALGOSEEK_API_USERNAME_ENV = "ALGOSEEK_API_USERNAME"
+ALGOSEEK_API_PASSWORD_ENV = "ALGOSEEK_API_PASSWORD"
+# default base URL for the API
 BASE_URL = "https://metadata-services.algoseek.com/api/v1/"
 
 
@@ -37,11 +39,6 @@ class BaseAPIConsumer:
     ----------
     token : AuthToken
         The API authentication token.
-
-    Raises
-    ------
-    requests.exceptions.HTTPError
-        If authentication fails or the connection times out.
 
     Methods
     -------
@@ -93,7 +90,7 @@ class BaseAPIConsumer:
         Raises
         ------
         requests.exceptions.HTTPError
-            If a non-existent dataset name is passed.
+            If an invalid endpoint is requested.
 
         """
         self._token.refresh()
@@ -358,10 +355,10 @@ class AuthToken:
         self._login_url = login_url
 
         if user is None:
-            user = getenv(ALGOSEEK_API_USERNAME)
+            user = getenv(ALGOSEEK_API_USERNAME_ENV)
 
         if password is None:
-            password = getenv(ALGOSEEK_API_PASSWORD)
+            password = getenv(ALGOSEEK_API_PASSWORD_ENV)
 
         if user is None or password is None:
             msg = "User and password must be provided as parameters or as environment variables."
@@ -392,14 +389,14 @@ class AuthToken:
     def refresh(self):
         """Try to obtain a new token using credentials stored on env variables."""
         if self.expiry_date < datetime.utcnow():
-            user = getenv(ALGOSEEK_API_USERNAME)
+            user = getenv(ALGOSEEK_API_USERNAME_ENV)
             if user is None:
                 msg = (
                     "Automatic metadata API token refresh failed. User name must "
                     "be set in the environment variable ALGOSEEK_API_USER."
                 )
                 raise ValueError(msg)
-            password = getenv(ALGOSEEK_API_PASSWORD)
+            password = getenv(ALGOSEEK_API_PASSWORD_ENV)
 
             if password is None:
                 msg = (
