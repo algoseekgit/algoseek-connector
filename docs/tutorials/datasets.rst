@@ -1,13 +1,42 @@
 .. _datasets:
 
+Installation & initial setup
+============================
+
+The algoseek-connector library is installed using the pip command:
+
+.. code-block:: shell
+
+    pip install algoseek-connector
+
+Before start using the library, it is recommendable to setup the credentials for
+the different data sources, as it allows the library to automatically manage
+login. This is done by defining the following environment variables:
+
+    ALGOSEEK_API_USERNAME
+        The user name to connect to Algoseek metadata services, which provide
+        description of the different datasets.
+    ALGOSEEK_API_PASSWORD
+        Password for the metadata services.
+    ALGOSEEK_ARDADB_HOST
+        The IP address of the ArdaDB instance.
+    ALGOSEEK_ARDADB_PORT
+        The port used in the connection. If not set, port 8123 is used.
+    ALGOSEEK_ARDADB_USERNAME
+        The username to log in to the DB.
+    ALGOSEEK_ARDADB_PASSWORD
+        The ArdaDB user' password.
+
+For S3 datasets, two different alternatives are available to provide credentials:
+passing a profile name defined in `~/.aws/credentials` using the variable
+ALGOSEEK_AWS_PROFILE or setting username and password with the variables
+ALGOSEEK_AWS_ACCESS_KEY_ID and ALGOSEEK_AWS_SECRET_ACCESS_KEY.
+
 Getting started
 ===============
 
-The algoseek-connector library provide means to retrieve data from different
-data sources in a straightforward way. To get started, first we will describe
-the hierarchy used to organize data:
-
-TODO: ADD DIAGRAM WITH CLASS HIERARCHY
+The algoseek-connector library provides means to retrieve data from different
+data sources in a straightforward, pythonic way.
 
 The :py:class:`~algoseek_connector.manager.ResourceManager` is the first point of contact
 to fetch data. It manages available data sources for an user:
@@ -25,23 +54,23 @@ method produces a list of available data sources to connect to:
 
     manager.list_data_sources()
 
-
-For the following sections we will use the clickhouse data source, which can be
+Currently, two data sources are available: ArdaDB and S3. For the following
+sections we will use the ArdaDB data source, which can be
 created with the
 :py:func:`~algoseek_connector.manager.ResourceManager.create_data_source` method:
 
 .. code-block:: python
 
-    data_source = manager.create_data_source("clickhouse")
+    data_source = manager.create_data_source("ardadb")
 
 
 DataSources and DataGroups
 --------------------------
 
 A :py:class:`~algoseek_connector.base.DataSource` manages the connection to a
-data source and allows access to data groups. A data group manages a collection
-of related datasets. Thinking in terms of relational databases, a group is a
-database. The available data groups can be retrieved by using the
+data source and enables access to data. A data source manages collections of
+related datasets, called data groups. Thinking in terms of relational databases,
+a group is a database. The available data groups can be retrieved by using the
 :py:func:`~algoseek_connector.base.DataSource.list_datagroups` method:
 
 .. code-block:: python
@@ -51,7 +80,10 @@ database. The available data groups can be retrieved by using the
 Also, the `groups` attribute maintains a collection of
 :py:class:`~algoseek_connector.base.DataGroup` available in a data source:
 
-TODO: ADD GIF WITH AUTOCOMPLETION OF DATASETS.
+.. image:: ../_static/algoseek-groups.gif
+    :alt: Autocompletion of data groups in a data source.
+
+# TODO add gifs for datagroup descriptions, dataset description
 
 A data group is created either by using the fetch method of the corresponding
 group:
