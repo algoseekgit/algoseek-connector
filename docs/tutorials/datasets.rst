@@ -13,8 +13,8 @@ the `pip` command:
 
     pip install algoseek-connector
 
-Before start using the library, it is recommendable to setup the credentials for
-the different data sources, as it allows the library to automatically manage
+Before start using the library, it is recommendable to set up the credentials
+for the different data sources, as it allows the library to automatically manage
 login. This is done by defining the following environment variables:
 
     ALGOSEEK_API_USERNAME
@@ -27,7 +27,7 @@ login. This is done by defining the following environment variables:
     ALGOSEEK_ARDADB_PORT
         The port used in the connection. If not set, port 8123 is used.
     ALGOSEEK_ARDADB_USERNAME
-        The username to log in to the DB.
+        The username for DB login.
     ALGOSEEK_ARDADB_PASSWORD
         The ArdaDB user' password.
     ALGOSEEK_AWS_PROFILE
@@ -53,7 +53,7 @@ In order to fully understand how to work with the library, we present its main
 components and facilities. An in-depth description of the library architecture
 can be found :ref:`here <developers>`.
 
-There are also available Jupyter notebooks with examples in the ``examples``
+Jupyter notebooks with examples are also available in the ``examples``
 directory of the library
 `GitHub repository <https://github.com/algoseekgit/algoseek-connector>`_.
 
@@ -88,7 +88,8 @@ DataSources and DataGroups
 A :py:class:`~algoseek_connector.base.DataSource` manages the connection to a
 data source and enables access to data. It manages collections of related
 datasets, called data groups. Thinking in terms of relational databases, a group
-is a database. The available data groups can be retrieved by using the
+is a database, which contains several related tables (datasets). The available
+data groups can be retrieved by using the
 :py:func:`~algoseek_connector.base.DataSource.list_datagroups` method:
 
 .. code-block:: python
@@ -217,7 +218,21 @@ block retrieves the first ten rows from a dataset:
 The first line creates a :py:class:`~sqlalchemy.sql.expression.Select` object.
 In the second line, the select statement is used to retrieve data using the
 :py:func:`~algoseek_connector.base.DataSet.fetch` method. The fetch method
-retrieves data using Python native objects.
+retrieves data using Python native objects. In the case where the data resulting
+from a query is large, the results can be split in chunks, reducing the memory
+burden. For example, the :py:func:`~algoseek_connector.base.DataSet.fetch_iter_dataframe`
+yields even-sized data chunks using :py:class:`pandas.DataFrame`:
+
+.. code-block:: python
+
+    stmt = data.select.limit(1000000)
+    chunk_size = 100000
+    for df in dataset.fetch_iter_dataframe(stmt, chunk_size):
+        print(df.head())
+        # do something with each data chunk...
+
+The size `size` parameter is not a hard threshold on the chunk size, so the
+actual data chunk size may vary depending on the DBMS.
 
 It is often useful to see the SQL statement that will be executed before sending
 it to the DB. This can be done using the

@@ -32,6 +32,14 @@ DataGroup
     :members:
     :undoc-members:
 
+.. _DataSetFetcher:
+
+DataSetFetcher
+--------------
+
+.. autoclass:: algoseek_connector.base.DataSetFetcher
+    :members:
+
 .. _DataSet:
 
 DataSet
@@ -54,6 +62,15 @@ FunctionHandle
 --------------
 
 .. autoclass:: algoseek_connector.base.FunctionHandle
+    :members:
+
+
+.. _CompiledQuery:
+
+CompiledQuery
+--------------
+
+.. autoclass:: algoseek_connector.base.CompiledQuery
     :members:
 
 

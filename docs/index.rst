@@ -49,6 +49,7 @@ Contents
    tutorials/datasets
    tutorials/sql
    api
+   developers
 
 .. toctree::
    :maxdepth: 2
