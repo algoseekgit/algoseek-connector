@@ -23,8 +23,9 @@ run integration tests, access to the different data sources is required. Contact
 the :ref:`maintainers` to obtain the necessary credentials.
 
 All contribution to the project should be made by creating feature branches and
-creating a corresponding PR. Be sure to pass all unit and integration tests
-before submitting a PR. All new features should be :ref:`tested <testing>` and
+creating a corresponding PR. Feature branches must be created from the `dev`
+branch. Be sure to pass all unit and integration tests before submitting a PR.
+All new features should be :ref:`tested <testing>` and
 :ref:`documented <documentation>`.
 Refer to their corresponding sections in this guide for more information.
 
