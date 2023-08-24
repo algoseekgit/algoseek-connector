@@ -49,7 +49,7 @@ is accessed by using either attribute or dict-like access:
 
 The :py:class:`~algoseek_connector.base.ColumnHandle` class also allows access
 to a dataset columns and it can be created using the
-:py:func`~algoseek_connector.base.DataSet.get_column_handle` method:
+:py:func:`~algoseek_connector.base.DataSet.get_column_handle` method:
 
 .. code-block:: python
 
@@ -193,7 +193,7 @@ Logical operator are also overloaded:
 A complete reference of operators is available
 `here <https://docs.sqlalchemy.org/en/20/core/operators.html>`_.
 Using these operators, the WHERE clause can be included using the
-:py:func:`~sqlalchemy.Select.where` method of the Select statement. We
+:py:func:`~sqlalchemy.Select.where` method of the Select construct. We
 present here several commonly used examples of the WHERE clause:
 
 Filter data using a ticker symbol:
@@ -373,7 +373,7 @@ Aggregating rows with GROUP BY
 ------------------------------
 
 Row aggregation is available through the :py:func:`~sqlalchemy.Select.group_by`
-method, which accepts a series of columns to group that are used perform the
+method, which accepts a sequence of columns that are used perform the
 aggregation. Arbitrary aggregation functions can be created with SQLAlchemy
 ``func`` function generator:
 

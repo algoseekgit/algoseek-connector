@@ -74,10 +74,37 @@ CompiledQuery
     :members:
 
 
-.. _LibraryUtilities:
+.. _DataGroupDescription:
+
+DataGroupDescription
+--------------------
+
+.. autoclass:: algoseek_connector.base.DataGroupDescription
+    :members:
+
+
+.. _DataSetDescription:
+
+DataSetDescription
+--------------------
+
+.. autoclass:: algoseek_connector.base.DataSetDescription
+    :members:
+
+
+.. _ColumnDescription:
+
+ColumnDescription
+-----------------
+
+.. autoclass:: algoseek_connector.base.ColumnDescription
+    :members:
+
 
 Library utilities
 =================
+
+.. _library-utilities:
 
 Connection to metadata services
 -------------------------------

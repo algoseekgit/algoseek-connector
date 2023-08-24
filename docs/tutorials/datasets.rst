@@ -14,8 +14,8 @@ the `pip` command:
     pip install algoseek-connector
 
 Before start using the library, it is recommendable to set up the credentials
-for the different data sources, as it allows the library to automatically manage
-login. This is done by defining the following environment variables:
+for the different data sources, as this allows the library to automatically
+manage login. This is done by defining the following environment variables:
 
     ALGOSEEK_API_USERNAME
         The user name to connect to Algoseek metadata services, which provide
@@ -51,7 +51,7 @@ data sources that the users has access to in a straightforward, pythonic way.
 
 In order to fully understand how to work with the library, we present its main
 components and facilities. An in-depth description of the library architecture
-can be found :ref:`here <developers>`.
+can be found :ref:`here <algoseek-architecture>`.
 
 Jupyter notebooks with examples are also available in the ``examples``
 directory of the library
@@ -73,7 +73,7 @@ method produces a list of available data sources to connect to:
 
     manager.list_data_sources()
 
-Currently, two data sources are available: ArdaDB and S3. For the following
+Currently, two data sources are available: ArdaDB and S3. In the following
 sections we will use the ArdaDB data source as an example, which can be
 created with the
 :py:func:`~algoseek_connector.manager.ResourceManager.create_data_source` method:
@@ -87,9 +87,9 @@ DataSources and DataGroups
 
 A :py:class:`~algoseek_connector.base.DataSource` manages the connection to a
 data source and enables access to data. It manages collections of related
-datasets, called data groups. Thinking in terms of relational databases, a group
-is a database, which contains several related tables (datasets). The available
-data groups can be retrieved by using the
+datasets, called data groups. Thinking in terms of relational databases, a
+database is a data group, which contains several related tables (datasets). The
+available data groups can be retrieved by using the
 :py:func:`~algoseek_connector.base.DataSource.list_datagroups` method:
 
 .. code-block:: python
@@ -188,7 +188,7 @@ passed manually:
 
 .. code-block:: python
 
-    # dummy values for credentials, replace with your own
+    # dummy values used, replace with your own
     credentials = {
         "host": "0.0.0.0"
         "port": 8123,
@@ -231,7 +231,7 @@ yields even-sized data chunks using :py:class:`pandas.DataFrame`:
         print(df.head())
         # do something with each data chunk...
 
-The size `size` parameter is not a hard threshold on the chunk size, so the
+The `size` parameter is not a hard threshold on the chunk size, so the
 actual data chunk size may vary depending on the DBMS.
 
 It is often useful to see the SQL statement that will be executed before sending
@@ -288,7 +288,7 @@ passed manually:
 
 .. code-block:: python
 
-    # dummy values for credentials, replace with your own
+    # dummy values used, replace with your own
     credentials = {
         "aws_access_key_id": "aws_access_key_id",
         "aws_secret_access_key": "aws_secret_access_key",
@@ -322,6 +322,6 @@ datasets. For detailed information on how to use the download method, refer
 to the :ref:`API documentation <API>`.
 
 It is important to be careful when selecting which data to download as large
-amounts of data will result in high costs associated with the usage of the S3
+amounts of data will result in higher costs associated with the usage of the S3
 service. Currently, a hard threshold for downloading data in a single call is
 set to 1 TiB.
