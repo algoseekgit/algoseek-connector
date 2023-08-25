@@ -152,6 +152,8 @@ Versioning and Release Process
 notation ``MAJOR.MINOR.PATCH``. API breaking changes must occur only in
 **major** version changes, the only exception being bug fixes. **Minor** changes
 include new features while maintaining API compatibility.
+See Poetry's `version command <https://python-poetry.org/docs/cli/#version>`_
+to bump the project version.
 
 Feature deprecation must be announced through a warning, displaying the version
 where deprecation will occur (major change) and marked both in the issue
