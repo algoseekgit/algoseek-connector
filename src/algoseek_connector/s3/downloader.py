@@ -409,6 +409,7 @@ def create_boto3_session(
     profile_name: Optional[str] = None,
     aws_access_key_id: Optional[str] = None,
     aws_secret_access_key: Optional[str] = None,
+    **kwargs,
 ) -> boto3.Session:
     """
     Create a Session instance.
@@ -424,6 +425,8 @@ def create_boto3_session(
         The AWS access key associated with an IAM user or role.
     aws_secret_access_key : str or None, default=None
         Thee secret key associated with the access key.
+    **kwargs :
+        Optional parameters passed to boto3.Session.
 
     Returns
     -------
@@ -438,9 +441,9 @@ def create_boto3_session(
 
     """
     if profile_name is None:
-        session = boto3.Session(aws_access_key_id, aws_secret_access_key)
+        session = boto3.Session(aws_access_key_id, aws_secret_access_key, **kwargs)
     else:
-        session = boto3.Session(profile_name=profile_name)
+        session = boto3.Session(profile_name=profile_name, **kwargs)
     _validate_session(session)
     return session
 
