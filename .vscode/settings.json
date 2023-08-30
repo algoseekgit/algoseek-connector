@@ -26,10 +26,12 @@
         "pytest",
         "pythonic",
         "quickstart",
+        "setenv",
         "SQLA",
         "sqlalchemy",
         "ssmy",
         "TAGG",
+        "tebibyte",
         "toctree",
         "toggleprompt"
     ],
