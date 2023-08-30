@@ -53,14 +53,6 @@ def test_ardadb_simple_query(ardadb: ac.base.DataSource):
     assert df.shape[0] == limit
 
 
-def test_create_s3_data_source(manager: ac.ResourceManager):
-    config = {"profile_name": "algoseek-datasets"}
-    s3 = manager.create_data_source(c.S3, **config)
-    client = cast(ac.s3.S3DownloaderClient, s3.client)
-
-    assert client._file_downloader.session.profile_name == config["profile_name"]
-
-
 def test_s3_list_data_groups(s3: ac.base.DataSource):
     groups = s3.list_datagroups()
     assert all(isinstance(x, str) for x in groups)

@@ -5,6 +5,7 @@ import pytest
 from boto3 import Session
 
 import algoseek_connector as ac
+from algoseek_connector import constants
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 from algoseek_connector.s3.client import (
     BucketMetadataProvider,
@@ -16,7 +17,9 @@ from algoseek_connector.s3.downloader import FileDownloader, create_boto3_sessio
 
 @pytest.fixture(scope="module")
 def api():
-    credentials = ac.Settings().get_group("metadata_service").get_dict()
+    credentials = (
+        ac.Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
+    )
     token = AuthToken(**credentials)
     return BaseAPIConsumer(token)
 
@@ -28,7 +31,7 @@ def bucket_metadata(api):
 
 @pytest.fixture(scope="module")
 def boto3_session():
-    profile_str = os.getenv("ALGOSEEK_AWS_PROFILE")
+    profile_str = os.getenv(constants.ALGOSEEK_AWS_PROFILE_ENV)
     return create_boto3_session(profile_name=profile_str)
 
 

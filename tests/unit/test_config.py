@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from algoseek_connector import config
+from algoseek_connector import config, constants
 
 
 def test_SettingField_value_no_environment_variable():
@@ -164,10 +164,10 @@ def test_validate_positive_number_invalid(x):
 def test_create_ardadb_credentials_group_from_empty_dict():
     d = dict()
     group = config._create_ardadb_credentials_group(d)
-    assert hasattr(group, "host")
-    assert hasattr(group, "port")
-    assert hasattr(group, "user")
-    assert hasattr(group, "password")
+    assert hasattr(group, constants.ARDADB_HOST_VAR)
+    assert hasattr(group, constants.ARDADB_PORT_VAR)
+    assert hasattr(group, constants.ARDADB_USERNAME_VAR)
+    assert hasattr(group, constants.ARDADB_PASSWORD_VAR)
 
 
 def test_create_settings_group_from_empty_dict():
@@ -179,40 +179,40 @@ def test_create_settings_group_from_empty_dict():
 def test_create_ardadb_settings_group_from_empty_dict():
     d = dict()
     group = config._create_ardadb_group(d)
-    assert group.name == "ardadb"
-    assert hasattr(group, "settings")
-    assert hasattr(group, "credentials")
+    assert group.name == constants.ARDADB
+    assert hasattr(group, constants.SETTINGS_GROUP)
+    assert hasattr(group, constants.CREDENTIAL_GROUP)
 
 
 def test_create_s3_credentials_settings_group_from_empty_dict():
     d = dict()
     group = config._create_s3_credentials_group(d)
-    assert group.name == "credentials"
-    assert hasattr(group, "profile_name")
-    assert hasattr(group, "aws_access_key_id")
-    assert hasattr(group, "aws_secret_access_key")
+    assert group.name == constants.CREDENTIAL_GROUP
+    assert hasattr(group, constants.AWS_PROFILE_NAME_VAR)
+    assert hasattr(group, constants.AWS_ACCESS_KEY_ID_VAR)
+    assert hasattr(group, constants.AWS_SECRET_ACCESS_KEY_VAR)
 
 
 def test_create_s3_quota_settings_group_from_empty_dict():
     d = dict()
     group = config._create_s3_download_quota_group(d)
-    assert group.name == "quota"
-    assert hasattr(group, "download_limit")
-    assert hasattr(group, "download_limit_do_not_change")
+    assert group.name == constants.QUOTA_GROUP
+    assert hasattr(group, constants.DOWNLOAD_LIMIT_FIELD)
+    assert hasattr(group, constants.HARD_DOWNLOAD_FIELD)
 
 
 def test_create_s3_settings_group_from_empty_dict():
     d = dict()
     group = config._create_s3_settings_group(d)
-    assert group.name == "s3"
+    assert group.name == constants.S3
 
-    credentials_group = getattr(group, "credentials")
+    credentials_group = getattr(group, constants.CREDENTIAL_GROUP)
     assert isinstance(credentials_group, config.SettingsGroup)
 
-    settings_group = getattr(group, "settings")
+    settings_group = getattr(group, constants.SETTINGS_GROUP)
     assert isinstance(settings_group, config.SettingsGroup)
 
-    quota_group = getattr(group, "quota")
+    quota_group = getattr(group, constants.QUOTA_GROUP)
     assert isinstance(quota_group, config.SettingsGroup)
 
 
@@ -220,9 +220,9 @@ def test_create_metadata_services_group_from_empty_dict():
     d = dict()
     group = config._create_metadata_services_settings_group(d)
 
-    assert group.name == "metadata_service"
-    assert hasattr(group, "user")
-    assert hasattr(group, "password")
+    assert group.name == constants.METADATA_SERVICE_SETTINGS_GROUP
+    assert hasattr(group, constants.METADATA_SERVICES_USER_VAR)
+    assert hasattr(group, constants.METADATA_SERVICES_PASSWORD_VAR)
 
 
 def test_create_default_settings_file(tmp_path: Path):
@@ -233,46 +233,46 @@ def test_create_default_settings_file(tmp_path: Path):
 
 
 def test_Setting_config_file_settings_files_does_not_exists(tmp_path: Path):
-    destination = tmp_path / "config.toml"
+    destination = tmp_path / constants.CONFIG_FILENAME
     conf = config.Settings(destination)
     assert not destination.exists()
     assert isinstance(conf, config.Settings)
-    assert hasattr(conf, "s3")
-    assert hasattr(conf, "ardadb")
+    assert hasattr(conf, constants.S3)
+    assert hasattr(conf, constants.ARDADB)
 
 
 def test_Setting_is_singleton(tmp_path: Path):
-    destination = tmp_path / "config.toml"
+    destination = tmp_path / constants.CONFIG_FILENAME
     conf1 = config.Settings(destination)
     conf2 = config.Settings(destination)
     assert conf1 is conf2
 
 
 def test_read_config_file_test_setting_groups(tmp_path: Path):
-    destination = tmp_path / "config.toml"
+    destination = tmp_path / constants.CONFIG_FILENAME
     config.create_config_file(destination)
     conf = config.Settings(destination)
     assert isinstance(conf, config.Settings)
-    assert hasattr(conf, "s3")
-    assert hasattr(conf, "ardadb")
+    assert hasattr(conf, constants.S3)
+    assert hasattr(conf, constants.ARDADB)
 
 
 def test_read_config_file_test_ardadb_group(tmp_path: Path):
-    destination = tmp_path / "config.toml"
+    destination = tmp_path / constants.CONFIG_FILENAME
     config.create_config_file(destination)
     conf = config.Settings(destination)
-    ardadb_group = getattr(conf, "ardadb")
+    ardadb_group = getattr(conf, constants.ARDADB)
     assert isinstance(ardadb_group, config.SettingsGroup)
-    assert hasattr(ardadb_group, "credentials")
-    assert hasattr(ardadb_group, "settings")
+    assert hasattr(ardadb_group, constants.CREDENTIAL_GROUP)
+    assert hasattr(ardadb_group, constants.SETTINGS_GROUP)
 
 
 def test_read_config_file_test_s3_group(tmp_path: Path):
-    destination = tmp_path / "config.toml"
+    destination = tmp_path / constants.CONFIG_FILENAME
     config.create_config_file(destination)
     conf = config.Settings(destination)
-    ardadb_group = getattr(conf, "s3")
+    ardadb_group = getattr(conf, constants.S3)
     assert isinstance(ardadb_group, config.SettingsGroup)
-    assert hasattr(ardadb_group, "credentials")
-    assert hasattr(ardadb_group, "settings")
-    assert hasattr(ardadb_group, "quota")
+    assert hasattr(ardadb_group, constants.CREDENTIAL_GROUP)
+    assert hasattr(ardadb_group, constants.SETTINGS_GROUP)
+    assert hasattr(ardadb_group, constants.QUOTA_GROUP)

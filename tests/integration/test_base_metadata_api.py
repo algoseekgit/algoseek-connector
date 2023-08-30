@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from requests.exceptions import HTTPError
 
-from algoseek_connector import Settings
+from algoseek_connector import Settings, constants
 from algoseek_connector.base import InvalidDataGroupName, InvalidDataSetName
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
@@ -17,7 +17,7 @@ def test_AuthToken_auth_error():
 
 @pytest.fixture(scope="module")
 def credentials():
-    return Settings().get_group("metadata_service").get_dict()
+    return Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
 
 
 @pytest.fixture(scope="module")

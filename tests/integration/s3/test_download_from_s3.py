@@ -24,7 +24,7 @@ def dev_session():
 @pytest.fixture(scope="module")
 def dataset_session():
     s3_settings = Settings().get_group(constants.S3).get_dict()
-    credentials = s3_settings["credentials"]
+    credentials = s3_settings[constants.CREDENTIAL_GROUP]
     return downloader.create_boto3_session(**credentials)
 
 

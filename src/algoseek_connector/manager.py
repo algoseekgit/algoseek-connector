@@ -29,7 +29,9 @@ class ResourceManager:
     """
 
     def __init__(self):
-        metadata_services_settings = config.Settings().get_group("metadata_service")
+        metadata_services_settings = config.Settings().get_group(
+            c.METADATA_SERVICE_SETTINGS_GROUP
+        )
         api_credentials = metadata_services_settings.get_dict()
         token = AuthToken(**api_credentials)
         self._api = BaseAPIConsumer(token)
@@ -82,8 +84,8 @@ class ResourceManager:
         else:  # S3
             user_config = config.Settings()
             s3_config = user_config.get_group(c.S3).get_dict()
-            session_credentials = cast(dict, s3_config.pop("credentials"))
-            settings = cast(dict, s3_config.pop("settings"))
+            session_credentials = cast(dict, s3_config.pop(c.CREDENTIAL_GROUP))
+            settings = cast(dict, s3_config.pop(c.SETTINGS_GROUP))
             settings.update(session_credentials)
             settings.update(kwargs)
             session = s3.create_boto3_session(**settings)

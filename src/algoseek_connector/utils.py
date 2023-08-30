@@ -6,6 +6,8 @@ import hashlib
 import re
 from pathlib import Path
 
+from . import constants
+
 
 class ExpirationMonthCode(enum.Enum):
     """Represent Expiration month codes for futures."""
@@ -105,4 +107,4 @@ def is_file_equal(file: Path, other: Path) -> bool:
 
 def get_algoseek_path() -> Path:
     """Get the path to the algoseek directory located in the user home."""
-    return Path.home() / ".algoseek"
+    return Path.home() / constants.ALGOSEEK_DIR

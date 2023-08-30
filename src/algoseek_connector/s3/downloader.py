@@ -12,7 +12,7 @@ import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
-from .. import utils
+from .. import constants, utils
 
 date_like = Union[datetime.date, str]
 
@@ -690,7 +690,7 @@ def _normalize_date(date):
 
 def get_s3_client(session: boto3.Session) -> BaseClient:
     """Create a S3 client."""
-    return cast(BaseClient, session.resource("s3"))
+    return cast(BaseClient, session.resource(constants.S3))
 
 
 def _validate_session(session: boto3.Session):

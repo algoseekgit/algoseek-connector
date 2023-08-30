@@ -15,22 +15,8 @@ from typing import Any, Callable, Optional, Sequence, Union
 
 import tomli
 
+from . import constants as c
 from . import utils
-
-CONFIG_FILENAME = "config.toml"
-DEFAULT_CONFIG_FILENAME = "default-config.toml"
-SECRETS_FILENAME = "secrets.toml"
-ALGOSEEK_ARDADB_HOST_ENV = "ALGOSEEK_ARDADB_HOST"
-ALGOSEEK_ARDADB_PORT_ENV = "ALGOSEEK_ARDADB_PORT"
-ALGOSEEK_ARDADB_USERNAME_ENV = "ALGOSEEK_ARDADB_USERNAME"
-ALGOSEEK_ARDADB_PASSWORD_ENV = "ALGOSEEK_ARDADB_PASSWORD"
-ALGOSEEK_AWS_PROFILE = "ALGOSEEK_AWS_PROFILE"
-ALGOSEEK_AWS_ACCESS_KEY_ID = "ALGOSEEK_AWS_ACCESS_KEY_ID"
-ALGOSEEK_AWS_SECRET_ACCESS_KEY = "ALGOSEEK_AWS_SECRET_ACCESS_KEY"
-
-# TODO: extact strings as variables
-# TODO: test singleton and reload
-
 
 TIB = 1024**4  # 1 tebibyte
 
@@ -72,6 +58,10 @@ class Settings(metaclass=_SettingsMeta):
 
         for g in create_settings_group_from_dictionary(config_dict):
             setattr(self, g.name, g)
+
+    def get_group(self, name: str) -> SettingsGroup:
+        """Get a config group."""
+        return getattr(self, name)
 
 
 class SettingsGroup:
@@ -168,7 +158,7 @@ class SettingsField:
         self._value = value
 
     def __str__(self):
-        v = "XXXX" if self._secret else self.get()
+        v = "XXXX" if self.is_secret() else self.get()
         return f"SettingField(name={self.name}, value={v})"
 
     def is_secret(self) -> bool:
@@ -219,10 +209,10 @@ class SettingsField:
 def get_config_file_path() -> Path:
     """Get the path to the algoseek config file."""
     algoseek_path = utils.get_algoseek_path()
-    return algoseek_path / CONFIG_FILENAME
+    return algoseek_path / c.CONFIG_FILENAME
 
 
-def create_default_config_file(destination: Optional[Path] = None):
+def create_config_file(destination: Optional[Path] = None):
     """
     Create a default configuration file.
 
@@ -232,12 +222,21 @@ def create_default_config_file(destination: Optional[Path] = None):
         The Path to create the configuration file. If no path is provided,
         the file is created at `~/.algoseek/config.yaml`.
 
+    Raises
+    ------
+    FileExistsError
+        If the file already exists.
+
     """
     if destination is None:
         destination = get_config_file_path()
     parent_dir = destination.parent
     parent_dir.mkdir(parents=True, exist_ok=True)
-    default_file_path = Path(__file__).parent / DEFAULT_CONFIG_FILENAME
+    default_file_path = Path(__file__).parent / c.DEFAULT_CONFIG_FILENAME
+
+    if destination.exists():
+        raise FileExistsError(destination)
+
     shutil.copy(default_file_path, destination)
 
 
@@ -245,39 +244,71 @@ def create_settings_group_from_dictionary(config_dict: dict) -> Sequence[Setting
     """Create a setting instance."""
     settings_groups = list()
 
-    ardadb_dict = config_dict.get("ardadb", dict())
+    ardadb_dict = config_dict.get(c.ARDADB, dict())
     ardadb_group = _create_ardadb_group(ardadb_dict)
     settings_groups.append(ardadb_group)
 
-    s3_dict = config_dict.get("s3", dict())
+    s3_dict = config_dict.get(c.S3, dict())
     s3_group = _create_s3_settings_group(s3_dict)
     settings_groups.append(s3_group)
+
+    metadata_services_dict = config_dict.get("metadata_services", dict())
+    metadata_services_group = _create_metadata_services_settings_group(
+        metadata_services_dict
+    )
+    settings_groups.append(metadata_services_group)
 
     return settings_groups
 
 
+def _create_metadata_services_settings_group(
+    metadata_services_dict: dict,
+) -> SettingsGroup:
+    field_parameters = [
+        {
+            "name": c.METADATA_SERVICES_USER_VAR,
+            "description": "The metadata services user.",
+            "validator": _validate_non_empty_str,
+            "env": c.ALGOSEEK_API_USERNAME_ENV,
+        },
+        {
+            "name": c.METADATA_SERVICES_PASSWORD_VAR,
+            "description": "The metadata services password.",
+            "env": c.ALGOSEEK_API_PASSWORD_ENV,
+            "validator": _validate_non_empty_str,
+        },
+    ]
+    for p in field_parameters:
+        name = p["name"]
+        if name in metadata_services_dict:
+            p["value"] = metadata_services_dict[name]
+
+    fields = [SettingsField(**p) for p in field_parameters]
+    return SettingsGroup(c.METADATA_SERVICE_SETTINGS_GROUP, fields)
+
+
 def _create_s3_settings_group(s3_dict: dict) -> SettingsGroup:
-    credentials_dict = s3_dict.get("credentials", dict())
-    settings_dict = s3_dict.get("settings", dict())
-    quota_dict = s3_dict.get("quota", dict())
+    credentials_dict = s3_dict.get(c.CREDENTIAL_GROUP, dict())
+    settings_dict = s3_dict.get(c.SETTINGS_GROUP, dict())
+    quota_dict = s3_dict.get(c.QUOTA_GROUP, dict())
     fields = [
         _create_s3_credentials_group(credentials_dict),
         _create_settings_group(settings_dict),
         _create_s3_download_quota_group(quota_dict),
     ]
-    return SettingsGroup("s3", fields)
+    return SettingsGroup(c.S3, fields)
 
 
 def _create_s3_download_quota_group(quota_dict: dict) -> SettingsGroup:
     field_parameters = [
         {
-            "name": "download_limit",
+            "name": c.DOWNLOAD_LIMIT_FIELD,
             "description": "Set the maximum download quota for S3 datasets.",
             "validator": _validate_positive_number,
             "value": TIB,
         },
         {
-            "name": "download_limit_do_not_change",
+            "name": c.HARD_DOWNLOAD_FIELD,
             "description": "A second download limit fo S3 datasets.",
             "validator": _validate_positive_number,
             "frozen": True,
@@ -288,29 +319,29 @@ def _create_s3_download_quota_group(quota_dict: dict) -> SettingsGroup:
     for p in field_parameters:
         p["value"] = quota_dict.get(p["name"], p["value"])
     fields = [SettingsField(**p) for p in field_parameters]
-    return SettingsGroup("quota", fields)
+    return SettingsGroup(c.QUOTA_GROUP, fields)
 
 
 def _create_s3_credentials_group(credentials_dict: dict) -> SettingsGroup:
     field_parameters = [
         {
-            "name": "profile_name",
+            "name": c.AWS_PROFILE_NAME_VAR,
             "description": "A profile stored in `~/.aws/credentials` with access to Algoseek datasets.",
-            "env": ALGOSEEK_AWS_PROFILE,
+            "env": c.ALGOSEEK_AWS_PROFILE_ENV,
             "validator": _validate_non_empty_str,
             "secret": False,
         },
         {
-            "name": "aws_access_key_id",
+            "name": c.AWS_ACCESS_KEY_ID_VAR,
             "description": "The AWS access key associated with an IAM user or role.",
-            "env": ALGOSEEK_AWS_ACCESS_KEY_ID,
+            "env": c.ALGOSEEK_AWS_ACCESS_KEY_ID_ENV,
             "validator": _validate_non_empty_str,
             "secret": False,
         },
         {
-            "name": "aws_secret_access_key",
+            "name": c.AWS_SECRET_ACCESS_KEY_VAR,
             "description": "Thee secret key associated with the access key.",
-            "env": ALGOSEEK_AWS_SECRET_ACCESS_KEY,
+            "env": c.ALGOSEEK_AWS_SECRET_ACCESS_KEY_ENV,
             "validator": _validate_non_empty_str,
             "secret": True,
         },
@@ -321,47 +352,47 @@ def _create_s3_credentials_group(credentials_dict: dict) -> SettingsGroup:
         for p in field_parameters:
             p["value"] = credentials_dict.get(p["name"])
     fields = [SettingsField(**p) for p in field_parameters]
-    group = SettingsGroup("credentials", fields)
+    group = SettingsGroup(c.CREDENTIAL_GROUP, fields)
     return group
 
 
 def _create_ardadb_group(d: dict) -> SettingsGroup:
-    credentials_dict = d.get("credentials", dict())
-    settings_dict = d.get("settings", dict())
+    credentials_dict = d.get(c.CREDENTIAL_GROUP, dict())
+    settings_dict = d.get(c.SETTINGS_GROUP, dict())
     fields = [
         _create_ardadb_credentials_group(credentials_dict),
         _create_settings_group(settings_dict),
     ]
-    return SettingsGroup("ardadb", fields)
+    return SettingsGroup(c.ARDADB, fields)
 
 
 def _create_ardadb_credentials_group(credentials_dict: dict) -> SettingsGroup:
     field_parameters = [
         {
-            "name": "host",
+            "name": c.ARDADB_HOST_VAR,
             "description": "The ArdaDB host Address.",
-            "env": ALGOSEEK_ARDADB_HOST_ENV,
+            "env": c.ALGOSEEK_ARDADB_HOST_ENV,
             "validator": _validate_ip_address,
             "secret": True,
         },
         {
-            "name": "port",
+            "name": c.ARDADB_PORT_VAR,
             "description": "The ArdaDB connection port.",
-            "env": ALGOSEEK_ARDADB_PORT_ENV,
+            "env": c.ALGOSEEK_ARDADB_PORT_ENV,
             "validator": _validate_port,
             "secret": True,
         },
         {
-            "name": "user",
+            "name": c.ARDADB_USERNAME_VAR,
             "description": "The ArdaDB user name.",
-            "env": ALGOSEEK_ARDADB_USERNAME_ENV,
+            "env": c.ALGOSEEK_ARDADB_USERNAME_ENV,
             "validator": _validate_non_empty_str,
             "secret": True,
         },
         {
-            "name": "password",
+            "name": c.ARDADB_PASSWORD_VAR,
             "description": "The ArdaDB user' password.",
-            "env": ALGOSEEK_ARDADB_PASSWORD_ENV,
+            "env": c.ALGOSEEK_ARDADB_PASSWORD_ENV,
             "validator": _validate_non_empty_str,
             "secret": True,
         },
@@ -372,14 +403,14 @@ def _create_ardadb_credentials_group(credentials_dict: dict) -> SettingsGroup:
         for p in field_parameters:
             p["value"] = credentials_dict.get(p["name"])
     fields = [SettingsField(**p) for p in field_parameters]
-    group = SettingsGroup("credentials", fields)
+    group = SettingsGroup(c.CREDENTIAL_GROUP, fields)
     return group
 
 
 def _create_settings_group(settings_dict: dict) -> SettingsGroup:
     """Create a settings group both for ArdaDB and S3."""
     fields = [SettingsField(k, value=v) for k, v in settings_dict.items()]
-    group = SettingsGroup("settings", fields)
+    group = SettingsGroup(c.SETTINGS_GROUP, fields)
     return group
 
 
