@@ -216,10 +216,19 @@ def test_create_s3_settings_group_from_empty_dict():
     assert isinstance(quota_group, config.SettingsGroup)
 
 
+def test_create_metadata_services_group_from_empty_dict():
+    d = dict()
+    group = config._create_metadata_services_settings_group(d)
+
+    assert group.name == "metadata_service"
+    assert hasattr(group, "user")
+    assert hasattr(group, "password")
+
+
 def test_create_default_settings_file(tmp_path: Path):
     destination = tmp_path / "dir1" / "dir2"
     assert not destination.exists()
-    config.create_default_config_file(destination)
+    config.create_config_file(destination)
     assert destination.exists()
 
 
@@ -241,7 +250,7 @@ def test_Setting_is_singleton(tmp_path: Path):
 
 def test_read_config_file_test_setting_groups(tmp_path: Path):
     destination = tmp_path / "config.toml"
-    config.create_default_config_file(destination)
+    config.create_config_file(destination)
     conf = config.Settings(destination)
     assert isinstance(conf, config.Settings)
     assert hasattr(conf, "s3")
@@ -250,7 +259,7 @@ def test_read_config_file_test_setting_groups(tmp_path: Path):
 
 def test_read_config_file_test_ardadb_group(tmp_path: Path):
     destination = tmp_path / "config.toml"
-    config.create_default_config_file(destination)
+    config.create_config_file(destination)
     conf = config.Settings(destination)
     ardadb_group = getattr(conf, "ardadb")
     assert isinstance(ardadb_group, config.SettingsGroup)
@@ -260,7 +269,7 @@ def test_read_config_file_test_ardadb_group(tmp_path: Path):
 
 def test_read_config_file_test_s3_group(tmp_path: Path):
     destination = tmp_path / "config.toml"
-    config.create_default_config_file(destination)
+    config.create_config_file(destination)
     conf = config.Settings(destination)
     ardadb_group = getattr(conf, "s3")
     assert isinstance(ardadb_group, config.SettingsGroup)

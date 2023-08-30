@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 from pandas import DataFrame
 
-from algoseek_connector import base, s3
+from algoseek_connector import Settings, base, s3
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
@@ -20,10 +20,15 @@ ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_K
 
 @pytest.fixture(scope="module")
 def data_source():
-    token = AuthToken()
+    api_credentials = Settings().get_group("metadata_service").get_dict()
+    token = AuthToken(**api_credentials)
     api_consumer = BaseAPIConsumer(token)
     description_provider = ArdaDBDescriptionProvider(api_consumer)
-    ch_client = create_clickhouse_client()
+
+    ardadb_settings = Settings().get_group("ardadb").get_dict()
+    ardadb_credentials = ardadb_settings["credentials"]
+
+    ch_client = create_clickhouse_client(**ardadb_credentials)
     client = ClickHouseClient(ch_client)
     return DataSource(client, description_provider)
 

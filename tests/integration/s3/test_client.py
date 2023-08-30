@@ -16,7 +16,8 @@ from algoseek_connector.s3.downloader import FileDownloader, create_boto3_sessio
 
 @pytest.fixture(scope="module")
 def api():
-    token = AuthToken()
+    credentials = ac.Settings().get_group("metadata_service").get_dict()
+    token = AuthToken(**credentials)
     return BaseAPIConsumer(token)
 
 
