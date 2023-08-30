@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator, Optional, Union, cast
@@ -20,11 +19,6 @@ from ..base import date_like
 from ..metadata_api import BaseAPIConsumer
 from .sqla_table import SQLAlchemyColumnFactory
 
-ALGOSEEK_ARDADB_HOST_ENV = "ALGOSEEK_ARDADB_HOST"
-ALGOSEEK_ARDADB_PORT_ENV = "ALGOSEEK_ARDADB_PORT"
-ALGOSEEK_ARDADB_USERNAME_ENV = "ALGOSEEK_ARDADB_USERNAME"
-ALGOSEEK_ARDADB_PASSWORD_ENV = "ALGOSEEK_ARDADB_PASSWORD"
-
 
 class ClickHouseClient(base.ClientProtocol):
     """
@@ -32,20 +26,7 @@ class ClickHouseClient(base.ClientProtocol):
 
     Parameters
     ----------
-    host : str or None, default=None
-        Host address running a ClickHouse server. If ``None``, the address is
-        set through the environment variable `ALGOSEEK_ARDADB_HOST`.
-    port : int or None, default=None
-        port ClickHouse server is bound to. If ``None``, the port is set
-        through the environment variable `ALGOSEEK_ARDADB_PORT`.
-    user : str or None, default=None
-        Database user. If ``None``, the user is set through the environment
-        variable `ALGOSEEK_ARDADB_USERNAME`.
-    password : str or None, default=None
-        User's password. If ``None``, the password is set through the
-        environment variable `ALGOSEEK_ARDADB_PASSWORD`.
-    **kwargs : dict
-        Optional arguments passed to clickhouse_connect.get_client.
+    client : clickhouse_connect.Client
 
     Methods
     -------
@@ -514,20 +495,34 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
 
 def create_clickhouse_client(
-    host: Optional[str] = None,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str,
+    port: Union[int, str],
+    user: str,
+    password: str,
     **kwargs,
 ) -> Client:
-    """Create a ClickHouse DB client."""
-    default_port = 8123
-    host = host or os.getenv(ALGOSEEK_ARDADB_HOST_ENV)
-    if port is None:
-        port_env = os.getenv(ALGOSEEK_ARDADB_PORT_ENV)
-        port = default_port if port_env is None else int(port_env)
-    user = user or os.getenv(ALGOSEEK_ARDADB_USERNAME_ENV)
-    password = password or os.getenv(ALGOSEEK_ARDADB_PASSWORD_ENV)
+    """
+    Create a clickhouse_connect.Client instance.
+
+    Default values are obtained from the user configuration. See here
+    TODO: add link for a guide on how to set user configuration.
+
+    Parameters
+    ----------
+    host : str
+        Host address running a ClickHouse server.
+    port : int or str
+        port ClickHouse server is bound to.
+    user : str
+        Database user.
+    password : str
+        User's password.
+    **kwargs : dict
+        Optional arguments passed to clickhouse_connect.get_client. See
+        `here <https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api>`_
+        for a description of the parameters that are accepted.
+
+    """
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )
