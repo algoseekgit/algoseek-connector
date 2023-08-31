@@ -11,7 +11,23 @@ The algoseek-connector library is installed using the pip command:
 
 Before start using the library, it is recommendable to setup the credentials for
 the different data sources, as it allows the library to automatically manage
-login. This is done by defining the following environment variables:
+login. The easiest way to set up credentials and library settings is by
+creating a settings file. This is done in the following way:
+
+.. code-block:: python
+
+    import algoseek_connector as ac
+
+    ac.config.create_config_file()
+
+This will create the config file at `~/.algoseek/config.toml`. Replace the
+default values in the file with your credentials. You will need access to the
+metadata services and credentials for the different data sources. For ArdaDB
+the DB address, username and password are needed. For S3 datasets, AWS
+credentials with access to the datasets are required. Refer to the
+:ref:`this guide <configuration>` for an in depth guide on how to set the user
+configuration.
+This is done by defining the following environment variables:
 
     ALGOSEEK_API_USERNAME
         The user name to connect to Algoseek metadata services, which provide

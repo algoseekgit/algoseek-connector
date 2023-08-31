@@ -48,6 +48,7 @@ Contents
 
    tutorials/datasets
    tutorials/sql
+   tutorials/configuration
    api
 
 .. toctree::
