@@ -625,14 +625,14 @@ class ColumnDescription:
         The column name.
     type : str
         The column type.
-    description : str
+    description : str, default=""
         The column description
 
     """
 
     name: str
     type: str
-    description: str
+    description: str = ""
 
     def get_type_name(self) -> str:
         """Get the type name."""
@@ -718,7 +718,7 @@ class DataSetDescription:
             pdf_url = ""
         self.pdf_url = pdf_url
 
-        if sample_data_url:
+        if sample_data_url is None:
             sample_data_url = ""
         self.sample_data_url = sample_data_url
 
@@ -762,15 +762,22 @@ class DataGroupDescription:
     ----------
     name : str
         The data group name.
-    display_name : str
+    display_name : str or None, default=None
         Name used for pretty print.
-    description : str
+    description : str or None, default=None
         The data group description.
 
     """
 
-    def __init__(self, name: str, description: str, display_name: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ):
         self.name = name
+        if description is None:
+            description = ""
         self.description = description
         if display_name is None:
             self.display_name = name
@@ -865,6 +872,12 @@ class FunctionHandle:
     def __init__(self, function_names: list[str]):
         for f in function_names:
             setattr(self, f, getattr(func, f))
+
+    def __getattr__(self, name: str):
+        try:
+            self.__dict__[name]
+        except KeyError:
+            return getattr(func, name)
 
 
 class DescriptionProvider(Protocol):
