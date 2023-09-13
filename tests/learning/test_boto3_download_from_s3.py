@@ -1,3 +1,4 @@
+import filecmp
 import os
 from pathlib import Path
 
@@ -6,7 +7,6 @@ import pytest
 from botocore.exceptions import ClientError
 
 from algoseek_connector import constants
-from algoseek_connector.utils import is_file_equal
 
 
 def check_object_exists(obj):
@@ -113,7 +113,7 @@ def test_download_file_from_bucket(dev_bucket, tmp_path: Path):
     assert is_file_after_download
 
     local_file = Path(__file__).parent / "iris.csv"
-    assert is_file_equal(file_path, local_file)
+    assert filecmp.cmp(file_path, local_file, shallow=False)
 
 
 def test_download_non_existent_file_from_bucket(dev_bucket, tmp_path: Path):

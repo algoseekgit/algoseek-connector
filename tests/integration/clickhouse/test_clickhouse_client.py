@@ -1,3 +1,4 @@
+import filecmp
 import os
 from pathlib import Path
 from typing import cast
@@ -10,7 +11,6 @@ from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
-from algoseek_connector.utils import is_file_equal
 
 DEV_BUCKET = "algoseek-connector-dev"
 ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
@@ -206,7 +206,7 @@ def test_ClickHouseClient_store_to_s3(dataset: DataSet, tmp_path: Path):
         f.write(csv_str)
 
     # compare csv files from s3 and converted to csv
-    assert is_file_equal(s3_file_download_path, expected_file_path)
+    assert filecmp.cmp(s3_file_download_path, expected_file_path, shallow=False)
 
     # delete uploaded file
     bucket.delete_file(key)
