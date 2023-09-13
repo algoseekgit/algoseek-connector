@@ -5,7 +5,12 @@ from algoseek_connector import utils
 
 @pytest.mark.parametrize(
     "date_str,year,month,day",
-    [("20220303", 2022, 3, 3), ("20070101", 2007, 1, 1), ("20191231", 2019, 12, 31)],
+    [
+        ("20220303", 2022, 3, 3),
+        ("20070101", 2007, 1, 1),
+        ("20191231", 2019, 12, 31),
+        ("19990303", 1999, 3, 3),
+    ],
 )
 def test_yyyymmdd_str_to_date(date_str: str, year: int, month: int, day: int):
     date = utils.yyyymmdd_str_to_date(date_str)
@@ -14,7 +19,7 @@ def test_yyyymmdd_str_to_date(date_str: str, year: int, month: int, day: int):
     assert date.day == day
 
 
-@pytest.mark.parametrize("date_str", ["19990303", "20071401", "20191232", "99990101"])
+@pytest.mark.parametrize("date_str", ["20071401", "20191232", "-99990101"])
 def test_yyyymmdd_str_to_date_invalid_date(date_str: str):
     with pytest.raises(ValueError):
         utils.yyyymmdd_str_to_date(date_str)
