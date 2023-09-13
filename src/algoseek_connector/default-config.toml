@@ -1,0 +1,33 @@
+# The default configuration file for algoseek-connector
+# See how to edit this file at
+# TODO: ADD LINK
+
+[metadata_service]
+# user = "default"
+# password = "default"
+
+[ardadb.credentials]
+# uncomment fields and edit fields
+# host = "0.0.0.0"
+# port = 8123
+# user = "default"
+# password = "default"
+
+[ardadb.settings]
+# Parameters supported by clickhouse_connect.get_client function
+# see https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api
+
+[s3.credentials]
+# uncomment fields and edit fields
+# profile_name = "default"
+# aws_access_key_id = "default"
+# aws_secret_access_key = "default"
+
+[s3.quota]
+# values are in bytes
+download_limit = 1099511627776
+download_limit_do_not_modify = 21990232555520
+
+[s3.settings]
+# add setting from
+# see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html

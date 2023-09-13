@@ -5,6 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
+from algoseek_connector import constants
 from algoseek_connector.utils import is_file_equal
 
 
@@ -19,14 +20,14 @@ def check_object_exists(obj):
 
 @pytest.fixture(scope="module")
 def session():
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
     return boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
 
 
 @pytest.fixture(scope="module")
 def s3_resource(session: boto3.Session):
-    return session.resource("s3")
+    return session.resource(constants.S3)
 
 
 @pytest.fixture(scope="module")
@@ -37,7 +38,7 @@ def dev_bucket(s3_resource):
 def test_create_session_with_invalid_user():
     # passing invalid user/key is possible.
     access_key = "InvalidAccessKeyID"
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
     session = boto3.Session(
         aws_access_key_id=access_key, aws_secret_access_key=secret_key
     )
@@ -50,7 +51,7 @@ def test_create_session_with_invalid_user():
 
 
 def test_create_session_with_invalid_secret_access_key():
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
     secret_key = "InvalidSecretKey"
     session = boto3.Session(
         aws_access_key_id=access_key, aws_secret_access_key=secret_key

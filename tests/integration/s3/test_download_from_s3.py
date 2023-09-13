@@ -1,9 +1,12 @@
+import os
 from pathlib import Path
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
+from algoseek_connector import constants
+from algoseek_connector.config import Settings
 from algoseek_connector.s3 import downloader
 
 DEV_BUCKET = "algoseek-connector-dev"
@@ -11,15 +14,21 @@ DEV_BUCKET = "algoseek-connector-dev"
 
 @pytest.fixture(scope="module")
 def dev_session():
-    return downloader.create_boto3_session(profile_name="algoseek-dev")
+    user = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    password = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
+    return downloader.create_boto3_session(
+        aws_access_key_id=user, aws_secret_access_key=password
+    )
 
 
 @pytest.fixture(scope="module")
 def dataset_session():
-    return downloader.create_boto3_session(profile_name="algoseek-datasets")
+    s3_settings = Settings().get_group(constants.S3).get_dict()
+    credentials = s3_settings[constants.CREDENTIAL_GROUP]
+    return downloader.create_boto3_session(**credentials)
 
 
-def test_create_boto3_session_invalid_aws_access_key_id():
+def test_create_boto3_session_invalid_aws_access_key_id(monkeypatch):
     aws_access_key_id = "InvalidKeyId"
     with pytest.raises(ClientError):
         downloader.create_boto3_session(aws_access_key_id=aws_access_key_id)
@@ -27,7 +36,7 @@ def test_create_boto3_session_invalid_aws_access_key_id():
 
 def test_create_boto3_session_invalid_aws_secret_access_key():
     aws_secret_access_key = "InvalidSecretKey"
-    with pytest.raises(ClientError):
+    with pytest.raises(TypeError):
         downloader.create_boto3_session(aws_secret_access_key=aws_secret_access_key)
 
 

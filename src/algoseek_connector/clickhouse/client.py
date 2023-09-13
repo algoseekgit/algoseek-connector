@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator, Optional, Union, cast
@@ -27,20 +26,39 @@ class ClickHouseClient(base.ClientProtocol):
 
     Parameters
     ----------
-    host : str or None, default=None
-        Host address running a ClickHouse server. If ``None``, the address is
-        set through the environment variable `ALGOSEEK_DATABASE_HOST`.
-    port : int or None, default=None
-        port ClickHouse server is bound to. If ``None``, the port is set
-        through the environment variable `ALGOSEEK_DATABASE_PORT`.
-    user : str or None, default=None
-        Database user. If ``None``, the user is set through the environment
-        variable `ALGOSEEK_DATABASE_USER`.
-    password : str or None, default=None
-        User's password. If ``None``, the password is set through the
-        environment variable `ALGOSEEK_DATABASE_PASSWORD`.
-    **kwargs : dict
-        Optional arguments passed to clickhouse_connect.get_client.
+    client : clickhouse_connect.Client
+
+    Methods
+    -------
+    create_function_handle:
+        Create a FunctionHandle instance.
+    execute:
+        Execute raw SQL queries.
+    download:
+        Not Implemented.
+    fetch:
+        Retrieve data in Python native format using
+        :py:class:`sqlalchemy.sql.selectable.Select`.
+    fetch_iter:
+        Retrieve data in Python native format using
+        :py:class:`sqlalchemy.sql.selectable.Select`. Stream results.
+    fetch_dataframe:
+        Retrieve data as a Pandas DataFrame using
+        :py:class:`sqlalchemy.sql.selectable.Select`.
+    fetch_iter_dataframe:
+        Retrieve data as a Pandas DataFrame using
+        :py:class:`sqlalchemy.sql.selectable.Select`. Stream results.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset_columns:
+        Create a list of :py:class:`sqlalchemy.Column` for a dataset.
+    compile:
+        Converts a :py:class:`sqlalchemy.sql.selectable.Select` into a
+        :py:class:`~algoseek_connector.base.CompiledQuery.`
+    Store_to_s3:
+        Store query results into a S3 object.
 
     """
 
@@ -71,7 +89,7 @@ class ClickHouseClient(base.ClientProtocol):
         parameters : dict or None, default=None
             Query parameters.
         output : {"python", "dataframe"}
-            Wether to output data using Python native types or Pandas DataFrames.
+            Wether to output data using a dictionary or a Pandas DataFrame.
         kwargs :
             Optional parameters passed to clickhouse-connect Client.query
             method.
@@ -79,12 +97,6 @@ class ClickHouseClient(base.ClientProtocol):
         Returns
         -------
         dict or pandas.DataFrame
-            If `size` is ``None``.
-
-        Yields
-        ------
-        dict or pandas.DataFrame
-            If `size` is specified.
 
         """
         if parameters is None:
@@ -300,18 +312,14 @@ class ClickHouseClient(base.ClientProtocol):
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-            A profile name defined in `~/.aws/credentials`. If a profile name is
-            specified, the access key and secret key are retrieved from this
-            file and the parameters `aws_access_key_id` and
-            `aws_secret_access_key` are ignored. If ``None``, this field is
-            ignored.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            The AWS access key associated with an IAM user or role. If ``None``,
-            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
-            variable.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            Thee secret key associated with the access key. If ``None``, the key
-            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
@@ -445,33 +453,76 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         """
         columns = self.get_columns_description(dataset)
         try:
+            # datasets not available on the API will raise KeyError.
             dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
             dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
             display_name = dataset_metadata["display_name"]
             description = dataset_metadata["long_description"]
+
+            # search platform metadata if available
+            try:
+                platform_metadata = self._api.get_platform_dataset_metadata(
+                    dataset_text_id
+                )
+                pdf_url = platform_metadata["documentation_link"]
+                sample_data_url = platform_metadata["sample_data_url"]
+            except ValueError:
+                pdf_url = None
+                sample_data_url = None
+
+            granularity_id = dataset_metadata["time_granularity_id"]
+            granularity_metadata = self._api.get_time_granularity_metadata(
+                granularity_id
+            )
+            granularity = granularity_metadata["display_name"]
         except KeyError:
-            display_name = dataset
-            description = ""
+            display_name = None
+            description = None
+            pdf_url = None
+            sample_data_url = None
+            granularity = None
+
         return base.DataSetDescription(
-            dataset, group, columns, display_name, description
+            dataset,
+            group,
+            columns,
+            display_name,
+            description,
+            granularity,
+            pdf_url,
+            sample_data_url,
         )
 
 
 def create_clickhouse_client(
-    host: Optional[str] = None,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str,
+    port: Union[int, str],
+    user: str,
+    password: str,
     **kwargs,
 ) -> Client:
-    """Create a ClickHouse DB client."""
-    default_port = 8123
-    host = host or os.getenv("ALGOSEEK_DATABASE_HOST")
-    if port is None:
-        port_env = os.getenv("ALGOSEEK_DATABASE_PORT")
-        port = default_port if port_env is None else int(port_env)
-    user = user or os.getenv("ALGOSEEK_DATABASE_USER")
-    password = password or os.getenv("ALGOSEEK_DATABASE_PASSWORD")
+    """
+    Create a clickhouse_connect.Client instance.
+
+    Default values are obtained from the user configuration. See here
+    TODO: add link for a guide on how to set user configuration.
+
+    Parameters
+    ----------
+    host : str
+        Host address running a ClickHouse server.
+    port : int or str
+        port ClickHouse server is bound to.
+    user : str
+        Database user.
+    password : str
+        User's password.
+    **kwargs : dict
+        Optional arguments passed to clickhouse_connect.get_client. See
+        `here <https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api>`_
+        for a description of the parameters that are accepted.
+
+    """
     return clickhouse_connect.get_client(
         host=host, port=port, user=user, password=password, **kwargs
     )

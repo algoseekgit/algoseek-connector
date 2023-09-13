@@ -7,10 +7,20 @@ Classes
 -------
 DataSource
     Manage connection to a Database.
+DataGroupMapping
+    Mapping class that stores a collection DataGroupFetcher instances.
+DataGroupFetcher
+    A lightweight representation of a DataGroup. Manages creation of DataGroup instances.
 DataGroup
     Container class for a collection of related Datasets.
+DataSetMapping
+    Mapping class that stores a collection of DataSetFetcher instances.
+DataSetFetcher
+    A lightweight representation of a DataSet. Manages dataset files download
+    and creation of DataSet instances.
 DataSet
-    Represents a Table in a Database. Allows to query data from a data source.
+    A representation of a DataSet using SQLAlchemy Tables and Columns. Manages
+    creation of SQL-like queries and data retrieval from data sources.
 CompiledQuery
     Container class for a query created using a DataSet.
 ColumnHandle
@@ -19,6 +29,8 @@ FunctionHandle
     Container class for functions allowed in a database query.
 ClientProtocol
     Interface to connect to different databases.
+DescriptionProvider
+    Interface that provides dataset and data groups description metadata.
 
 Exceptions
 ----------
@@ -130,7 +142,7 @@ class DataGroupFetcher:
         return self._description
 
     def fetch(self) -> "DataGroup":
-        """Fetch the data group instance."""
+        """Create the data group instance."""
         if self._group is None:
             group = DataGroup(self._source, self.description)
             self._group = group
@@ -234,7 +246,20 @@ class DataSetMapping:
 
 
 class DataSetFetcher:
-    """Placeholder class that fetch dataset."""
+    """
+    Lightweight representation of a dataset.
+
+    Manages creation of DataSet instances for querying data using SQL and
+    data downloading.
+
+    Methods
+    -------
+    download:
+        Download data files.
+    fetch:
+        Create a DataSet instance.
+
+    """
 
     def __init__(self, group: DataGroup, name: str):
         self._group = group
@@ -562,17 +587,14 @@ class DataSet:
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-        A profile name defined in `~/.aws/credentials`. If a profile name is
-        specified, the access key and secret key are retrieved from this file
-        and the parameters `aws_access_key_id` and `aws_secret_access_key` are
-        ignored. If ``None``, this field is ignored.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            The AWS access key associated with an IAM user or role. If ``None``,
-            the key is retrieved from the  `AWS_ACCESS_KEY_ID` environment
-            variable.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            Thee secret key associated with the access key. If ``None``, the key
-            is retrieved from the  `AWS_ACCESS_KEY_ID` environment variable.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.
@@ -597,20 +619,30 @@ class ColumnDescription:
     """
     Store column metadata from a dataset.
 
-    Returns
-    -------
-    name : str
+    Attributes
+    ----------
+    name: str
         The column name.
-    type : str
+    type: str
         The column type.
-    description : str
+    description : str, default=""
         The column description
+
+    Methods
+    -------
+    get_type_name:
+        Get the type name of the column.
+    get_type_args:
+        Get a list of type arguments.
+    html:
+        Get an HTML representation of the column.
+
 
     """
 
     name: str
     type: str
-    description: str
+    description: str = ""
 
     def get_type_name(self) -> str:
         """Get the type name."""
@@ -647,14 +679,28 @@ class DataSetDescription:
 
     Attributes
     ----------
-    name : str
+    name: str
         The dataset name.
-    group : str
+    group: str
         The datagroup name.
-    description : str
-        The dataset description
-    columns : list[ColumnMetadata] or None, default=None
+    description: str
+        The dataset description.
+    columns: list[ColumnDescription] or None, default=None
         The dataset columns.
+    display_name: str or None, default=None
+        The display name of the dataset.
+    granularity: str or None, default=None
+        The time granularity of the dataset.
+    pdf_url: str or None, default=None
+        URL to PDF documentation.
+    sample_data_url: str or None, default=None
+
+    Methods
+    -------
+    get_table_name:
+        Get the table name of the dataset using the notation ``group.dataset``.
+    html:
+        Get an HTML representation of the dataset.
 
     """
 
@@ -665,16 +711,33 @@ class DataSetDescription:
         columns: list[ColumnDescription],
         display_name: Optional[str] = None,
         description: Optional[str] = None,
+        granularity: Optional[str] = None,
+        pdf_url: Optional[str] = None,
+        sample_data_url: Optional[str] = None,
     ) -> None:
         self.name = name
         self.group = group
         self.columns = columns
+
         if display_name is None:
             display_name = name
         self.display_name = display_name
+
         if description is None:
             description = ""
         self.description = description
+
+        if granularity is None:
+            granularity = ""
+        self.granularity = granularity
+
+        if pdf_url is None:
+            pdf_url = ""
+        self.pdf_url = pdf_url
+
+        if sample_data_url is None:
+            sample_data_url = ""
+        self.sample_data_url = sample_data_url
 
     def get_table_name(self) -> str:
         """Get the table name in the format `group.name`."""
@@ -691,9 +754,19 @@ class DataSetDescription:
         html_rows = "\n".join(rows)
         table_header = "<tr>\n<th>Name</th><th>Type</th><th>Description</th></tr>"
         table_html = f'<table style="width:66%">\n{table_header}\n{html_rows}\n</table>'
+        info_html = f"<strong>Time granularity:</strong> {self.granularity}"
+
+        if self.pdf_url:
+            info_html += f' | <a href="{self.pdf_url}">PDF documentation</a>'
+
+        if self.sample_data_url:
+            info_html += f' | <a href="{self.sample_data_url}">Sample data</a>'
 
         html = (
-            f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>" f"{table_html}"
+            f"<h2>{self.display_name}</h2>\n"
+            f"<p>{self.description}</p>\n"
+            f"<p>{info_html}</html>"
+            f"{table_html}"
         )
         return html
 
@@ -704,17 +777,29 @@ class DataGroupDescription:
 
     Attributes
     ----------
-    name : str
+    name: str
         The data group name.
-    display_name : str
+    display_name : str or None, default=None
         Name used for pretty print.
-    description : str
+    description : str or None, default=None
         The data group description.
+
+    Methods
+    -------
+    html:
+        Get an HTML representation of the data group.
 
     """
 
-    def __init__(self, name: str, description: str, display_name: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ):
         self.name = name
+        if description is None:
+            description = ""
         self.description = description
         if display_name is None:
             self.display_name = name
@@ -810,9 +895,15 @@ class FunctionHandle:
         for f in function_names:
             setattr(self, f, getattr(func, f))
 
+    def __getattr__(self, name: str):
+        try:
+            self.__dict__[name]
+        except KeyError:
+            return getattr(func, name)
+
 
 class DescriptionProvider(Protocol):
-    """Provide descriptions for datagroups, datasets and columns."""
+    """Interface that provide descriptions for datagroups, datasets and columns."""
 
     @abstractmethod
     def get_datagroup_description(self, group: str) -> DataGroupDescription:
@@ -936,14 +1027,14 @@ class ClientProtocol(Protocol):
         key : str
             The name of the object where the query is going to be stored.
         profile_name : str or None, default=None
-            A profile name in the AWS `credentials` file.
+            If a profile name is specified, the access key and secret key are
+            retrieved from  `~/.aws/credentials` and the parameters
+            `aws_access_key_id` and `aws_secret_access_key` are ignored. If
+            ``None``, this field is ignored.
         aws_access_key_id : str or None, default=None
-            AWS access key associated with an IAM account. If ``None``, the key
-            is retrieved from the environment variable `AWS_ACCESS_KEY_ID`.
+            The AWS access key associated with an IAM user or role.
         aws_secret_access_key : str or None, default=None
-            The secret key associated with the access key. If ``None``, the
-            secret key is retrieved from the environment variable
-            `AWS_SECRET_ACCESS_KEY`.
+            Thee secret key associated with the access key.
         kwargs
             Key-value arguments passed to clickhouse-connect Client.query
             method.

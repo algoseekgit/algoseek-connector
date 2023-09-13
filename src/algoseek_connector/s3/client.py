@@ -19,7 +19,42 @@ date_like = Union[datetime.date, str]
 
 
 class S3DownloaderClient(base.ClientProtocol):
-    """ClientProtocol for downloading files from S3."""
+    """
+    ClientProtocol for downloading files from S3.
+
+    Parameters
+    ----------
+    session : boto3.Session
+    api: :py:class:`algoseek_connector.metadata_api.BaseAPIConsumer`
+
+    Methods
+    -------
+    create_function_handle:
+        Not Implemented.
+    execute:
+        Not Implemented.
+    download:
+        Download dataset files using filters.
+    fetch:
+        Not Implemented.
+    fetch_iter:
+        Not Implemented.
+    fetch_dataframe:
+        Not Implemented.
+    fetch_iter_dataframe:
+        Not Implemented.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset_columns:
+        Not Implemented.
+    compile:
+        Not Implemented.
+    Store_to_s3:
+        Not Implemented.
+
+    """
 
     def __init__(self, session: Session, api: BaseAPIConsumer):
         self.api = api
@@ -226,11 +261,37 @@ class S3DescriptionProvider(base.DescriptionProvider):
             dataset_metadata = self._api.get_dataset_metadata(dataset)
             display_name = dataset_metadata["display_name"]
             description = dataset_metadata["long_description"]
+            # get platform metadata if available
+            # search platform metadata if available
+            try:
+                platform_metadata = self._api.get_platform_dataset_metadata(dataset)
+                pdf_url = platform_metadata["documentation_link"]
+                sample_data_url = platform_metadata["sample_data_url"]
+            except ValueError:
+                pdf_url = None
+                sample_data_url = None
+
+            granularity_id = dataset_metadata["time_granularity_id"]
+            granularity_metadata = self._api.get_time_granularity_metadata(
+                granularity_id
+            )
+            granularity = granularity_metadata["display_name"]
+
         except base.InvalidDataSetName:
             display_name = dataset
             description = ""
+            pdf_url = None
+            sample_data_url = None
+            granularity = None
         return base.DataSetDescription(
-            dataset, group, columns, display_name, description
+            dataset,
+            group,
+            columns,
+            display_name,
+            description,
+            granularity,
+            pdf_url,
+            sample_data_url,
         )
 
 

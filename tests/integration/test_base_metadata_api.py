@@ -1,27 +1,11 @@
+from datetime import datetime
+
 import pytest
 from requests.exceptions import HTTPError
 
-from algoseek_connector import metadata_api
+from algoseek_connector import Settings, constants
 from algoseek_connector.base import InvalidDataGroupName, InvalidDataSetName
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
-
-
-def test_AuthToken_no_user_provided(monkeypatch):
-    password = "InvalidPassword"
-
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME)
-
-    with pytest.raises(ValueError):
-        AuthToken(password=password)
-
-
-def test_AuthToken_no_password_provided(monkeypatch):
-    user = "mock-user"
-
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD)
-
-    with pytest.raises(ValueError):
-        AuthToken(user=user)
 
 
 def test_AuthToken_auth_error():
@@ -32,9 +16,33 @@ def test_AuthToken_auth_error():
 
 
 @pytest.fixture(scope="module")
-def api_consumer():
-    token = AuthToken()
-    return BaseAPIConsumer(token)
+def credentials():
+    return Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
+
+
+@pytest.fixture(scope="module")
+def auth_token(credentials):
+    return AuthToken(**credentials)
+
+
+def test_AuthToken_expiration_date(credentials):
+    now = datetime.utcnow()
+    token = AuthToken(**credentials)
+    assert token.expiry_date > now
+
+
+def test_AuthToken_refresh(credentials):
+    token = AuthToken(**credentials)
+    # set a dummy expiration date
+    token._expiry_date = datetime.utcnow()
+    now = datetime.utcnow()
+    token.refresh()
+    assert now < token.expiry_date
+
+
+@pytest.fixture(scope="module")
+def api_consumer(auth_token):
+    return BaseAPIConsumer(auth_token)
 
 
 def test_invalid_endpoint_raises_http_error(api_consumer: BaseAPIConsumer):
