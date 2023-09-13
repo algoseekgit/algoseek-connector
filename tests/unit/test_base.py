@@ -55,7 +55,7 @@ class MockClient(base.ClientProtocol):
         return base.FunctionHandle(["avg", "sum"])
 
     def execute(
-        self, sql: str, parameters: dict | None, output: str, **kwargs
+        self, sql: str, parameters: Optional[dict], output: str, **kwargs
     ) -> Union[dict, DataFrame]:
         return dict()
 
