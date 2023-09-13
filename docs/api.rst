@@ -32,6 +32,14 @@ DataGroup
     :members:
     :undoc-members:
 
+.. _DataSetFetcher:
+
+DataSetFetcher
+--------------
+
+.. autoclass:: algoseek_connector.base.DataSetFetcher
+    :members:
+
 .. _DataSet:
 
 DataSet
@@ -57,10 +65,46 @@ FunctionHandle
     :members:
 
 
-.. _LibraryUtilities:
+.. _CompiledQuery:
+
+CompiledQuery
+--------------
+
+.. autoclass:: algoseek_connector.base.CompiledQuery
+    :members:
+
+
+.. _DataGroupDescription:
+
+DataGroupDescription
+--------------------
+
+.. autoclass:: algoseek_connector.base.DataGroupDescription
+    :members:
+
+
+.. _DataSetDescription:
+
+DataSetDescription
+--------------------
+
+.. autoclass:: algoseek_connector.base.DataSetDescription
+    :members:
+
+
+.. _ColumnDescription:
+
+ColumnDescription
+-----------------
+
+.. autoclass:: algoseek_connector.base.ColumnDescription
+    :members:
+
 
 Library utilities
 =================
+
+.. _library-utilities:
 
 Connection to metadata services
 -------------------------------

@@ -50,6 +50,7 @@ Contents
    tutorials/sql
    tutorials/configuration
    api
+   developers
 
 .. toctree::
    :maxdepth: 2
