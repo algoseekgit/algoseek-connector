@@ -93,9 +93,6 @@ class S3DownloaderClient(base.ClientProtocol):
         expiration date : str, datetime.date or tuple
             Download data with expiration dates in this date range. Dates must
             be passed used the same format used for the `date` parameter.
-        n_jobs : int or None, default=None
-            The number of jobs created to download files in a parallel manner.
-            If ``None``, a single worker is used.
 
         """
         # Creates a dataset downloader using an independent copy.
@@ -425,7 +422,6 @@ class S3DatasetDownloader:
         date: Union[date_like, tuple[date_like, date_like]],
         symbols: Union[str, list[str]],
         expiration_date: Union[date_like, tuple[date_like, date_like], None] = None,
-        n_jobs: Optional[int] = None,
     ):
         """
         Download data from the dataset.
@@ -447,9 +443,6 @@ class S3DatasetDownloader:
         expiration date : str, datetime.date or tuple
             Download data with expiration dates in this date range. Dates must
             be passed used the same format used for the `date` parameter.
-        n_jobs : int or None, default=None
-            The number of jobs created to download files in a parallel manner.
-            If ``None``, a single worker is used.
 
         """
         if isinstance(download_path, str):
