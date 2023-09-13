@@ -191,7 +191,7 @@ Logical operator are also overloaded:
     ~col1
 
 A complete reference of operators is available
-`here <https://docs.sqlalchemy.org/en/20/core/operators.html>`_.
+`here <https://docs.sqlalchemy.org/en/20/core/operators.html>`__.
 Using these operators, the WHERE clause can be included using the
 :py:func:`~sqlalchemy.Select.where` method of the Select construct. We
 present here several commonly used examples of the WHERE clause:

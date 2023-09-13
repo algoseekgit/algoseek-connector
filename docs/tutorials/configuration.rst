@@ -14,7 +14,7 @@ be edited and each each levels precedes the others:
     override the settings file.
 3.  Values set in the configuration file override values set in environment
     variables.
-4.  Set environment variables (see the :ref:`<available-settings>`).
+4.  Set environment variables (see the :ref:`available-settings`).
 
 
 To pass parameters manually, refer to the :ref:`api`. In the rest of this guide
@@ -110,7 +110,7 @@ Available settings
     -   `password`: The ArdaDB user password. env: ``ALGOSEEK_ARDADB_PASSWORD``.
         Editable at runtime: yes.
 **ardadb.settings**
-    Any clickhouse client `optional settings <https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api>`_.
+    Any clickhouse client `optional settings <https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api>`__.
     Editable at runtime: yes.
 **s3.credentials**
     -   `profile_name`: A profile stored on `~/.aws/credentials`. If a profile
