@@ -51,7 +51,7 @@ def yyyymmdd_str_to_date(date_str: str) -> datetime.date:
     datetime.date(2019, 12, 31)
 
     """
-    pattern = r"(20\d{2})(\d{2})(\d{2})"
+    pattern = r"(\d{4})(\d{2})(\d{2})"
     match = re.fullmatch(pattern, date_str)
     if match is None:
         msg = f"{date_str} does not match the yyyymmdd format."
@@ -98,11 +98,6 @@ def sha1_digest(path: Path) -> str:
                 break
             sha1.update(data)
     return sha1.hexdigest()
-
-
-def is_file_equal(file: Path, other: Path) -> bool:
-    """Compare two files using SHA-1 digest of each file."""
-    return sha1_digest(file) == sha1_digest(other)
 
 
 def get_algoseek_path() -> Path:
