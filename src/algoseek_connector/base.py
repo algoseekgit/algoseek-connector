@@ -1004,7 +1004,7 @@ class ClientProtocol(Protocol):
 
     @abstractmethod
     def list_datasets(self, group: str) -> list[str]:
-        """List available data groups."""
+        """List available datasets."""
 
     @abstractmethod
     def store_to_s3(
