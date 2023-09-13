@@ -619,14 +619,24 @@ class ColumnDescription:
     """
     Store column metadata from a dataset.
 
-    Returns
-    -------
-    name : str
+    Attributes
+    ----------
+    name: str
         The column name.
-    type : str
+    type: str
         The column type.
     description : str, default=""
         The column description
+
+    Methods
+    -------
+    get_type_name:
+        Get the type name of the column.
+    get_type_args:
+        Get a list of type arguments.
+    html:
+        Get an HTML representation of the column.
+
 
     """
 
@@ -669,21 +679,28 @@ class DataSetDescription:
 
     Attributes
     ----------
-    name : str
+    name: str
         The dataset name.
-    group : str
+    group: str
         The datagroup name.
-    description : str
+    description: str
         The dataset description.
-    columns : list[ColumnDescription] or None, default=None
+    columns: list[ColumnDescription] or None, default=None
         The dataset columns.
-    display_name : str or None, default=None
+    display_name: str or None, default=None
         The display name of the dataset.
-    granularity : str or None, default=None
+    granularity: str or None, default=None
         The time granularity of the dataset.
-    pdf_url : str or None, default=None
+    pdf_url: str or None, default=None
         URL to PDF documentation.
-    sample_data_url : str or None, default=None
+    sample_data_url: str or None, default=None
+
+    Methods
+    -------
+    get_table_name:
+        Get the table name of the dataset using the notation ``group.dataset``.
+    html:
+        Get an HTML representation of the dataset.
 
     """
 
@@ -760,12 +777,17 @@ class DataGroupDescription:
 
     Attributes
     ----------
-    name : str
+    name: str
         The data group name.
     display_name : str or None, default=None
         Name used for pretty print.
     description : str or None, default=None
         The data group description.
+
+    Methods
+    -------
+    html:
+        Get an HTML representation of the data group.
 
     """
 

@@ -12,7 +12,7 @@ import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
-from .. import utils
+from .. import constants, utils
 
 date_like = Union[datetime.date, str]
 
@@ -409,6 +409,7 @@ def create_boto3_session(
     profile_name: Optional[str] = None,
     aws_access_key_id: Optional[str] = None,
     aws_secret_access_key: Optional[str] = None,
+    **kwargs,
 ) -> boto3.Session:
     """
     Create a Session instance.
@@ -424,6 +425,8 @@ def create_boto3_session(
         The AWS access key associated with an IAM user or role.
     aws_secret_access_key : str or None, default=None
         Thee secret key associated with the access key.
+    **kwargs :
+        Optional parameters passed to boto3.Session.
 
     Returns
     -------
@@ -438,9 +441,9 @@ def create_boto3_session(
 
     """
     if profile_name is None:
-        session = boto3.Session(aws_access_key_id, aws_secret_access_key)
+        session = boto3.Session(aws_access_key_id, aws_secret_access_key, **kwargs)
     else:
-        session = boto3.Session(profile_name=profile_name)
+        session = boto3.Session(profile_name=profile_name, **kwargs)
     _validate_session(session)
     return session
 
@@ -687,7 +690,7 @@ def _normalize_date(date):
 
 def get_s3_client(session: boto3.Session) -> BaseClient:
     """Create a S3 client."""
-    return cast(BaseClient, session.resource("s3"))
+    return cast(BaseClient, session.resource(constants.S3))
 
 
 def _validate_session(session: boto3.Session):

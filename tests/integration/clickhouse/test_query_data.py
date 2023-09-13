@@ -4,6 +4,7 @@ import pytest
 from clickhouse_sqlalchemy import types as clickhouse_types
 from sqlalchemy import func
 
+from algoseek_connector import Settings, constants
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
@@ -12,11 +13,17 @@ from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
 
 @pytest.fixture(scope="module")
 def data_source():
-    token = AuthToken()
+    api_settings_group = Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP)
+    api_credentials = api_settings_group.get_dict()
+    token = AuthToken(**api_credentials)
     api_consumer = BaseAPIConsumer(token)
     description_provider = ArdaDBDescriptionProvider(api_consumer)
-    ch_client = create_clickhouse_client()
+
+    ardadb_settings = Settings().get_group(constants.ARDADB).get_dict()
+    ardadb_credentials = ardadb_settings[constants.CREDENTIAL_GROUP]
+    ch_client = create_clickhouse_client(**ardadb_credentials)
     client = ClickHouseClient(ch_client)
+
     return DataSource(client, description_provider)
 
 

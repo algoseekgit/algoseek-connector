@@ -13,18 +13,12 @@ BaseAPIConsumer
 """
 from datetime import datetime
 from functools import lru_cache
-from os import getenv
 from typing import Any, Optional, Union
 
 import requests
 
+from . import constants as c
 from .base import InvalidDataGroupName, InvalidDataSetName
-
-# name of env variables used for credential storage
-ALGOSEEK_API_USERNAME_ENV = "ALGOSEEK_API_USERNAME"
-ALGOSEEK_API_PASSWORD_ENV = "ALGOSEEK_API_PASSWORD"
-# default base URL for the API
-BASE_URL = "https://metadata-services.algoseek.com/api/v1/"
 
 
 class BaseAPIConsumer:
@@ -63,7 +57,7 @@ class BaseAPIConsumer:
 
     def __init__(self, token: "AuthToken", base_url: Optional[str] = None) -> None:
         if base_url is None:
-            base_url = BASE_URL
+            base_url = c.BASE_URL
         self._base_url = base_url
         self._token = token
 
@@ -322,14 +316,12 @@ class AuthToken:
 
     Parameters
     ----------
+    user : str
+        The user name to login into the API.
+    password : str
+        The User password.
     login_url : str or None
         The login endpoint. If ``None``, the default login URL is used.
-    user : str
-        The user name to login into the API. If ``None``, the user name is
-        retrieved from the environment variable `ALGOSEEK_API_USERNAME`.
-    password : str
-        The User password. If ``None``, the password is retrieved from the
-        environment variable `ALGOSEEK_API_PASSWORD`.
     **kwargs : dict
         Optional parameters passed to :py:func:`requests.post`
 
@@ -344,27 +336,19 @@ class AuthToken:
 
     def __init__(
         self,
+        user: str,
+        password: str,
         login_url: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
         **kwargs,
     ) -> None:
         if login_url is None:
-            login_url = BASE_URL + "login/access_token/"
+            login_url = c.BASE_URL + "login/access_token/"
 
+        self._user = user
+        self._password = password
         self._login_url = login_url
 
-        if user is None:
-            user = getenv(ALGOSEEK_API_USERNAME_ENV)
-
-        if password is None:
-            password = getenv(ALGOSEEK_API_PASSWORD_ENV)
-
-        if user is None or password is None:
-            msg = "User and password must be provided as parameters or as environment variables."
-            raise ValueError(msg)
-
-        login_metadata = _get_login_metadata(user, password, login_url)
+        login_metadata = _get_login_metadata(user, password, login_url, **kwargs)
         self._token = login_metadata["token"]
         exp_date_str = login_metadata["expiry_date"]
         self._expiry_date = datetime.fromisoformat(exp_date_str)
@@ -389,22 +373,9 @@ class AuthToken:
     def refresh(self):
         """Try to obtain a new token using credentials stored on env variables."""
         if self.expiry_date < datetime.utcnow():
-            user = getenv(ALGOSEEK_API_USERNAME_ENV)
-            if user is None:
-                msg = (
-                    "Automatic metadata API token refresh failed. User name must "
-                    "be set in the environment variable ALGOSEEK_API_USER."
-                )
-                raise ValueError(msg)
-            password = getenv(ALGOSEEK_API_PASSWORD_ENV)
-
-            if password is None:
-                msg = (
-                    "Automatic metadata API token refresh failed. Password must "
-                    "be set in the environment variable ALGOSEEK_API_PASSWORD."
-                )
-                raise ValueError(msg)
-            login_metadata = _get_login_metadata(user, password, self._login_url)
+            login_metadata = _get_login_metadata(
+                self._user, self._password, self._login_url
+            )
             self._token = login_metadata["token"]
             exp_date_str = login_metadata["expiry_date"]
             self._expiry_date = datetime.fromisoformat(exp_date_str)

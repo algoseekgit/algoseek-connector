@@ -5,6 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
+from algoseek_connector import constants
 from algoseek_connector.utils import is_file_equal
 
 
@@ -26,7 +27,7 @@ def session():
 
 @pytest.fixture(scope="module")
 def s3_resource(session: boto3.Session):
-    return session.resource("s3")
+    return session.resource(constants.S3)
 
 
 @pytest.fixture(scope="module")

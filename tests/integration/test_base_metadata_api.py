@@ -3,27 +3,9 @@ from datetime import datetime
 import pytest
 from requests.exceptions import HTTPError
 
-from algoseek_connector import metadata_api
+from algoseek_connector import Settings, constants
 from algoseek_connector.base import InvalidDataGroupName, InvalidDataSetName
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
-
-
-def test_AuthToken_no_user_provided(monkeypatch):
-    password = "InvalidPassword"
-
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME_ENV)
-
-    with pytest.raises(ValueError):
-        AuthToken(password=password)
-
-
-def test_AuthToken_no_password_provided(monkeypatch):
-    user = "mock-user"
-
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD_ENV)
-
-    with pytest.raises(ValueError):
-        AuthToken(user=user)
 
 
 def test_AuthToken_auth_error():
@@ -34,45 +16,28 @@ def test_AuthToken_auth_error():
 
 
 @pytest.fixture(scope="module")
-def auth_token():
-    return AuthToken()
+def credentials():
+    return Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
 
 
-def test_AuthToken_expiration_date():
+@pytest.fixture(scope="module")
+def auth_token(credentials):
+    return AuthToken(**credentials)
+
+
+def test_AuthToken_expiration_date(credentials):
     now = datetime.utcnow()
-    token = AuthToken()
+    token = AuthToken(**credentials)
     assert token.expiry_date > now
 
 
-def test_AuthToken_refresh():
-    token = AuthToken()
+def test_AuthToken_refresh(credentials):
+    token = AuthToken(**credentials)
     # set a dummy expiration date
     token._expiry_date = datetime.utcnow()
     now = datetime.utcnow()
     token.refresh()
     assert now < token.expiry_date
-
-
-def test_AuthToken_refresh_raises_value_error_if_user_env_variable_is_not_set(
-    monkeypatch,
-):
-    token = AuthToken()
-    # set a dummy expiration date
-    token._expiry_date = datetime.utcnow()
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_USERNAME_ENV)
-    with pytest.raises(ValueError):
-        token.refresh()
-
-
-def test_AuthToken_refresh_raises_value_error_if_password_env_variable_is_not_set(
-    monkeypatch,
-):
-    token = AuthToken()
-    # set a dummy expiration date
-    token._expiry_date = datetime.utcnow()
-    monkeypatch.delenv(metadata_api.ALGOSEEK_API_PASSWORD_ENV)
-    with pytest.raises(ValueError):
-        token.refresh()
 
 
 @pytest.fixture(scope="module")

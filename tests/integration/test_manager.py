@@ -4,6 +4,7 @@ from typing import cast
 import pytest
 
 import algoseek_connector as ac
+import algoseek_connector.constants as c
 
 
 @pytest.fixture(scope="module")
@@ -13,17 +14,17 @@ def manager():
 
 @pytest.fixture(scope="module")
 def ardadb(manager):
-    return manager.create_data_source(ac.manager.ARDADB)
+    return manager.create_data_source(c.ARDADB)
 
 
 @pytest.fixture(scope="module")
 def s3(manager: ac.ResourceManager):
-    return manager.create_data_source(ac.manager.S3)
+    return manager.create_data_source(c.S3)
 
 
 def test_list_data_sources(manager: ac.ResourceManager):
     actual = manager.list_data_sources()
-    assert ac.manager.ARDADB in actual
+    assert c.ARDADB in actual
 
 
 def test_ardadb_datasource_fetch_data_group(ardadb: ac.base.DataSource):
@@ -50,14 +51,6 @@ def test_ardadb_simple_query(ardadb: ac.base.DataSource):
     stmt = dataset.select().limit(limit)
     df = dataset.fetch_dataframe(stmt)
     assert df.shape[0] == limit
-
-
-def test_create_s3_data_source(manager: ac.ResourceManager):
-    config = {"profile_name": "algoseek-datasets"}
-    s3 = manager.create_data_source(ac.manager.S3, **config)
-    client = cast(ac.s3.S3DownloaderClient, s3.client)
-
-    assert client._file_downloader.session.profile_name == config["profile_name"]
 
 
 def test_s3_list_data_groups(s3: ac.base.DataSource):
