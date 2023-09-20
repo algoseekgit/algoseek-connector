@@ -154,7 +154,9 @@ class BucketWrapper:
             Bucket=bucket_name
         )
         location = location_metadata["LocationConstraint"]
-        return f"https://s3-{location}.amazonaws.com/{bucket_name}/{key}"
+        # using virtual style style address
+        # https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html#virtual-hosted-style-access
+        return f"https://{bucket_name}.s3.{location}.amazonaws.com/{key}"
 
     def upload_file(self, key: str, upload_path: Path):
         """
