@@ -144,11 +144,8 @@ class DataGroupFetcher:
     def fetch(self) -> "DataGroup":
         """Create the data group instance."""
         if self._group is None:
-            group = DataGroup(self._source, self.description)
-            self._group = group
-        else:
-            group = self._group
-        return group
+            self._group = DataGroup(self._source, self.description)
+        return self._group
 
     def _repr_html_(self):  # pragma: no cover
         """Display the DataGroup in jupyter notebooks using HTML."""
@@ -326,11 +323,8 @@ class DataSetFetcher:
 
         """
         if self._dataset is None:
-            dataset = DataSet(self.group, self.description)
-            self._dataset = dataset
-        else:
-            dataset = self._dataset
-        return dataset
+            self._dataset = DataSet(self.group, self.description)
+        return self._dataset
 
     def _repr_html_(self):  # pragma: no cover:
         """Display the Dataset in jupyter notebooks using HTML."""
