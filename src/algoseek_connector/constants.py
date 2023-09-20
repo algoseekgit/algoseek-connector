@@ -1,0 +1,48 @@
+"""Constants used in the library."""
+
+# Data source names
+ARDADB = "ardadb"
+S3 = "s3"
+DATA_SOURCES = [ARDADB, S3]
+
+# User configuration
+ALGOSEEK_DIR = ".algoseek"
+CONFIG_FILENAME = "config.toml"
+DEFAULT_CONFIG_FILENAME = "default-config.toml"
+CREDENTIAL_GROUP = "credentials"
+SETTINGS_GROUP = "settings"
+METADATA_SERVICE_SETTINGS_GROUP = "metadata_service"
+QUOTA_GROUP = "quota"
+
+# ArdaDB credentials fields
+ARDADB_HOST_VAR = "host"
+ARDADB_PORT_VAR = "port"
+ARDADB_USERNAME_VAR = "user"
+ARDADB_PASSWORD_VAR = "password"
+
+# AWS credentials fields
+AWS_PROFILE_NAME_VAR = "profile_name"
+AWS_ACCESS_KEY_ID_VAR = "aws_access_key_id"
+AWS_SECRET_ACCESS_KEY_VAR = "aws_secret_access_key"
+
+# metadata services credentials fields
+METADATA_SERVICES_USER_VAR = "user"
+METADATA_SERVICES_PASSWORD_VAR = "password"
+
+# S3 quota fields
+DOWNLOAD_LIMIT_FIELD = "download_limit"
+HARD_DOWNLOAD_FIELD = "download_limit_do_not_change"
+
+# metadata API
+BASE_URL = "https://metadata-services.algoseek.com/api/v1/"
+
+# Environment variables
+ALGOSEEK_API_USERNAME_ENV = "ALGOSEEK_API_USERNAME"
+ALGOSEEK_API_PASSWORD_ENV = "ALGOSEEK_API_PASSWORD"
+ALGOSEEK_ARDADB_HOST_ENV = "ALGOSEEK_ARDADB_HOST"
+ALGOSEEK_ARDADB_PORT_ENV = "ALGOSEEK_ARDADB_PORT"
+ALGOSEEK_ARDADB_USERNAME_ENV = "ALGOSEEK_ARDADB_USERNAME"
+ALGOSEEK_ARDADB_PASSWORD_ENV = "ALGOSEEK_ARDADB_PASSWORD"
+ALGOSEEK_AWS_PROFILE_ENV = "ALGOSEEK_AWS_PROFILE"
+ALGOSEEK_AWS_ACCESS_KEY_ID_ENV = "ALGOSEEK_AWS_ACCESS_KEY_ID"
+ALGOSEEK_AWS_SECRET_ACCESS_KEY_ENV = "ALGOSEEK_AWS_SECRET_ACCESS_KEY"

@@ -1,17 +1,30 @@
-init:
-	pip3 install -r requirements.txt
+# User installation
+.PHONY: install
+	poetry install
 
-flake8:
-	flake8 --ignore=E123,E501,F401,E128,E402,E731,F821,N816 algoseek_connector
+# Install repository for development
+.PHONY: dev-install
+dev-install:
+	poetry install --with dev,docs
+	poetry run pre-commit install
 
-test:
-	python3 -m unittest discover -s tests/
+# Run unit tests
+.PHONY: unit-tests
+unit-tests:
+	poetry run pytest
 
-install:
-	python3 setup.py install
+# Run integration tests
+.PHONY: integration-tests
+integration-tests:
+	poetry run pytest tests/integration
 
-publish:
-	pip3 install 'twine>=1.5.0' 'wheel'
-	python3 setup.py sdist bdist_wheel
-	twine upload --verbose dist/*
-	rm -rf build dist .egg algoseek_connector.egg-info
+# Run learning tests
+.PHONY: learning-tests
+learning-tests:
+	poetry run pytest tests/learning
+
+# Run all tests and check code coverage.
+.PHONY: coverage
+coverage:
+	poetry run pytest --cov=src tests
+	poetry run coverage html

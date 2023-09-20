@@ -1,3 +1,0 @@
-clickhouse-driver[lz4,numpy]
-pandas
-notebook

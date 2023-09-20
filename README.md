@@ -3,33 +3,6 @@
 A wrapper library for ORM-like SQL builder and executor.
 The library provides a simple pythonic interface to algoseek datasets with custom data filtering/selection.
 
-## Dev installation
-
-`algoseek-connector` is installed using [Poetry](https://python-poetry.org/docs/#installation).
-
-Inside the project repository run:
-
-    poetry install
-
-Before commit changes, run linters and formatter using pre-commit:
-
-    poetry run pre-commit run
-
-## Installing and Supported Versions
-
-algoseek-connector is available on PyPI:
-
-```
-$ python -m pip install algoseek-connector
-```
-
-or alternatively
-
-```
-$ pip install algoseek-connector
-```
-
-Python versions 3.6+ are supported.
 ## Supported Features
 
 The following query operations on datasets are supported:
@@ -37,132 +10,51 @@ The following query operations on datasets are supported:
 - Filtering by column value/column expression
 - Grouping by column(s)
 - Sorting by column(s)
-- All common artithmetic, logical operations on dataset columns and function application
-- Fetching query results as a pandas dataframe
+- All common arithmetic, logical operations on dataset columns and function application
+- Fetching query results as a pandas DataFrame
 
-## Getting Started
+## Installation
 
+`algoseek-connector` is available on the Python Package Index. Install it using
+the `pip` command:
 
-### Creating a session
+    pip install algoseek-connector
 
-A database connection is created with a `Session` object
-with the DB host, username and password provided.
-```
-import algoseek_connector as aconnect
+## Documentation
 
-host = '123.123.123.123'
-user = 'demo'
-password ='secret-password-2000'
+Documentation is available on `ADD-LINK-WHEN-AVAILABLE`.
 
-session = aconnect.Session(host, user, password)
-```
+## Dev installation
 
-Optionally a port number is provided unless it is a default value of 9000.
+`algoseek-connector` is installed using [Poetry](https://python-poetry.org/docs/#installation).
 
-### Configuring a session with environment variables
+A Makefile recipe is available to install the package in developer mode along
+with developer dependencies:
 
-You can make use of the following environment variables to set up the databse connection:
-
-- AS_DATABASE_HOST
-- AS_DATABASE_PORT
-- AS_DATABASE_USER
-- AS_DATABASE_PASSWORD
-
-In this case an empty session is created with user credentials read from the environment.
-
-```
-session = aconnect.Session()
+```sh
+make dev-install
 ```
 
-### Executing raw queries
+If `make` is not available, run:
 
-A Session object can be used to execute a SQL query directly
+    poetry install --with dev,docs
+    pre-commit install
 
-```
-session.execute('''
-SELECT * FROM USEquityMarketData.TradeOnly
-WHERE Ticker = 'IBM'
-LIMIT 10''')
-```
+## Testing
 
-### Datagroups and datasets
+Refer to the README inside the tests directory.
 
-All datasets available are grouped into data groups
-Is structured into datagroups, e.g. USEquityMarketData, USFuturesMarketData, etc.
+# Building the docs
 
-You can browse the list of available data groups with the `DataResource`
+The documentation is generated using the sphinx library. First, install
+the necessary dependencies with the following command:
 
-```
-resource = DataResource(session)
-for dgr in resource.datagroups.all():
-    print(dgr.name)
+```sh
+poetry install --with docs
 ```
 
-Similarly, you can access the list of datasets of a specific data group:
+Build the documentation using the Makefile located in the `docs` directory:
 
+```sh
+make html
 ```
-datagroup = resource.datagroup('USEquityMarketData')
-for dts in datagroup.datasets.all():
-    print(dts.name)
-```
-
-Alternatively, getting a specific dataset directly:
-```
-dataset = aconnect.Dataset(
-    'USEquityMarketData', 'TradeOnlyMinuteBar', session=session
-)
-```
-
-
-### Selecting a subset of columns
-
-To get specific columns the `Dataset.select` method is used:
-
-```
-ds = aconnect.Dataset(
-    'USEquityMarketData', 'TradeOnly', session=session
-)
-ds.select(
-    ds.EventDateTime, ds.Ticker, ds.Price
-).head()
-```
-
-### Dataset filtering
-
-Filtering expressions can be chained using `&` (AND) and `|` (OR) operators, a `~` is used for negation (NOT).
-
-```
-ds = aconnect.Dataset(
-    'USEquityMarketData', 'TradeOnly', session=session
-)
-ds.select(
-    ds.EventDateTime, ds.Ticker, ds.Price
-).filter(
-    ds.TradeDate.between('2022-01-01', '2022-01-31') &
-    (ds.Ticker = 'TSLA') &
-    (ds.Quantity < 100)
-).head()
-```
-
-### Getting results
-
-You can make use of `Dataset.fetch` method to execute the generated query and get results as a pandas dataframe:
-
-```
-ds = aconnect.Dataset(
-    'USEquityMarketData', 'TradeOnlyMinuteBar', session=session
-)
-
-ds.select(
-    ds.BarDateTime,
-    ds.Ticker,
-    ds.Volume
-).filter(
-    ds.Ticker,isin(['AAPL', 'FB']) &
-    ds.TradeDate > '2022-05-01'
-).fetch()
-```
-
-## TODO
-
-- pandas dataframe parse date/time columns
