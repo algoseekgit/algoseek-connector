@@ -46,7 +46,7 @@ from __future__ import annotations  # delayed annotations
 import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol, Union
+from typing import TYPE_CHECKING, Protocol, Union, cast
 
 from sqlalchemy import Column, MetaData, Table, func, select
 from sqlalchemy.sql import Select
@@ -559,6 +559,23 @@ class DataSet:
     def compile(self, stmt: Select) -> CompiledQuery:
         """Compiles the statement into a dialect-specific SQL string."""
         return self.source.client.compile(stmt)
+
+    def head(self, n: int = 10) -> DataFrame:
+        """
+        Retrieve the first `n` rows of a dataset.
+
+        Parameters
+        ----------
+        n: int, default=10
+            The number of rows to retrieve.
+
+        Returns
+        -------
+        pandas.DataFrame
+
+        """
+        stmt = cast(Select, self.select().limit(n))
+        return self.fetch_dataframe(stmt)
 
     def store_to_s3(
         self,
