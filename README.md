@@ -61,3 +61,12 @@ Build the documentation using the Makefile located in the `docs` directory:
 ```sh
 make html
 ```
+
+## Publishing to pypi
+
+In order to pubish a new package version to pypi:
+
+- update library version in `pyproject.toml` (note, we use semantic versioning with where version numbers correspond to major, minor and patch)
+- run `poetry build` to create a package
+- configure your pypi credentials for poetry with `poetry config http-basic.pypi <username> <password>`
+- run `poetry publish` to publish the library to PyPI
