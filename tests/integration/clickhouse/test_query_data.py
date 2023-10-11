@@ -35,6 +35,12 @@ def dataset(data_source: DataSource):
     return group.fetch_dataset(dataset_name)
 
 
+@pytest.mark.parametrize("n", [5, 10, 20])
+def test_head(n, dataset: DataSet):
+    df = dataset.head(n)
+    assert df.shape[0] == n
+
+
 def test_select(dataset: DataSet):
     limit = 10
     stmt = dataset.select().limit(limit)

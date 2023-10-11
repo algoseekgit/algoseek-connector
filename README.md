@@ -1,4 +1,7 @@
-# algoseek-connector
+Algoseek Connector
+==================
+
+[![Documentation Status](https://readthedocs.org/projects/algoseek-connector/badge/?version=latest)](https://algoseek-connector.readthedocs.io/en/latest/?badge=latest) ![example workflow](https://github.com/algoseekgit/algoseek-connector/actions/workflows/unit-tests.yml/badge.svg)
 
 A wrapper library for ORM-like SQL builder and executor.
 The library provides a simple pythonic interface to algoseek datasets with custom data filtering/selection.
@@ -22,7 +25,7 @@ the `pip` command:
 
 ## Documentation
 
-Documentation is available on `ADD-LINK-WHEN-AVAILABLE`.
+Documentation is available [here](https://algoseek-connector.readthedocs.io/en/latest/index.html).
 
 ## Dev installation
 

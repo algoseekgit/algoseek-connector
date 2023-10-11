@@ -32,7 +32,7 @@ html_theme = "alabaster"
 html_static_path = ["_static"]
 
 html_theme_options = {
-    "logo": "logo-full.png",
+    "logo": "logo-full-padded.png",
     "description": "The Python entry point for Algoseek datasets",
     "fixed_sidebar": True,
     "sidebar_width": "300px",
