@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "algoseek-connector"
-version = "2.0.1"
+version = "2.1.0"
 description = "A wrapper library for ORM-like SQL builder and executor"
 authors = [
     "Taras Kuzyo <taras@algoseek.com>",
-    "Gabriel Riquelme <gabrielr@algoseek.com>"
+    "Gabriel Riquelme <gabrielr@algoseek.com>",
 ]
 license = "Apache-2.0"
 readme = "README.md"
-packages = [{include = "algoseek_connector", from = "src"}]
+packages = [{ include = "algoseek_connector", from = "src" }]
 include = ["LICENSE", "NOTICE"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Database",
     "Topic :: Software Development",
     "Topic :: Software Development :: Libraries",
-    "Topic :: Software Development :: Libraries :: Python Modules"
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 [tool.poetry.dependencies]
@@ -65,9 +65,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests/unit",
-]
+testpaths = ["tests/unit"]
 
 [tool.isort]
 profile = "black"
