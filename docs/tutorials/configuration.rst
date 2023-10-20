@@ -57,11 +57,6 @@ This creates the following file:
 
 .. code-block:: toml
 
-
-    [metadata_service]
-    # user = "default"
-    # password = "default"
-
     [ardadb.credentials]
     # uncomment fields and edit fields
     # host = "0.0.0.0"
@@ -94,12 +89,6 @@ This creates the following file:
 Available settings
 ------------------
 
-**metadata_service**
-    -   `user`: The user name to connect to Algoseek metadata services, which provide
-        description of the different datasets. env: ``ALGOSEEK_API_USERNAME``. Editable
-        at runtime: yes.
-    -   `password`: Password for the metadata services. env:
-        ``ALGOSEEK_API_PASSWORD``. Editable at runtime: yes.
 **ardadb.credentials**
     -   `host`: The ArdaDB host address. env: ``ALGOSEEK_ARDADB_HOST``. Editable
         at runtime: yes.
