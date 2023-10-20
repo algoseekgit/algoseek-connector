@@ -270,12 +270,14 @@ def _create_metadata_services_settings_group(
             "description": "The metadata services user.",
             "validator": _validate_non_empty_str,
             "env": c.ALGOSEEK_API_USERNAME_ENV,
+            "value": "algoseek_connector_public",
         },
         {
             "name": c.METADATA_SERVICES_PASSWORD_VAR,
             "description": "The metadata services password.",
             "env": c.ALGOSEEK_API_PASSWORD_ENV,
             "validator": _validate_non_empty_str,
+            "value": "Q2fGUsaKWZvNkcB5cRblDxzDRFP8GQOA",
         },
     ]
     for p in field_parameters:
