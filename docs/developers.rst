@@ -75,7 +75,8 @@ is set through environment variables:
 
 **Metadata API**
     Set user/pass using the environment variables ``ALGOSEEK_API_USERNAME`` and
-    ``ALGOSEEK_API_PASSWORD``.
+    ``ALGOSEEK_API_PASSWORD``. If no credentials are provided, the public
+    credentials are used.
 
 **ArdaDB**
     Set host address, port, user and password using the environment variables
