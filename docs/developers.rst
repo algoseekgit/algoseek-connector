@@ -73,10 +73,6 @@ unit:
 Integration and learning tests need access to external resources to run. Access
 is set through environment variables:
 
-**Metadata API**
-    Set user/pass using the environment variables ``ALGOSEEK_API_USERNAME`` and
-    ``ALGOSEEK_API_PASSWORD``.
-
 **ArdaDB**
     Set host address, port, user and password using the environment variables
     ``ALGOSEEK_ARDADB_HOST``, ``ALGOSEEK_ARDADB_USER`` and
