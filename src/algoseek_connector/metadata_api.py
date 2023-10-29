@@ -391,5 +391,5 @@ def _get_login_metadata(user: str, password: str, url: str, **kwargs) -> dict[st
     if response.status_code == requests.codes.OK:
         return response.json()
     else:
-        msg = "Login failed with code {response.status_code}"
+        msg = f"Login failed with code {response.status_code}"
         raise requests.HTTPError(msg)
