@@ -206,7 +206,9 @@ class S3DescriptionProvider(base.DescriptionProvider):
             display_name = group
         return base.DataGroupDescription(group, description, display_name)
 
-    def get_columns_description(self, dataset: str) -> list[base.ColumnDescription]:
+    def get_columns_description(
+        self, group: str, dataset: str
+    ) -> list[base.ColumnDescription]:
         """
         Get the description of the dataset columns.
 
@@ -253,7 +255,7 @@ class S3DescriptionProvider(base.DescriptionProvider):
         InvalidDataSetName
 
         """
-        columns = self.get_columns_description(dataset)
+        columns = self.get_columns_description(group, dataset)
         try:
             dataset_metadata = self._api.get_dataset_metadata(dataset)
             display_name = dataset_metadata["display_name"]
