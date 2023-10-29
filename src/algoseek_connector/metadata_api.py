@@ -121,7 +121,10 @@ class BaseAPIConsumer:
         """
         endpoint = "public/data_group/"
         response = self.get(endpoint)
-        return {x["text_id"]: x for x in response.json()}
+        metadata = {x["text_id"]: x for x in response.json()}
+        # TODO: delete once etf/etn is removed from metadata API
+        metadata.pop("us_etf_etn")
+        return metadata
 
     @lru_cache
     def _fetch_dataset_platform_metadata(self) -> dict[str, dict]:
