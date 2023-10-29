@@ -384,6 +384,12 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
                 group_dict[ardadb_dataset] = dataset
         return res
 
+    def _get_api_data_group_text_id(self, ardadb_group: str) -> str:
+        return self._ardadb_group_to_api_group()[ardadb_group]
+
+    def _get_api_dataset_text_id(self, ardadb_group: str, ardadb_dataset: str) -> str:
+        return self._ardadb_dataset_to_api_dataset()[ardadb_group][ardadb_dataset]
+
     def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
         """
         Get the description of a datagroup.
@@ -399,7 +405,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            group_text_id = self._ardadb_group_to_api_group()[group]
+            group_text_id = self._get_api_data_group_text_id(group)
             datagroup_metadata = self._api.get_datagroup_metadata(group_text_id)
             display_name = datagroup_metadata["display_name"]
             description = datagroup_metadata["description"]
@@ -425,8 +431,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            group_datasets = self._ardadb_dataset_to_api_dataset()[group]
-            dataset_text_id = group_datasets[dataset]
+            dataset_text_id = self._get_api_dataset_text_id(group, dataset)
             dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
             db_metadata = dataset_metadata["database_table"]
             columns = list()

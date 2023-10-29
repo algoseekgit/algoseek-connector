@@ -244,3 +244,42 @@ def test_ClickHouseClient_store_to_s3_overwrite_raises_error(
     s3_client = s3.downloader.get_s3_client(boto3_session)
     bucket = s3.downloader.BucketWrapper(s3_client, bucket)
     bucket.delete_file(key)
+
+
+@pytest.mark.parametrize(
+    "ardadb_group,api_group",
+    [
+        ("USEquityMarketData", "us_equity"),
+        ("USEquityReferenceData", "us_equity_ref"),
+        ("USFuturesMarketData", "cme_futures"),
+    ],
+)
+def test_ArdaDBDescriptionProvider_get_api_group_text_id(
+    data_source: DataSource, ardadb_group, api_group
+):
+    description_provider = cast(
+        ArdaDBDescriptionProvider, data_source.description_provider
+    )
+    actual = description_provider._get_api_data_group_text_id(ardadb_group)
+    assert actual == api_group
+
+
+@pytest.mark.parametrize(
+    "ardadb_group,ardadb_dataset,dataset_text_id",
+    [
+        ("USEquityMarketData", "TradeAndQuote", "eq_taq"),
+        ("USEquityMarketData", "TradeOnly", "eq_trades"),
+        ("USEquityReferenceData", "BasicAdjustments", "eq_adj_factors_basic"),
+    ],
+)
+def test_ArdaDBDescriptionProvider_get_api_dataset_text_id(
+    data_source: DataSource,
+    ardadb_group: str,
+    ardadb_dataset: str,
+    dataset_text_id: str,
+):
+    description_provider = cast(
+        ArdaDBDescriptionProvider, data_source.description_provider
+    )
+    actual = description_provider._get_api_dataset_text_id(ardadb_group, ardadb_dataset)
+    assert actual == dataset_text_id
