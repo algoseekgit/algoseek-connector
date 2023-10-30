@@ -925,7 +925,9 @@ class DescriptionProvider(Protocol):
         """Get the description of a dataset."""
 
     @abstractmethod
-    def get_columns_description(self, dataset: str) -> list[ColumnDescription]:
+    def get_columns_description(
+        self, group: str, dataset: str
+    ) -> list[ColumnDescription]:
         """Get the description of columns in a dataset."""
 
 

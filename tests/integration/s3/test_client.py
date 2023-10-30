@@ -137,8 +137,11 @@ def description_provider(api: BaseAPIConsumer):
 def test_S3DescriptionProvider_get_columns_description(
     description_provider: S3DescriptionProvider,
 ):
-    text_id = "eq_taq_1min"
-    actual = description_provider.get_columns_description(text_id)
+    group_text_id = "us_equity"
+    dataset_text_id = "eq_taq_1min"
+    actual = description_provider.get_columns_description(
+        group_text_id, dataset_text_id
+    )
     assert len(actual)
     assert all(isinstance(x, ac.base.ColumnDescription) for x in actual)
 
@@ -146,8 +149,11 @@ def test_S3DescriptionProvider_get_columns_description(
 def test_S3DescriptionProvider_get_columns_description_non_existent_returns_empty_list(
     description_provider: S3DescriptionProvider,
 ):
-    text_id = "NonExistentDataSet"
-    actual = description_provider.get_columns_description(text_id)
+    group_text_id = "us_equity"
+    dataset_text_id = "NonExistentDataSet"
+    actual = description_provider.get_columns_description(
+        group_text_id, dataset_text_id
+    )
     assert not actual
 
 

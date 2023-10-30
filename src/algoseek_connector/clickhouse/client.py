@@ -370,7 +370,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         return res
 
     @lru_cache
-    def _ardadb_dataset_to_api_dataset(self) -> dict[str, str]:
+    def _ardadb_dataset_to_api_dataset(self) -> dict[str, dict[str, str]]:
         """Create a dictionary that maps the dataset name used in ArdaDB to the API name."""
         api_datasets = self._api.list_datasets()
         res = dict()
@@ -379,9 +379,16 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
             db_metadata = dataset_metadata.get("database_table")
             if db_metadata is not None:
                 # table name is DBName.TableName
-                ardadb_dataset = db_metadata["table_name"].split(".")[-1]
-                res[ardadb_dataset] = dataset
+                arda_db_group, ardadb_dataset = db_metadata["table_name"].split(".")
+                group_dict = res.setdefault(arda_db_group, dict())
+                group_dict[ardadb_dataset] = dataset
         return res
+
+    def _get_api_data_group_text_id(self, ardadb_group: str) -> str:
+        return self._ardadb_group_to_api_group()[ardadb_group]
+
+    def _get_api_dataset_text_id(self, ardadb_group: str, ardadb_dataset: str) -> str:
+        return self._ardadb_dataset_to_api_dataset()[ardadb_group][ardadb_dataset]
 
     def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
         """
@@ -398,7 +405,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            group_text_id = self._ardadb_group_to_api_group()[group]
+            group_text_id = self._get_api_data_group_text_id(group)
             datagroup_metadata = self._api.get_datagroup_metadata(group_text_id)
             display_name = datagroup_metadata["display_name"]
             description = datagroup_metadata["description"]
@@ -407,7 +414,9 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
             display_name = group
         return base.DataGroupDescription(group, description, display_name)
 
-    def get_columns_description(self, dataset: str) -> list[base.ColumnDescription]:
+    def get_columns_description(
+        self, group: str, dataset: str
+    ) -> list[base.ColumnDescription]:
         """
         Get the description of the dataset columns.
 
@@ -422,7 +431,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
+            dataset_text_id = self._get_api_dataset_text_id(group, dataset)
             dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
             db_metadata = dataset_metadata["database_table"]
             columns = list()
@@ -451,10 +460,11 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         DatasetDescription
 
         """
-        columns = self.get_columns_description(dataset)
+        columns = self.get_columns_description(group, dataset)
         try:
             # datasets not available on the API will raise KeyError.
-            dataset_text_id = self._ardadb_dataset_to_api_dataset()[dataset]
+            group_datasets = self._ardadb_dataset_to_api_dataset()[group]
+            dataset_text_id = group_datasets[dataset]
             dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
             display_name = dataset_metadata["display_name"]
             description = dataset_metadata["long_description"]
