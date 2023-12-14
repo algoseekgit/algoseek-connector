@@ -26,6 +26,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+[tool.poetry.urls]
+"GitHub" = "https://github.com/algoseekgit/algoseek-connector/"
+"Documentation" = "https://algoseek-connector.readthedocs.io/"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.31.0"
