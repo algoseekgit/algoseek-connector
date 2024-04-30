@@ -1,4 +1,4 @@
-name: "unit-tests: pytest"
+name: Pull request
 
 on:
   pull_request:
@@ -21,6 +21,15 @@ jobs:
         run: |
           pip install poetry
           poetry install --with dev
+      - name: Check code quality
+        if: ${{ always() }}
+        run: |
+          ruff check src --output-format=github
+
+      - name: Check code formatting
+        if: ${{ always() }}
+        run: |
+          ruff format src --check
       - name: Test with pytest
         run: |
           poetry run pytest tests/unit
