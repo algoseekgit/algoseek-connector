@@ -28,3 +28,8 @@ learning-tests:
 coverage:
 	poetry run pytest --cov=src tests
 	poetry run coverage html
+
+.PHONY: format
+format:
+	poetry run ruff check --fix
+	poetry run ruff format
