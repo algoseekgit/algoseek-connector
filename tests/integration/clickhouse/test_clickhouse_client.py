@@ -4,13 +4,12 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from pandas import DataFrame
-
 from algoseek_connector import Settings, base, constants, s3
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from pandas import DataFrame
 
 DEV_BUCKET = "algoseek-connector-dev"
 ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
@@ -20,9 +19,7 @@ ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_K
 
 @pytest.fixture(scope="module")
 def data_source():
-    api_credentials = (
-        Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
-    )
+    api_credentials = Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
     token = AuthToken(**api_credentials)
     api_consumer = BaseAPIConsumer(token)
     description_provider = ArdaDBDescriptionProvider(api_consumer)
@@ -212,9 +209,7 @@ def test_ClickHouseClient_store_to_s3(dataset: DataSet, tmp_path: Path):
     bucket.delete_file(key)
 
 
-def test_ClickHouseClient_store_to_s3_overwrite_raises_error(
-    dataset: DataSet, tmp_path: Path
-):
+def test_ClickHouseClient_store_to_s3_overwrite_raises_error(dataset: DataSet, tmp_path: Path):
     stmt = dataset.select().limit(5)
     bucket = DEV_BUCKET
     key = "test-query-data.csv"
@@ -254,12 +249,8 @@ def test_ClickHouseClient_store_to_s3_overwrite_raises_error(
         ("USFuturesMarketData", "cme_futures"),
     ],
 )
-def test_ArdaDBDescriptionProvider_get_api_group_text_id(
-    data_source: DataSource, ardadb_group, api_group
-):
-    description_provider = cast(
-        ArdaDBDescriptionProvider, data_source.description_provider
-    )
+def test_ArdaDBDescriptionProvider_get_api_group_text_id(data_source: DataSource, ardadb_group, api_group):
+    description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
     actual = description_provider._get_api_data_group_text_id(ardadb_group)
     assert actual == api_group
 
@@ -278,8 +269,6 @@ def test_ArdaDBDescriptionProvider_get_api_dataset_text_id(
     ardadb_dataset: str,
     dataset_text_id: str,
 ):
-    description_provider = cast(
-        ArdaDBDescriptionProvider, data_source.description_provider
-    )
+    description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
     actual = description_provider._get_api_dataset_text_id(ardadb_group, ardadb_dataset)
     assert actual == dataset_text_id

@@ -1,14 +1,13 @@
 """Tests data retrieved from the DB."""
 
 import pytest
-from clickhouse_sqlalchemy import types as clickhouse_types
-from sqlalchemy import func
-
 from algoseek_connector import Settings, constants
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
 from algoseek_connector.clickhouse.client import create_clickhouse_client
 from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from clickhouse_sqlalchemy import types as clickhouse_types
+from sqlalchemy import func
 
 
 @pytest.fixture(scope="module")

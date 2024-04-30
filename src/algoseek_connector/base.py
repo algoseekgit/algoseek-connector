@@ -84,9 +84,7 @@ class DataSource:
 
     """
 
-    def __init__(
-        self, client: ClientProtocol, description_provider: DescriptionProvider
-    ):
+    def __init__(self, client: ClientProtocol, description_provider: DescriptionProvider):
         self.description_provider = description_provider
         self.client = client
         groups = [DataGroupFetcher(self, x) for x in self.client.list_datagroups()]
@@ -262,9 +260,7 @@ class DataSetFetcher:
         self._group = group
         self._source = group.source
         group_name = self.group.description.name
-        self._description = group.source.description_provider.get_dataset_description(
-            group_name, name
-        )
+        self._description = group.source.description_provider.get_dataset_description(group_name, name)
         self._dataset = None
 
     @property
@@ -304,14 +300,12 @@ class DataSetFetcher:
             download data from this specific date.
         symbols : str or list[str]
             Download data associated with these symbols.
-        expiration date : str, datetime.date, tuple or None, default=None
+        expiration_date : str, datetime.date, tuple or None, default=None
             Download data with expiration dates in this date range. Dates must
             be passed using the same format used for the `date` parameter.
 
         """
-        self.source.client.download(
-            self.description.name, download_path, date, symbols, expiration_date
-        )
+        self.source.client.download(self.description.name, download_path, date, symbols, expiration_date)
 
     def fetch(self) -> DataSet:
         """
@@ -408,9 +402,7 @@ class DataSet:
         """Get a handle for fast access to supported functions."""
         return self.source.client.create_function_handle()
 
-    def select(
-        self, *args: Column, exclude: Optional[Sequence[Column]] = None
-    ) -> Select:
+    def select(self, *args: Column, exclude: Optional[Sequence[Column]] = None) -> Select:
         """
         Create a select statement using chained methods with SQL-like syntax.
 
@@ -446,13 +438,8 @@ class DataSet:
         return select(*columns)
 
     def execute(
-        self,
-        sql: str,
-        parameters: Optional[dict] = None,
-        output: str = "python",
-        size: Optional[int] = None,
-        **kwargs,
-    ) -> Union[dict, DataFrame]:
+        self, sql: str, parameters: Optional[dict] = None, output: str = "python", size: Optional[int] = None, **kwargs
+    ) -> dict | DataFrame:
         """
         Execute raw SQL queries.
 
@@ -465,8 +452,9 @@ class DataSet:
         output : {"python", "dataframe"}
             Output format for query results.
         size : int or None
-            If a size is specified, split the results in chunks of the specified
-            size.
+            If a size is specified, split the results in chunks of the specified size.
+        kwargs : dict
+            Extra keyword arguments passed to the underlying client.
 
         """
         return self.source.client.execute(sql, parameters, output, **kwargs)
@@ -487,9 +475,7 @@ class DataSet:
         query = self.source.client.compile(stmt)
         return self.source.client.fetch(query, **kwargs)
 
-    def fetch_iter(
-        self, stmt: Select, size: int, **kwargs
-    ) -> Generator[dict[str, tuple], None, None]:
+    def fetch_iter(self, stmt: Select, size: int, **kwargs) -> Generator[dict[str, tuple], None, None]:
         """
         Stream data using a select statement.
 
@@ -532,9 +518,7 @@ class DataSet:
         query = self.source.client.compile(stmt)
         return self.source.client.fetch_dataframe(query, **kwargs)
 
-    def fetch_iter_dataframe(
-        self, stmt: Select, size: int, **kwargs
-    ) -> Generator[DataFrame, None, None]:
+    def fetch_iter_dataframe(self, stmt: Select, size: int, **kwargs) -> Generator[DataFrame, None, None]:
         """
         Stream data using a select statement. Output data as Pandas DataFrame.
 
@@ -612,9 +596,7 @@ class DataSet:
 
         """
         query = self.compile(stmt)
-        self.source.client.store_to_s3(
-            query, bucket, key, profile_name, aws_access_key_id, aws_secret_access_key
-        )
+        self.source.client.store_to_s3(query, bucket, key, profile_name, aws_access_key_id, aws_secret_access_key)
 
     def _repr_html_(self):  # pragma: no cover
         """Display the Dataset in jupyter notebooks using HTML."""
@@ -669,9 +651,7 @@ class ColumnDescription:
         open_ind = self.type.find("(")
         if open_ind != -1:
             close_ind = -1
-            type_args = [
-                x.strip() for x in self.type[open_ind + 1 : close_ind].split(",")
-            ]
+            type_args = [x.strip() for x in self.type[open_ind + 1 : close_ind].split(",")]
         else:
             type_args = list()
         return type_args
@@ -774,10 +754,7 @@ class DataSetDescription:
             info_html += f' | <a href="{self.sample_data_url}">Sample data</a>'
 
         html = (
-            f"<h2>{self.display_name}</h2>\n"
-            f"<p>{self.description}</p>\n"
-            f"<p>{info_html}</html>"
-            f"{table_html}"
+            f"<h2>{self.display_name}</h2>\n" f"<p>{self.description}</p>\n" f"<p>{info_html}</html>" f"{table_html}"
         )
         return html
 
@@ -925,9 +902,7 @@ class DescriptionProvider(Protocol):
         """Get the description of a dataset."""
 
     @abstractmethod
-    def get_columns_description(
-        self, group: str, dataset: str
-    ) -> list[ColumnDescription]:
+    def get_columns_description(self, group: str, dataset: str) -> list[ColumnDescription]:
         """Get the description of columns in a dataset."""
 
 
@@ -996,9 +971,7 @@ class ClientProtocol(Protocol):
         """Fetch a select query."""
 
     @abstractmethod
-    def fetch_iter(
-        self, query: CompiledQuery, size: int, **kwargs
-    ) -> Generator[dict[str, tuple], None, None]:
+    def fetch_iter(self, query: CompiledQuery, size: int, **kwargs) -> Generator[dict[str, tuple], None, None]:
         """Yield a select query in chunks."""
 
     @abstractmethod
@@ -1006,9 +979,7 @@ class ClientProtocol(Protocol):
         """Fetch a select query and output results as a Pandas DataFrame."""
 
     @abstractmethod
-    def fetch_iter_dataframe(
-        self, query: CompiledQuery, size: int, **kwargs
-    ) -> Generator[DataFrame, None, None]:
+    def fetch_iter_dataframe(self, query: CompiledQuery, size: int, **kwargs) -> Generator[DataFrame, None, None]:
         """Yield a select query in chunks, using pandas DataFrames."""
 
     @abstractmethod
@@ -1035,6 +1006,7 @@ class ClientProtocol(Protocol):
         Parameters
         ----------
         query : CompiledQuery
+            The query that generates the data to store on S3.
         bucket : str
             The bucket name used to store the query.
         key : str

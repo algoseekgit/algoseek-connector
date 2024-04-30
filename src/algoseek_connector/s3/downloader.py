@@ -50,6 +50,7 @@ class FileDownloader:
             ignored
         download_path : pathlib.Path
             Directory to download the files.
+
         """
         bucket = BucketWrapper(self.s3, bucket_name)
         for key in keys:
@@ -113,6 +114,7 @@ class BucketWrapper:
         key : str
             The object key.
         download_path : pathlib.Path
+            The path to store downloaded objects.
 
         Raises
         ------
@@ -150,9 +152,7 @@ class BucketWrapper:
 
         """
         bucket_name = self._bucket.name
-        location_metadata = self._bucket.meta.client.get_bucket_location(
-            Bucket=bucket_name
-        )
+        location_metadata = self._bucket.meta.client.get_bucket_location(Bucket=bucket_name)
         location = location_metadata["LocationConstraint"]
         # using virtual style style address
         # https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html#virtual-hosted-style-access
@@ -243,9 +243,7 @@ class BasePrefixGenerator(ABC):
     def create_fillers(self) -> list["BasePlaceholderFiller"]:
         """Create a list of placeholder filler."""
 
-    def create_fill_values(
-        self, template: str, placeholders: list[PlaceHolder]
-    ) -> list[str]:
+    def create_fill_values(self, template: str, placeholders: list[PlaceHolder]) -> list[str]:
         """Create a list of fill values for S3 objects."""
         return [x.fill(template, placeholders) for x in self.create_fillers()]
 
@@ -450,15 +448,14 @@ def create_boto3_session(
     return session
 
 
-def create_key_to_size_dictionary(
-    bucket: BucketWrapper, path_format: str, filters: S3KeyFilter
-) -> dict[str, int]:
+def create_key_to_size_dictionary(bucket: BucketWrapper, path_format: str, filters: S3KeyFilter) -> dict[str, int]:
     """
     Create a dict of object keys to object size.
 
     Parameters
     ----------
     bucket : BucketWrapper
+        The bucket instance.
     bucket_name : str
     path_format : str
         The format of the object keys in the bucket.
@@ -493,9 +490,7 @@ def _split_into_even_size(keys_to_size: dict[str, int], n: int) -> list[list[str
     return even_sized_groups
 
 
-def _generate_object_keys(
-    path_format: str, filters: S3KeyFilter
-) -> Generator[str, None, None]:
+def _generate_object_keys(path_format: str, filters: S3KeyFilter) -> Generator[str, None, None]:
     """
     Yield object keys compatible with the filters provided.
 
@@ -510,6 +505,7 @@ def _generate_object_keys(
     ------
     str
         An object key name.
+
     """
     prefix_separator = "/"
     name_separator = "."
@@ -524,9 +520,7 @@ def _generate_object_keys(
         yield "".join(key_parts)
 
 
-def _tokenize_path_format(
-    path_format: str, prefix_sep: str, name_sep: str
-) -> list[S3PathToken]:
+def _tokenize_path_format(path_format: str, prefix_sep: str, name_sep: str) -> list[S3PathToken]:
     """Convert path_format specification into a list of tokens."""
     parts = _split_path_format(path_format, prefix_sep, name_sep)
     tokens = _create_tokens(parts, prefix_sep, name_sep)
@@ -534,9 +528,7 @@ def _tokenize_path_format(
     return tokens
 
 
-def _get_prefix_generator(
-    token: "S3PathToken", filters: S3KeyFilter
-) -> "BasePrefixGenerator":
+def _get_prefix_generator(token: "S3PathToken", filters: S3KeyFilter) -> "BasePrefixGenerator":
     """Create a PrefixGenerator instance."""
     if token.type == PlaceholderType.date:
         prefix_generator = DatePrefixGenerator(*filters.date)
@@ -544,13 +536,9 @@ def _get_prefix_generator(
         prefix_generator = SymbolPrefixGenerator(filters.symbols)
     else:
         if filters.expiration_date is None:
-            msg = (
-                "Expiration date must be specified to download data from this dataset."
-            )
+            msg = "Expiration date must be specified to download data from this dataset."
             raise ValueError(msg)
-        prefix_generator = FuturesPrefixGenerator(
-            filters.symbols, *filters.expiration_date
-        )
+        prefix_generator = FuturesPrefixGenerator(filters.symbols, *filters.expiration_date)
     return prefix_generator
 
 
@@ -572,9 +560,7 @@ def _split_path_format(path_format: str, prefix_sep: str, name_sep: str) -> list
     return parts
 
 
-def _create_tokens(
-    parts: list[str], prefix_sep: str, name_sep: str
-) -> list[S3PathToken]:
+def _create_tokens(parts: list[str], prefix_sep: str, name_sep: str) -> list[S3PathToken]:
     tokens = list()
     last = S3PathToken("", TokenType.path, PlaceholderType.none, set())
     tokens.append(last)
@@ -628,9 +614,7 @@ def _merge_tokens(tokens: list[S3PathToken]) -> list[S3PathToken]:
     return merged
 
 
-def get_bucket_name(
-    bucket_format: str, start_date: datetime.date, end_date: datetime.date
-) -> str:
+def get_bucket_name(bucket_format: str, start_date: datetime.date, end_date: datetime.date) -> str:
     """Get the bucket name from a bucket format template."""
     # TODO: Currently hardcoded to work with date intervals from a single year.
     prefix_sep = "-"
@@ -649,9 +633,7 @@ def get_bucket_name(
     return "".join([x.template.format(**fill) for x in tokens])
 
 
-def _normalize_date_spec(
-    date: Union[date_like, tuple[date_like, date_like]]
-) -> tuple[datetime.date, datetime.date]:
+def _normalize_date_spec(date: Union[date_like, tuple[date_like, date_like]]) -> tuple[datetime.date, datetime.date]:
     if isinstance(date, str):
         start_date = end_date = _normalize_date(date)
     elif isinstance(date, datetime.date):

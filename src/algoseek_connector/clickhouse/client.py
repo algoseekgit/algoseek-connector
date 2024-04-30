@@ -128,8 +128,8 @@ class ClickHouseClient(base.ClientProtocol):
 
         Parameters
         ----------
-        stmt : Select
-            A select statement generated with :py:meth:`Dataset.select`.
+        query : CompiledQuery
+            The query statement to fetch.
         kwargs :
             Optional parameters passed to clickhouse-connect Client.query
             method.
@@ -148,16 +148,14 @@ class ClickHouseClient(base.ClientProtocol):
             result[name] = column
         return result
 
-    def fetch_iter(
-        self, query: base.CompiledQuery, size: int, **kwargs
-    ) -> Generator[dict[str, tuple], None, None]:
+    def fetch_iter(self, query: base.CompiledQuery, size: int, **kwargs) -> Generator[dict[str, tuple], None, None]:
         """
         Retrieve data with result streaming using a select statement.
 
         Parameters
         ----------
-        stmt : Select
-            A select statement generated with :py:meth:`Dataset.select`.
+        query : CompiledQuery
+            The query statement to fetch.
         size : int
             Sets the `max_block_size_parameter` of the ClickHouse DataBase.
             Values lower than ``8912`` are ignored. Overwrites values passed
@@ -176,9 +174,7 @@ class ClickHouseClient(base.ClientProtocol):
         kwargs_settings = kwargs.get("settings", dict())
         kwargs_settings.update(settings)
 
-        with self._client.query_column_block_stream(
-            query.sql, parameters=query.parameters, **kwargs
-        ) as stream:
+        with self._client.query_column_block_stream(query.sql, parameters=query.parameters, **kwargs) as stream:
             column_names = stream.source.column_names
             for block in stream:
                 yield {k: v for k, v in zip(column_names, block)}
@@ -190,6 +186,7 @@ class ClickHouseClient(base.ClientProtocol):
         Parameters
         ----------
         query : CompiledQuery
+            The query statement to fetch.
         kwargs :
             Optional parameters passed to clickhouse-connect
             Client.query_df method.
@@ -201,16 +198,14 @@ class ClickHouseClient(base.ClientProtocol):
         """
         return self._client.query_df(query.sql, query.parameters, **kwargs)
 
-    def fetch_iter_dataframe(
-        self, query: base.CompiledQuery, size: int, **kwargs
-    ) -> Generator[DataFrame, None, None]:
+    def fetch_iter_dataframe(self, query: base.CompiledQuery, size: int, **kwargs) -> Generator[DataFrame, None, None]:
         """
         Yield pandas DataFrame in chunks.
 
         Parameters
         ----------
-        stmt : Select
-            A select statement generated with :py:meth:`Dataset.select`.
+        query : CompiledQuery
+            The query statement to fetch.
         size : int
             Sets the `max_block_size_parameter` of the ClickHouse DataBase.
             Values lower than ``8912`` are ignored. Overwrites values passed
@@ -227,9 +222,7 @@ class ClickHouseClient(base.ClientProtocol):
         settings = {"max_block_size": size}
         kwargs_settings = kwargs.get("settings", dict())
         kwargs_settings.update(settings)
-        with self._client.query_df_stream(
-            query.sql, parameters=query.parameters, settings=settings
-        ) as stream:
+        with self._client.query_df_stream(query.sql, parameters=query.parameters, settings=settings) as stream:
             for df in stream:
                 yield df
 
@@ -256,7 +249,7 @@ class ClickHouseClient(base.ClientProtocol):
         ----------
         group : str
             Data group name.
-        name : str
+        dataset : str
             Dataset name.
 
         Returns
@@ -307,6 +300,7 @@ class ClickHouseClient(base.ClientProtocol):
         Parameters
         ----------
         query : CompiledQuery
+            The query statement to fetch.
         bucket : str
             The bucket name used to store the query.
         key : str
@@ -332,9 +326,7 @@ class ClickHouseClient(base.ClientProtocol):
 
         """
         # check access to bucket and if object does not exist
-        boto3_session = s3.create_boto3_session(
-            profile_name, aws_access_key_id, aws_secret_access_key
-        )
+        boto3_session = s3.create_boto3_session(profile_name, aws_access_key_id, aws_secret_access_key)
         s3_client = s3.downloader.get_s3_client(boto3_session)
         bucket_obj = s3.downloader.BucketWrapper(s3_client, bucket)
         if bucket_obj.check_object_exists(key):
@@ -345,9 +337,7 @@ class ClickHouseClient(base.ClientProtocol):
         aws_key_id = cast(str, credentials.access_key)
         aws_secret_access_key = cast(str, credentials.secret_key)
 
-        sql = _create_insert_to_s3_query(
-            query.sql, url, aws_key_id, aws_secret_access_key
-        )
+        sql = _create_insert_to_s3_query(query.sql, url, aws_key_id, aws_secret_access_key)
         self._client.query(sql, query.parameters, **kwargs)
 
 
@@ -414,14 +404,14 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
             display_name = group
         return base.DataGroupDescription(group, description, display_name)
 
-    def get_columns_description(
-        self, group: str, dataset: str
-    ) -> list[base.ColumnDescription]:
+    def get_columns_description(self, group: str, dataset: str) -> list[base.ColumnDescription]:
         """
         Get the description of the dataset columns.
 
         Parameters
         ----------
+        group : str
+            The data group name.
         dataset : str
             The dataset name.
 
@@ -436,17 +426,13 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
             db_metadata = dataset_metadata["database_table"]
             columns = list()
             for column in db_metadata["sql_columns"]:
-                c = base.ColumnDescription(
-                    column["name"], column["data_type_db"], column["description"]
-                )
+                c = base.ColumnDescription(column["name"], column["data_type_db"], column["description"])
                 columns.append(c)
         except KeyError:
             columns = list()
         return columns
 
-    def get_dataset_description(
-        self, group: str, dataset: str
-    ) -> base.DataSetDescription:
+    def get_dataset_description(self, group: str, dataset: str) -> base.DataSetDescription:
         """
         Get the description of a dataset.
 
@@ -471,9 +457,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
             # search platform metadata if available
             try:
-                platform_metadata = self._api.get_platform_dataset_metadata(
-                    dataset_text_id
-                )
+                platform_metadata = self._api.get_platform_dataset_metadata(dataset_text_id)
                 pdf_url = platform_metadata["documentation_link"]
                 sample_data_url = platform_metadata["sample_data_url"]
             except ValueError:
@@ -481,9 +465,7 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
                 sample_data_url = None
 
             granularity_id = dataset_metadata["time_granularity_id"]
-            granularity_metadata = self._api.get_time_granularity_metadata(
-                granularity_id
-            )
+            granularity_metadata = self._api.get_time_granularity_metadata(granularity_id)
             granularity = granularity_metadata["display_name"]
         except KeyError:
             display_name = None
@@ -533,13 +515,9 @@ def create_clickhouse_client(
         for a description of the parameters that are accepted.
 
     """
-    return clickhouse_connect.get_client(
-        host=host, port=port, user=user, password=password, **kwargs
-    )
+    return clickhouse_connect.get_client(host=host, port=port, user=user, password=password, **kwargs)
 
 
-def _create_insert_to_s3_query(
-    sql: str, url: str, aws_key_id: str, aws_secret_access_key: str
-) -> str:
+def _create_insert_to_s3_query(sql: str, url: str, aws_key_id: str, aws_secret_access_key: str) -> str:
     s3_call = f"s3('{url}', '{aws_key_id}', '{aws_secret_access_key}', CSVWithNames)"
     return f"INSERT INTO FUNCTION {s3_call}\n {sql}"

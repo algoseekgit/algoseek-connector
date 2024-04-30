@@ -67,9 +67,7 @@ class Settings(metaclass=_SettingsMeta):
 class SettingsGroup:
     """Container class for groups of setting options."""
 
-    def __init__(
-        self, name: str, fields: Sequence[Union[SettingsGroup, SettingsField]]
-    ):
+    def __init__(self, name: str, fields: Sequence[Union[SettingsGroup, SettingsField]]):
         self._name = name
         self._dict = dict()
         for f in fields:
@@ -253,9 +251,7 @@ def create_settings_group_from_dictionary(config_dict: dict) -> Sequence[Setting
     settings_groups.append(s3_group)
 
     metadata_services_dict = config_dict.get("metadata_services", dict())
-    metadata_services_group = _create_metadata_services_settings_group(
-        metadata_services_dict
-    )
+    metadata_services_group = _create_metadata_services_settings_group(metadata_services_dict)
     settings_groups.append(metadata_services_group)
 
     return settings_groups

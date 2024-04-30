@@ -1,9 +1,8 @@
 import pytest
-from clickhouse_sqlalchemy import types as clickhouse_types
-from sqlalchemy import types as sqla_types
-
 from algoseek_connector.base import ColumnDescription
 from algoseek_connector.clickhouse import sqla_table
+from clickhouse_sqlalchemy import types as clickhouse_types
+from sqlalchemy import types as sqla_types
 
 
 @pytest.fixture
@@ -19,9 +18,7 @@ def column_factory():
         ["Enum16('value1' = 10)", [10]],
     ],
 )
-def test_SQLAlchemyColumnFactory_create_enum_column(
-    column_factory, type_str, enum_values
-):
+def test_SQLAlchemyColumnFactory_create_enum_column(column_factory, type_str, enum_values):
     expected_name = "MyEnum"
     expected_description = "MyEnumColumnDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)
@@ -62,9 +59,7 @@ def test_SQLAlchemyColumnFactory_create_float_column(column_factory, type_str):
     "type_str,expected_precision,expected_scale",
     [("Decimal(12, 4)", 12, 4), ("Decimal(18, 6)", 18, 6), ("Decimal32(8)", 32, 8)],
 )
-def test_SQLAlchemyColumnFactory_create_decimal_column(
-    column_factory, type_str, expected_precision, expected_scale
-):
+def test_SQLAlchemyColumnFactory_create_decimal_column(column_factory, type_str, expected_precision, expected_scale):
     expected_name = "myDecimalColumn"
     expected_description = "MyDecimalDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)
@@ -77,12 +72,8 @@ def test_SQLAlchemyColumnFactory_create_decimal_column(
     assert not actual.nullable
 
 
-@pytest.mark.parametrize(
-    "type_str,expected_length", [("String", None), ("FixedString(30)", 30)]
-)
-def test_SQLAlchemyColumnFactory_create_string_column(
-    column_factory, type_str, expected_length
-):
+@pytest.mark.parametrize("type_str,expected_length", [("String", None), ("FixedString(30)", 30)])
+def test_SQLAlchemyColumnFactory_create_string_column(column_factory, type_str, expected_length):
     expected_name = "myStringColumn"
     expected_description = "MyStringDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)
@@ -115,9 +106,7 @@ def test_SQLAlchemyColumnFactory_create_date_column(column_factory):
         ("DateTime", None),
     ],
 )
-def test_SQLAlchemyColumnFactory_create_datetime_column(
-    column_factory, type_str, expected_timezone
-):
+def test_SQLAlchemyColumnFactory_create_datetime_column(column_factory, type_str, expected_timezone):
     expected_name = "myDateTimeColumn"
     expected_description = "MyDateDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)
@@ -157,9 +146,7 @@ def test_SQLAlchemyColumnFactory_create_datetime64_column(
         ("LowCardinality(String)", "String"),
     ],
 )
-def test_SQLAlchemyColumnFactory_create_low_cardinality_column(
-    column_factory, type_str, expected_type
-):
+def test_SQLAlchemyColumnFactory_create_low_cardinality_column(column_factory, type_str, expected_type):
     expected_name = "myLowCardinalityColumn"
     expected_description = "myLowCardinalityDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)
@@ -175,9 +162,7 @@ def test_SQLAlchemyColumnFactory_create_low_cardinality_column(
     "type_str,expected_type",
     [("Nullable(String)", "String"), ("Nullable(Float64)", "Float64")],
 )
-def test_SQLAlchemyColumnFactory_nullable_column(
-    column_factory, type_str, expected_type
-):
+def test_SQLAlchemyColumnFactory_nullable_column(column_factory, type_str, expected_type):
     expected_name = "myNullableColumn"
     expected_description = "myNullableDescription"
     metadata = ColumnDescription(expected_name, type_str, expected_description)

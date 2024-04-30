@@ -67,7 +67,9 @@ def iterate_date_range(start: datetime.date, end: datetime.date):
     Parameters
     ----------
     start : datetime.date
+        The start date range
     end : datetime.date
+        The end date range
 
     Yields
     ------
