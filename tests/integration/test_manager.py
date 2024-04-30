@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import cast
 
-import pytest
-
 import algoseek_connector as ac
 import algoseek_connector.constants as c
+import pytest
 
 
 @pytest.fixture(scope="module")

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from algoseek_connector import config, constants
 
 

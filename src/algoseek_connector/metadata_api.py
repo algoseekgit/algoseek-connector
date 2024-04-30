@@ -1,5 +1,4 @@
-"""
-Tools to communicate with Algoseek metadata API.
+"""Tools to communicate with Algoseek metadata API.
 
 Provides:
 
@@ -11,6 +10,7 @@ BaseAPIConsumer
     Provides functionality to get dataset and datagroup metadata.
 
 """
+
 from datetime import datetime
 from functools import lru_cache
 from typing import Any, Optional, Union
@@ -376,9 +376,7 @@ class AuthToken:
     def refresh(self):
         """Try to obtain a new token using credentials stored on env variables."""
         if self.expiry_date < datetime.utcnow():
-            login_metadata = _get_login_metadata(
-                self._user, self._password, self._login_url
-            )
+            login_metadata = _get_login_metadata(self._user, self._password, self._login_url)
             self._token = login_metadata["token"]
             exp_date_str = login_metadata["expiry_date"]
             self._expiry_date = datetime.fromisoformat(exp_date_str)

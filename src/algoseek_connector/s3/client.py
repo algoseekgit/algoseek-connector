@@ -90,7 +90,7 @@ class S3DownloaderClient(base.ClientProtocol):
             download data from this specific date.
         symbols : str or list[str]
             Download data associated with these symbols.
-        expiration date : str, datetime.date or tuple
+        expiration_date : str, datetime.date or tuple
             Download data with expiration dates in this date range. Dates must
             be passed used the same format used for the `date` parameter.
 
@@ -98,16 +98,10 @@ class S3DownloaderClient(base.ClientProtocol):
         # Creates a dataset downloader using an independent copy.
         # boto3 sessions are not thread/multi process safe, so  this allows to
         # download multiple datasets at the same.
-        dataset_downloader = S3DatasetDownloader(
-            self._file_downloader.copy(), self._bucket_metadata
-        )
-        dataset_downloader.download(
-            dataset_text_id, download_path, date, symbols, expiration_date
-        )
+        dataset_downloader = S3DatasetDownloader(self._file_downloader.copy(), self._bucket_metadata)
+        dataset_downloader.download(dataset_text_id, download_path, date, symbols, expiration_date)
 
-    def get_dataset_columns(
-        self, group: str, dataset: str
-    ) -> base.DataSetDescription:  # pragma: no cover
+    def get_dataset_columns(self, group: str, dataset: str) -> base.DataSetDescription:  # pragma: no cover
         """Create a dataset."""
         raise NotImplementedError
 
@@ -170,9 +164,7 @@ class S3DownloaderClient(base.ClientProtocol):
         """Download query to S3."""
         raise NotImplementedError
 
-    def execute(
-        self, sql: str, parameters: Optional[dict], output: str, **kwargs
-    ):  # pragma: no cover
+    def execute(self, sql: str, parameters: Optional[dict], output: str, **kwargs):  # pragma: no cover
         """Execute raw SQL query."""
         raise NotImplementedError
 
@@ -206,14 +198,14 @@ class S3DescriptionProvider(base.DescriptionProvider):
             display_name = group
         return base.DataGroupDescription(group, description, display_name)
 
-    def get_columns_description(
-        self, group: str, dataset: str
-    ) -> list[base.ColumnDescription]:
+    def get_columns_description(self, group: str, dataset: str) -> list[base.ColumnDescription]:
         """
         Get the description of the dataset columns.
 
         Parameters
         ----------
+        group : str
+            The data group name.
         dataset : str
             The dataset name.
 
@@ -227,17 +219,13 @@ class S3DescriptionProvider(base.DescriptionProvider):
             cloud_metadata = dataset_metadata[CLOUD_STORAGE]
             columns = list()
             for column in cloud_metadata["csv_columns"]:
-                c = base.ColumnDescription(
-                    column["name"], column["data_type"], column["description"]
-                )
+                c = base.ColumnDescription(column["name"], column["data_type"], column["description"])
                 columns.append(c)
         except base.InvalidDataSetName:
             columns = list()
         return columns
 
-    def get_dataset_description(
-        self, group: str, dataset: str
-    ) -> base.DataSetDescription:
+    def get_dataset_description(self, group: str, dataset: str) -> base.DataSetDescription:
         """
         Get the description of a dataset.
 
@@ -271,9 +259,7 @@ class S3DescriptionProvider(base.DescriptionProvider):
                 sample_data_url = None
 
             granularity_id = dataset_metadata["time_granularity_id"]
-            granularity_metadata = self._api.get_time_granularity_metadata(
-                granularity_id
-            )
+            granularity_metadata = self._api.get_time_granularity_metadata(granularity_id)
             granularity = granularity_metadata["display_name"]
 
         except base.InvalidDataSetName:
@@ -401,6 +387,7 @@ class BucketMetadataProvider:
         ------
         InvalidDatasetName
             If an non-existent dataset name is passed.
+
         """
         bucket_group_metadata = self.get_dataset_primary_bucket_group(name)
         return bucket_group_metadata["path_format"]
@@ -442,7 +429,7 @@ class S3DatasetDownloader:
             download data from this specific date.
         symbols : str or list[str]
             Download data associated with these symbols.
-        expiration date : str, datetime.date or tuple
+        expiration_date : str, datetime.date or tuple
             Download data with expiration dates in this date range. Dates must
             be passed used the same format used for the `date` parameter.
 
@@ -460,15 +447,10 @@ class S3DatasetDownloader:
         bucket = downloader.BucketWrapper(self.downloader.s3, bucket_name)
 
         path_format = self.bucket_metadata.get_dataset_bucket_path_format(text_id)
-        key_to_size = downloader.create_key_to_size_dictionary(
-            bucket, path_format, filters
-        )
+        key_to_size = downloader.create_key_to_size_dictionary(bucket, path_format, filters)
         total_size = sum(key_to_size.values())
         if total_size > MAX_DOWNLOAD_SIZE:
-            msg = (
-                f"The total size of the requested data is {total_size}. "
-                f"Maximum allowed is {MAX_DOWNLOAD_SIZE}."
-            )
+            msg = f"The total size of the requested data is {total_size}. " f"Maximum allowed is {MAX_DOWNLOAD_SIZE}."
             raise DownloadLimitExceededError(msg)
 
         # TODO: multi process download.

@@ -4,9 +4,8 @@ from pathlib import Path
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
-
 from algoseek_connector import constants
+from botocore.exceptions import ClientError
 
 
 def check_object_exists(obj):
@@ -39,9 +38,7 @@ def test_create_session_with_invalid_user():
     # passing invalid user/key is possible.
     access_key = "InvalidAccessKeyID"
     secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
-    session = boto3.Session(
-        aws_access_key_id=access_key, aws_secret_access_key=secret_key
-    )
+    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     # in order to check credentials, validation code must be executed
     # creating a sts client and running the get_caller_identity method
     # allows to check if the credentials are valid.
@@ -53,9 +50,7 @@ def test_create_session_with_invalid_user():
 def test_create_session_with_invalid_secret_access_key():
     access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
     secret_key = "InvalidSecretKey"
-    session = boto3.Session(
-        aws_access_key_id=access_key, aws_secret_access_key=secret_key
-    )
+    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     # creating a sts client and running the get_caller_identity method
     # allows to check if the credentials are valid.
     with pytest.raises(ClientError):

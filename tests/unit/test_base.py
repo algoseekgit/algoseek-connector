@@ -2,12 +2,11 @@ from pathlib import Path
 from typing import Generator, Optional, Union
 
 import pytest
+from algoseek_connector import base
+from algoseek_connector.base import CompiledQuery, date_like
 from pandas import DataFrame
 from sqlalchemy import Column, String
 from sqlalchemy.sql import Select
-
-from algoseek_connector import base
-from algoseek_connector.base import CompiledQuery, date_like
 
 
 def get_dummy_columns() -> list[base.ColumnDescription]:
@@ -36,9 +35,7 @@ class MockDescriptorProvider(base.DescriptionProvider):
     def get_columns_description(self, dataset: str) -> list[base.ColumnDescription]:
         return get_dummy_columns()
 
-    def get_dataset_description(
-        self, group: str, dataset: str
-    ) -> base.DataSetDescription:
+    def get_dataset_description(self, group: str, dataset: str) -> base.DataSetDescription:
         cols = self.get_columns_description(dataset)
         return base.DataSetDescription(dataset, group, cols)
 
@@ -54,9 +51,7 @@ class MockClient(base.ClientProtocol):
     def create_function_handle(self) -> base.FunctionHandle:
         return base.FunctionHandle(["avg", "sum"])
 
-    def execute(
-        self, sql: str, parameters: Optional[dict], output: str, **kwargs
-    ) -> Union[dict, DataFrame]:
+    def execute(self, sql: str, parameters: Optional[dict], output: str, **kwargs) -> Union[dict, DataFrame]:
         return dict()
 
     def download(
@@ -72,18 +67,14 @@ class MockClient(base.ClientProtocol):
     def fetch(self, query: CompiledQuery, **kwargs) -> dict[str, tuple]:
         return dict()
 
-    def fetch_iter(
-        self, query: CompiledQuery, size: int, **kwargs
-    ) -> Generator[dict[str, tuple], None, None]:
+    def fetch_iter(self, query: CompiledQuery, size: int, **kwargs) -> Generator[dict[str, tuple], None, None]:
         for k in range(size):
             yield dict()
 
     def fetch_dataframe(self, query: CompiledQuery, **kwargs) -> DataFrame:
         return DataFrame(data=dict())
 
-    def fetch_iter_dataframe(
-        self, query: CompiledQuery, size: int, **kwargs
-    ) -> Generator[DataFrame, None, None]:
+    def fetch_iter_dataframe(self, query: CompiledQuery, size: int, **kwargs) -> Generator[DataFrame, None, None]:
         for k in range(size):
             yield DataFrame()
 

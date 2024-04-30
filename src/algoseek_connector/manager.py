@@ -7,11 +7,11 @@ Provides:
     Creates available data sources.
 
 """
+
 from typing import cast
 
-from . import base, clickhouse, config
+from . import base, clickhouse, config, s3
 from . import constants as c
-from . import s3
 from .metadata_api import AuthToken, BaseAPIConsumer
 
 
@@ -29,9 +29,7 @@ class ResourceManager:
     """
 
     def __init__(self):
-        metadata_services_settings = config.Settings().get_group(
-            c.METADATA_SERVICE_SETTINGS_GROUP
-        )
+        metadata_services_settings = config.Settings().get_group(c.METADATA_SERVICE_SETTINGS_GROUP)
         api_credentials = metadata_services_settings.get_dict()
         token = AuthToken(**api_credentials)
         self._api = BaseAPIConsumer(token)

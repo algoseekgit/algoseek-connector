@@ -27,6 +27,7 @@ class SQLAlchemyColumnFactory:
         Parameters
         ----------
         description : ColumnDescription
+            The column description that creates the column instance
 
         Returns
         -------
@@ -125,6 +126,7 @@ class ClickHouseTypeMapper:
         Parameters
         ----------
         column_description : ColumnDescription
+            The column description that creates the column instance
 
         Returns
         -------
@@ -183,9 +185,7 @@ class ClickHouseTypeMapper:
         # cast fixes an incorrect type annotation in clickhouse-sqlalchemy
         return clickhouse_types.DateTime(cast(bool, timezone))
 
-    def _to_datetime64(
-        self, description: ColumnDescription
-    ) -> clickhouse_types.DateTime:
+    def _to_datetime64(self, description: ColumnDescription) -> clickhouse_types.DateTime:
         type_args = description.get_type_args()
         if len(type_args) == 2:
             precision, timezone = type_args
@@ -215,9 +215,7 @@ class ClickHouseTypeMapper:
         ch_enum_class = getattr(clickhouse_types, description.get_type_name())
         return ch_enum_class(python_enum)
 
-    def _to_fixed_string(
-        self, description: ColumnDescription
-    ) -> clickhouse_types.String:
+    def _to_fixed_string(self, description: ColumnDescription) -> clickhouse_types.String:
         length = int(description.get_type_args()[0])
         return clickhouse_types.String(length)
 
@@ -227,9 +225,7 @@ class ClickHouseTypeMapper:
         T = self.get_type(inner)
         return clickhouse_types.Nullable(T)
 
-    def _to_low_cardinality(
-        self, description: ColumnDescription
-    ) -> clickhouse_types.LowCardinality:
+    def _to_low_cardinality(self, description: ColumnDescription) -> clickhouse_types.LowCardinality:
         inner_type_str = description.get_type_args()[0]
         inner = ColumnDescription(description.name, inner_type_str, "")
         T = self.get_type(inner)
