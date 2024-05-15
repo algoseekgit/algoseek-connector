@@ -11,16 +11,7 @@ TODO: add examples.
 
 """
 
-from . import base, clickhouse, constants, s3, utils
-from .config import Settings
+from . import base, clickhouse, s3, utils
 from .manager import ResourceManager
 
-__all__ = [
-    "base",
-    "clickhouse",
-    "constants",
-    "ResourceManager",
-    "s3",
-    "Settings",
-    "utils",
-]
+__all__ = ["base", "clickhouse", "ResourceManager", "s3", "utils"]
