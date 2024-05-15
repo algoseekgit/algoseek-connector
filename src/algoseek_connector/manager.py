@@ -8,6 +8,9 @@ Provides:
 
 """
 
+import os
+import warnings
+
 from . import base, clickhouse, s3
 from .dataset_api import DatasetAPIProvider
 from .models import DataSourceType
@@ -28,6 +31,15 @@ class ResourceManager:
     """
 
     def __init__(self):
+        for old, new in DEPRECATED_ENV_VARS_MAPPING.items():
+            if old in os.environ and new not in os.environ:
+                msg = (
+                    f"{old} environment variable is deprecated, please use {new}. This will raise "
+                    "an exception in a future release."
+                )
+                os.environ[new] = os.environ[old]
+                warnings.warn(msg, DeprecationWarning, stacklevel=2)
+
         self._api = DatasetAPIProvider()
 
     def create_data_source(self, name: str, **kwargs) -> base.DataSource:
@@ -52,6 +64,16 @@ class ResourceManager:
             Provides a list text ids from available data sources.
 
         """
+        if name in ["ardadb", "s3"]:
+            deprecated = name
+            name = DataSourceType.ARDADB.value if name == "ardadb" else DataSourceType.S3.value
+            msg = (
+                f"data source name `{deprecated}` is deprecated please use `{name}` or use the "
+                "corresponding `DataSourceType` enumeration. This will raise an exception in a future "
+                "release."
+            )
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
+
         if name not in self.list_data_sources():
             msg = f"{name} is not a valid data source."
             raise ValueError(msg)
@@ -89,3 +111,16 @@ class ResourceManager:
     def list_data_sources(self) -> list[str]:
         """List available data sources."""
         return [x.value for x in DataSourceType]
+
+
+DEPRECATED_ENV_VARS_MAPPING = {
+    "ALGOSEEK_API_USERNAME": "ALGOSEEK__DATASET_API__EMAIL",
+    "ALGOSEEK_API_PASSWORD": "ALGOSEEK__DATASET_API__PASSWORD",
+    "ALGOSEEK_ARDADB_HOST": "ALGOSEEK__ARDADB__HOST",
+    "ALGOSEEK_ARDADB_PORT": "ALGOSEEK__ARDADB__PORT",
+    "ALGOSEEK_ARDADB_USERNAME": "ALGOSEEK__ARDADB__USER",
+    "ALGOSEEK_ARDADB_PASSWORD": "ALGOSEEK__ARDADB__PASSWORD",
+    "ALGOSEEK_AWS_PROFILE": "ALGOSEEK__S3__PROFILE_NAME",
+    "ALGOSEEK_AWS_ACCESS_KEY_ID": "ALGOSEEK__S3__ACCESS_KEY_ID",
+    "ALGOSEEK_AWS_SECRET_ACCESS_KEY": "ALGOSEEK__S3__SECRET_ACCESS_KEY",
+}
