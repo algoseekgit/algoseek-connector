@@ -4,7 +4,6 @@ from pathlib import Path
 
 import boto3
 import pytest
-from algoseek_connector import constants
 from botocore.exceptions import ClientError
 
 
@@ -26,7 +25,7 @@ def session():
 
 @pytest.fixture(scope="module")
 def s3_resource(session: boto3.Session):
-    return session.resource(constants.S3)
+    return session.resource("s3")
 
 
 @pytest.fixture(scope="module")
