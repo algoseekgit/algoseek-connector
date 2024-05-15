@@ -4,7 +4,7 @@ from pathlib import Path
 import boto3
 import pytest
 from algoseek_connector.s3 import downloader
-from algoseek_connector.settings import load_settings
+from algoseek_connector.settings import AlgoseekConnectorSettings
 from botocore.exceptions import ClientError
 
 DEV_BUCKET = "algoseek-connector-dev"
@@ -19,7 +19,7 @@ def dev_session():
 
 @pytest.fixture(scope="module")
 def dataset_session():
-    s3_settings = load_settings().s3
+    s3_settings = AlgoseekConnectorSettings().s3
     return downloader.create_boto3_session(
         aws_access_key_id=s3_settings.aws_access_key_id, aws_secret_access_key=s3_settings.aws_secret_access_key
     )

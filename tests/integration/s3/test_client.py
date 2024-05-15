@@ -9,7 +9,7 @@ from algoseek_connector.s3.client import (
     S3DescriptionProvider,
 )
 from algoseek_connector.s3.downloader import FileDownloader, create_boto3_session
-from algoseek_connector.settings import load_settings
+from algoseek_connector.settings import AlgoseekConnectorSettings
 from boto3 import Session
 
 
@@ -25,7 +25,7 @@ def bucket_metadata(api):
 
 @pytest.fixture(scope="module")
 def boto3_session():
-    settings = load_settings().s3
+    settings = AlgoseekConnectorSettings().s3
     return create_boto3_session(
         aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
     )

@@ -5,7 +5,7 @@ import pytest
 import requests
 from algoseek_connector.base import InvalidDataGroupName
 from algoseek_connector.dataset_api import BearerAuth, DatasetAPIProvider
-from algoseek_connector.settings import load_settings
+from algoseek_connector.settings import AlgoseekConnectorSettings
 
 
 @pytest.fixture
@@ -15,28 +15,28 @@ def mock_env():
 
 
 class TestBearerAuth:
-    def test_token_is_none_if_no_email(self, mock_env):
-        os.environ["ALGOSEEK__DATASET_API__PASSWORD"] = "mock_pass"
-        config = load_settings().dataset_api
+    def test_token_is_none_if_no_email(self):
+        config = AlgoseekConnectorSettings().dataset_api
+        config.email = None
         auth = BearerAuth(config)
         assert auth.token is None
 
-    def test_token_is_none_if_no_password(self, mock_env):
-        os.environ["ALGOSEEK__DATASET_API__EMAIL"] = "mock@email.com"
-        config = load_settings().dataset_api
+    def test_token_is_none_if_no_password(self):
+        config = AlgoseekConnectorSettings().dataset_api
+        config.password = None
         auth = BearerAuth(config)
         assert auth.token is None
 
     def test_invalid_credentials_raise_error(self, mock_env):
         os.environ["ALGOSEEK__DATASET_API__EMAIL"] = "mock@email.com"
         os.environ["ALGOSEEK__DATASET_API__PASSWORD"] = "mock_pass"
-        config = load_settings().dataset_api
+        config = AlgoseekConnectorSettings().dataset_api
         with pytest.raises(requests.HTTPError):
             BearerAuth(config)
 
     def test_login_ok(self):
         # uses credentials defined in the environment
-        config = load_settings().dataset_api
+        config = AlgoseekConnectorSettings().dataset_api
         BearerAuth(config)
 
 
