@@ -10,8 +10,8 @@ import pydantic
 import requests
 import requests.auth
 
-from .base import InvalidDataGroupName
-from .models import DatasetAPIConfiguration
+from .base import InvalidDataGroupName, InvalidDataSetName
+from .models import DatasetAPIConfiguration, DataSourceType
 from .settings import load_settings
 
 logger = logging.getLogger(__file__)
@@ -78,6 +78,10 @@ class DatasetAPIProvider:
             data[info.destination_id] = info
         return data
 
+    @lru_cache
+    def _dataset_text_id_to_dataset_destination_id(self) -> dict[str, int]:
+        return {v.dataset_text_id: k for k, v in self._fetch_datasets().items()}
+
     def list_data_groups(self) -> list[str]:
         """List all available data groups."""
         return list(self._fetch_datagroups())
@@ -110,7 +114,11 @@ class DatasetAPIProvider:
             The dataset destination id as registered in the dataset API.
 
         """
-        return self._fetch_datasets()[destination_id]
+        try:
+            return self._fetch_datasets()[destination_id]
+        except KeyError as e:
+            msg = f"Requested dataset destination {destination_id} not found in dataset API."
+            raise InvalidDataSetName(msg) from e
 
     @lru_cache
     def get_dataset_details(self, destination_id: int) -> DatasetDetails:
@@ -124,6 +132,31 @@ class DatasetAPIProvider:
         """
         endpoint = f"extras/algoseek-connector/destinations/{destination_id}"
         return DatasetDetails(**self.get(endpoint).json())
+
+    def get_dataset_name(self, destination_id: int) -> str:
+        """Create a unique display name for a dataset."""
+        dataset = self.get_dataset(destination_id)
+        if dataset.destination_type == DataSourceType.ARDADB and dataset.table_name is not None:
+            return dataset.table_name.split(".")[-1]
+        elif dataset.destination_type == DataSourceType.S3:
+            if dataset.version_number > 1:
+                return f"{dataset.dataset_text_id}-v{dataset.version_number}"
+            return dataset.dataset_text_id
+        else:
+            # TODO: replace with a better error type
+            raise ValueError(f"Could not find dataset name for dataset with destination id {destination_id}.")
+
+    def get_dataset_destination_id(self, name: str) -> int:
+        """Get the dataset destination id from its name."""
+        text_id_to_destination_id = self._dataset_text_id_to_dataset_destination_id()
+        if name in text_id_to_destination_id:
+            return text_id_to_destination_id[name]
+
+        try:
+            text_id, _ = name.split("-")
+            return text_id_to_destination_id[text_id]
+        except (ValueError, KeyError) as e:
+            raise InvalidDataSetName(f"Invalid dataset name {name}") from e
 
 
 class DataGroupApiInfo(pydantic.BaseModel):
@@ -199,26 +232,26 @@ class DatasetDetails(pydantic.BaseModel):
     """The dataset destination primary key"""
 
     destination_type: str
-    """TODO: complete"""
+    """The dataset destination type"""
 
     long_description: str | None = None
-    """TODO: complete"""
+    """Detailed description of the dataset"""
 
     data_columns: list[DatasetColumnApiInfo]
-    """TODO: complete"""
+    """The dataset destination columns."""
 
 
 class DatasetColumnApiInfo(pydantic.BaseModel):
     """Store column metadata."""
 
     name: str
-    """TODO: complete"""
+    """The column name"""
 
     data_type: str
-    """TODO: complete"""
+    """The type of the data in the column"""
 
     description: str | None = None
-    """TODO: complete"""
+    """The description of the column's content"""
 
 
 class DatasetAPICredentialError(ValueError):
