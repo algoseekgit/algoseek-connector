@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import cast
 
 import algoseek_connector as ac
-import algoseek_connector.constants as c
 import pytest
+from algoseek_connector.models import DataSourceType
 
 
 @pytest.fixture(scope="module")
@@ -13,17 +13,18 @@ def manager():
 
 @pytest.fixture(scope="module")
 def ardadb(manager):
-    return manager.create_data_source(c.ARDADB)
+    return manager.create_data_source(DataSourceType.ARDADB)
 
 
 @pytest.fixture(scope="module")
 def s3(manager: ac.ResourceManager):
-    return manager.create_data_source(c.S3)
+    return manager.create_data_source(DataSourceType.S3)
 
 
 def test_list_data_sources(manager: ac.ResourceManager):
     actual = manager.list_data_sources()
-    assert c.ARDADB in actual
+    assert DataSourceType.S3 in actual
+    assert DataSourceType.ARDADB in actual
 
 
 def test_ardadb_datasource_fetch_data_group(ardadb: ac.base.DataSource):
@@ -73,6 +74,7 @@ def test_s3_list_datasets(s3: ac.base.DataSource):
 def test_s3_download_data_from_dataset(s3: ac.base.DataSource, tmp_path: Path):
     group_name = "us_equity"
     group = s3.fetch_datagroup(group_name)
+    s3.client.list_datasets(group_name)
     dataset = cast(ac.base.DataSetFetcher, getattr(group.datasets, "eq_taq_1min"))
 
     date = ("20230701", "20230705")

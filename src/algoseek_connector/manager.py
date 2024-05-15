@@ -8,11 +8,10 @@ Provides:
 
 """
 
-from typing import cast
-
-from . import base, clickhouse, config, s3
-from . import constants as c
-from .metadata_api import AuthToken, BaseAPIConsumer
+from . import base, clickhouse, s3
+from .dataset_api import DatasetAPIProvider
+from .models import DataSourceType
+from .settings import load_settings
 
 
 class ResourceManager:
@@ -29,10 +28,7 @@ class ResourceManager:
     """
 
     def __init__(self):
-        metadata_services_settings = config.Settings().get_group(c.METADATA_SERVICE_SETTINGS_GROUP)
-        api_credentials = metadata_services_settings.get_dict()
-        token = AuthToken(**api_credentials)
-        self._api = BaseAPIConsumer(token)
+        self._api = DatasetAPIProvider()
 
     def create_data_source(self, name: str, **kwargs) -> base.DataSource:
         """
@@ -59,37 +55,37 @@ class ResourceManager:
         if name not in self.list_data_sources():
             msg = f"{name} is not a valid data source."
             raise ValueError(msg)
-        client = self._create_client(name, **kwargs)
-        description_provider = self._create_description_provider(name)
+        data_source_type = DataSourceType(name)
+        client = self._create_client(data_source_type, **kwargs)
+        description_provider = self._create_description_provider(data_source_type)
         return base.DataSource(client, description_provider)
 
-    def _create_description_provider(self, name: str) -> base.DescriptionProvider:
-        if name == c.ARDADB:
+    def _create_description_provider(self, type_: DataSourceType) -> base.DescriptionProvider:
+        if type_ == DataSourceType.ARDADB:
             description_provider = clickhouse.ArdaDBDescriptionProvider(self._api)
-        else:  # S3
+        elif type_ == DataSourceType.S3:
             description_provider = s3.S3DescriptionProvider(self._api)
+        else:
+            raise NotImplementedError(DataSourceType)
         return description_provider
 
-    def _create_client(self, name, **kwargs) -> base.ClientProtocol:
-        if name == c.ARDADB:
-            ardadb_config = config.Settings().get_group(c.ARDADB).get_dict()
-            credentials = cast(dict, ardadb_config.pop(c.CREDENTIAL_GROUP))
-            user_settings = cast(dict, ardadb_config.pop(c.SETTINGS_GROUP))
-            user_settings.update(credentials)
-            user_settings.update(kwargs)
-            clickhouse_client = clickhouse.create_clickhouse_client(**user_settings)
-            client = clickhouse.ClickHouseClient(clickhouse_client)
-        else:  # S3
-            user_config = config.Settings()
-            s3_config = user_config.get_group(c.S3).get_dict()
-            session_credentials = cast(dict, s3_config.pop(c.CREDENTIAL_GROUP))
-            settings = cast(dict, s3_config.pop(c.SETTINGS_GROUP))
-            settings.update(session_credentials)
-            settings.update(kwargs)
-            session = s3.create_boto3_session(**settings)
+    def _create_client(self, type_: DataSourceType, **kwargs) -> base.ClientProtocol:
+        settings = load_settings()
+        if type_ == DataSourceType.ARDADB:
+            clickhouse_connect_client = clickhouse.create_clickhouse_client(settings.ardadb)
+            client = clickhouse.ClickHouseClient(clickhouse_connect_client)
+        elif type_ == DataSourceType.S3:
+            s3_config = settings.s3
+            session = s3.create_boto3_session(
+                profile_name=s3_config.profile_name,
+                aws_access_key_id=s3_config.aws_access_key_id,
+                aws_secret_access_key=s3_config.aws_secret_access_key,
+            )
             client = s3.S3DownloaderClient(session, self._api)
+        else:
+            raise NotImplementedError(type_)
         return client
 
     def list_data_sources(self) -> list[str]:
         """List available data sources."""
-        return c.DATA_SOURCES
+        return [x.value for x in DataSourceType]
