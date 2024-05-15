@@ -1,6 +1,9 @@
 """Algoseek connector settings."""
 
+from __future__ import annotations
+
 import pathlib
+from functools import lru_cache
 
 import tomli
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,6 +32,7 @@ def get_settings_file_path() -> pathlib.Path:
     return get_algoseek_path() / "config.toml"
 
 
+@lru_cache(maxsize=1)
 def load_settings() -> AlgoseekConnectorSettings:
     """Load the Algoseek connector settings."""
     path = get_settings_file_path()
