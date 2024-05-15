@@ -28,10 +28,10 @@ class DatasetAPIConfiguration(pydantic.BaseModel):
     headers: dict[str, str] | None = None
     """Headers to include in all requests."""
 
-    email: str | None = None
+    email: str | None = "connector-lib@algoseek.com"
     """the email to request an access token."""
 
-    password: str | None = None
+    password: str | None = "57xB_d69U_Mqgq_uzrP"
     """the password to request an access token."""
 
 
