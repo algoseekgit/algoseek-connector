@@ -8,7 +8,7 @@ from typing import Generator, Optional, Union, cast
 
 import clickhouse_connect
 import sqlparse
-from clickhouse_connect.driver import Client
+from clickhouse_connect.driver.client import Client
 from clickhouse_sqlalchemy.drivers.base import ClickHouseDialect
 from pandas import DataFrame
 from sqlalchemy import Column
@@ -16,7 +16,8 @@ from sqlalchemy.sql import Select
 
 from .. import base, s3
 from ..base import date_like
-from ..metadata_api import BaseAPIConsumer
+from ..dataset_api import DatasetAPIProvider
+from ..models import ArdaDBConfiguration
 from .sqla_table import SQLAlchemyColumnFactory
 
 
@@ -344,41 +345,36 @@ class ClickHouseClient(base.ClientProtocol):
 class ArdaDBDescriptionProvider(base.DescriptionProvider):
     """Provide descriptions for ArdaDB datasets."""
 
-    def __init__(self, api: BaseAPIConsumer) -> None:
-        self._api = api
+    def __init__(self, api: DatasetAPIProvider) -> None:
+        self.api = api
 
     @lru_cache
-    def _ardadb_group_to_api_group(self) -> dict[str, str]:
+    def _ardadb_schema_to_api_group(self) -> dict[str, str]:
         """Create a dictionary that maps the group name used in ArdaDB to the API name."""
-        api_groups = self._api.list_datagroups()
         res = dict()
-        for group in api_groups:
-            group_metadata = self._api.get_datagroup_metadata(group)
-            full_name = group_metadata["full_name"]
-            ardadb_group = full_name.replace(" ", "")
-            res[ardadb_group] = group
+        for destination_id in self.api.list_dataset_destinations():
+            dataset = self.api.get_dataset(destination_id)
+            if dataset.destination_type == "ArdaDB":
+                res[dataset.schema_name] = dataset.data_group_name
         return res
 
     @lru_cache
-    def _ardadb_dataset_to_api_dataset(self) -> dict[str, dict[str, str]]:
+    def _ardadb_table_to_api_dataset(self) -> dict[str, dict[str, int]]:
         """Create a dictionary that maps the dataset name used in ArdaDB to the API name."""
-        api_datasets = self._api.list_datasets()
         res = dict()
-        for dataset in api_datasets:
-            dataset_metadata = self._api.get_dataset_metadata(dataset)
-            db_metadata = dataset_metadata.get("database_table")
-            if db_metadata is not None:
-                # table name is DBName.TableName
-                arda_db_group, ardadb_dataset = db_metadata["table_name"].split(".")
-                group_dict = res.setdefault(arda_db_group, dict())
-                group_dict[ardadb_dataset] = dataset
+        for destination_id in self.api.list_dataset_destinations():
+            dataset = self.api.get_dataset(destination_id)
+            if dataset.destination_type == "ArdaDB" and dataset.table_name is not None:
+                schema_name, table_name = dataset.table_name.split(".")
+                group_dict = res.setdefault(schema_name, dict())
+                group_dict[table_name] = dataset.destination_id
         return res
 
-    def _get_api_data_group_text_id(self, ardadb_group: str) -> str:
-        return self._ardadb_group_to_api_group()[ardadb_group]
+    def _get_api_data_group_name(self, ardadb_group: str) -> str:
+        return self._ardadb_schema_to_api_group()[ardadb_group]
 
-    def _get_api_dataset_text_id(self, ardadb_group: str, ardadb_dataset: str) -> str:
-        return self._ardadb_dataset_to_api_dataset()[ardadb_group][ardadb_dataset]
+    def _get_api_dataset_destination_id(self, ardadb_group: str, ardadb_dataset: str) -> int:
+        return self._ardadb_table_to_api_dataset()[ardadb_group][ardadb_dataset]
 
     def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
         """
@@ -395,10 +391,10 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            group_text_id = self._get_api_data_group_text_id(group)
-            datagroup_metadata = self._api.get_datagroup_metadata(group_text_id)
-            display_name = datagroup_metadata["display_name"]
-            description = datagroup_metadata["description"]
+            data_group_name = self._get_api_data_group_name(group)
+            info = self.api.get_data_group(data_group_name)
+            display_name = info.display_name
+            description = info.description
         except KeyError:
             description = ""
             display_name = group
@@ -421,12 +417,12 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            dataset_text_id = self._get_api_dataset_text_id(group, dataset)
-            dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
-            db_metadata = dataset_metadata["database_table"]
+            destination_id = self._get_api_dataset_destination_id(group, dataset)
+            info = self.api.get_dataset_details(destination_id)
             columns = list()
-            for column in db_metadata["sql_columns"]:
-                c = base.ColumnDescription(column["name"], column["data_type_db"], column["description"])
+            for column in info.data_columns:
+                description = "" if column.description is None else column.description
+                c = base.ColumnDescription(column.name, column.data_type, description)
                 columns.append(c)
         except KeyError:
             columns = list()
@@ -446,53 +442,31 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         DatasetDescription
 
         """
-        columns = self.get_columns_description(group, dataset)
         try:
-            # datasets not available on the API will raise KeyError.
-            group_datasets = self._ardadb_dataset_to_api_dataset()[group]
-            dataset_text_id = group_datasets[dataset]
-            dataset_metadata = self._api.get_dataset_metadata(dataset_text_id)
-            display_name = dataset_metadata["display_name"]
-            description = dataset_metadata["long_description"]
-
-            # search platform metadata if available
-            try:
-                platform_metadata = self._api.get_platform_dataset_metadata(dataset_text_id)
-                pdf_url = platform_metadata["documentation_link"]
-                sample_data_url = platform_metadata["sample_data_url"]
-            except ValueError:
-                pdf_url = None
-                sample_data_url = None
-
-            granularity_id = dataset_metadata["time_granularity_id"]
-            granularity_metadata = self._api.get_time_granularity_metadata(granularity_id)
-            granularity = granularity_metadata["display_name"]
+            destination_id = self._get_api_dataset_destination_id(group, dataset)
         except KeyError:
-            display_name = None
-            description = None
-            pdf_url = None
-            sample_data_url = None
-            granularity = None
+            # create empty description when requesting a dataset not available in the API
+            return base.DataSetDescription(dataset, group, list())
+
+        info = self.api.get_dataset(destination_id)
+        columns = self.get_columns_description(group, dataset)
+        long_description = self.api.get_dataset_details(destination_id).long_description
+        if long_description is None:
+            long_description = info.short_description
 
         return base.DataSetDescription(
             dataset,
             group,
             columns,
-            display_name,
-            description,
-            granularity,
-            pdf_url,
-            sample_data_url,
+            info.dataset_display_name,
+            long_description,
+            info.time_granularity,
+            info.documentation_link,
+            info.sample_data_url,
         )
 
 
-def create_clickhouse_client(
-    host: str,
-    port: Union[int, str],
-    user: str,
-    password: str,
-    **kwargs,
-) -> Client:
+def create_clickhouse_client(config: ArdaDBConfiguration) -> Client:
     """
     Create a clickhouse_connect.Client instance.
 
@@ -501,21 +475,13 @@ def create_clickhouse_client(
 
     Parameters
     ----------
-    host : str
-        Host address running a ClickHouse server.
-    port : int or str
-        port ClickHouse server is bound to.
-    user : str
-        Database user.
-    password : str
-        User's password.
-    **kwargs : dict
-        Optional arguments passed to clickhouse_connect.get_client. See
-        `here <https://clickhouse.com/docs/en/integrations/python#clickhouse-connect-driver-api>`_
-        for a description of the parameters that are accepted.
+    config: ArdaDBConfiguration
+        the ArdaDB data source configuration.
 
     """
-    return clickhouse_connect.get_client(host=host, port=port, user=user, password=password, **kwargs)
+    return clickhouse_connect.get_client(
+        host=config.host, port=config.port, user=config.user, password=config.password, **config.extra
+    )
 
 
 def _create_insert_to_s3_query(sql: str, url: str, aws_key_id: str, aws_secret_access_key: str) -> str:

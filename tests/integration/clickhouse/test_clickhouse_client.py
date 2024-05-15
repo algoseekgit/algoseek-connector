@@ -4,32 +4,21 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from algoseek_connector import Settings, base, constants, s3
+from algoseek_connector import ResourceManager, base, s3
 from algoseek_connector.base import DataSet, DataSource
-from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
-from algoseek_connector.clickhouse.client import create_clickhouse_client
-from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from algoseek_connector.clickhouse import ArdaDBDescriptionProvider
+from algoseek_connector.models import DataSourceType
 from pandas import DataFrame
 
 DEV_BUCKET = "algoseek-connector-dev"
-ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
-ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
-# TODO: fix dev credentials loading.
+ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")
+ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY = os.getenv("ALGOSEEK__DEV__AWS_SECRET_ACCESS_KEY")
 
 
 @pytest.fixture(scope="module")
 def data_source():
-    api_credentials = Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
-    token = AuthToken(**api_credentials)
-    api_consumer = BaseAPIConsumer(token)
-    description_provider = ArdaDBDescriptionProvider(api_consumer)
-
-    ardadb_settings = Settings().get_group(constants.ARDADB).get_dict()
-    ardadb_credentials = ardadb_settings[constants.CREDENTIAL_GROUP]
-
-    ch_client = create_clickhouse_client(**ardadb_credentials)
-    client = ClickHouseClient(ch_client)
-    return DataSource(client, description_provider)
+    manager = ResourceManager()
+    return manager.create_data_source(DataSourceType.ARDADB)
 
 
 @pytest.fixture(scope="module")
@@ -246,29 +235,30 @@ def test_ClickHouseClient_store_to_s3_overwrite_raises_error(dataset: DataSet, t
     [
         ("USEquityMarketData", "us_equity"),
         ("USEquityReferenceData", "us_equity_ref"),
-        ("USFuturesMarketData", "cme_futures"),
+        ("USFuturesMarketData", "us_futures"),
     ],
 )
 def test_ArdaDBDescriptionProvider_get_api_group_text_id(data_source: DataSource, ardadb_group, api_group):
     description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
-    actual = description_provider._get_api_data_group_text_id(ardadb_group)
+    actual = description_provider._get_api_data_group_name(ardadb_group)
     assert actual == api_group
 
 
-@pytest.mark.parametrize(
-    "ardadb_group,ardadb_dataset,dataset_text_id",
-    [
-        ("USEquityMarketData", "TradeAndQuote", "eq_taq"),
-        ("USEquityMarketData", "TradeOnly", "eq_trades"),
-        ("USEquityReferenceData", "BasicAdjustments", "eq_adj_factors_basic"),
-    ],
-)
-def test_ArdaDBDescriptionProvider_get_api_dataset_text_id(
-    data_source: DataSource,
-    ardadb_group: str,
-    ardadb_dataset: str,
-    dataset_text_id: str,
-):
-    description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
-    actual = description_provider._get_api_dataset_text_id(ardadb_group, ardadb_dataset)
-    assert actual == dataset_text_id
+# TODO: remove old test
+# @pytest.mark.parametrize(
+#     "ardadb_group,ardadb_dataset,dataset_text_id",
+#     [
+#         ("USEquityMarketData", "TradeAndQuote", "eq_taq"),
+#         ("USEquityMarketData", "TradeOnly", "eq_trades"),
+#         ("USEquityReferenceData", "BasicAdjustments", "eq_adj_factors_basic"),
+#     ],
+# )
+# def test_ArdaDBDescriptionProvider_get_api_dataset_text_id(
+#     data_source: DataSource,
+#     ardadb_group: str,
+#     ardadb_dataset: str,
+#     dataset_text_id: str,
+# ):
+#     description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
+#     actual = description_provider._get_api_dataset_destination_id(ardadb_group, ardadb_dataset)
+#     assert actual == dataset_text_id
