@@ -1,24 +1,21 @@
-import os
 from pathlib import Path
 
 import algoseek_connector as ac
 import pytest
-from algoseek_connector import constants
-from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from algoseek_connector.dataset_api import DatasetAPIProvider
 from algoseek_connector.s3.client import (
     BucketMetadataProvider,
     S3DatasetDownloader,
     S3DescriptionProvider,
 )
 from algoseek_connector.s3.downloader import FileDownloader, create_boto3_session
+from algoseek_connector.settings import load_settings
 from boto3 import Session
 
 
 @pytest.fixture(scope="module")
 def api():
-    credentials = ac.Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
-    token = AuthToken(**credentials)
-    return BaseAPIConsumer(token)
+    return DatasetAPIProvider()
 
 
 @pytest.fixture(scope="module")
@@ -28,8 +25,10 @@ def bucket_metadata(api):
 
 @pytest.fixture(scope="module")
 def boto3_session():
-    profile_str = os.getenv(constants.ALGOSEEK_AWS_PROFILE_ENV)
-    return create_boto3_session(profile_name=profile_str)
+    settings = load_settings().s3
+    return create_boto3_session(
+        aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
+    )
 
 
 @pytest.fixture(scope="module")
@@ -123,7 +122,7 @@ def test_S3DatasetDownloader_download_from_multiple_years_raises_error(
 
 
 @pytest.fixture(scope="module")
-def description_provider(api: BaseAPIConsumer):
+def description_provider(api: DatasetAPIProvider):
     return S3DescriptionProvider(api)
 
 
