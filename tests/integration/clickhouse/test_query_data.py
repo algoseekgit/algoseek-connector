@@ -1,29 +1,17 @@
 """Tests data retrieved from the DB."""
 
 import pytest
-from algoseek_connector import Settings, constants
+from algoseek_connector import ResourceManager
 from algoseek_connector.base import DataSet, DataSource
-from algoseek_connector.clickhouse import ArdaDBDescriptionProvider, ClickHouseClient
-from algoseek_connector.clickhouse.client import create_clickhouse_client
-from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+from algoseek_connector.models import DataSourceType
 from clickhouse_sqlalchemy import types as clickhouse_types
 from sqlalchemy import func
 
 
 @pytest.fixture(scope="module")
 def data_source():
-    api_settings_group = Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP)
-    api_credentials = api_settings_group.get_dict()
-    token = AuthToken(**api_credentials)
-    api_consumer = BaseAPIConsumer(token)
-    description_provider = ArdaDBDescriptionProvider(api_consumer)
-
-    ardadb_settings = Settings().get_group(constants.ARDADB).get_dict()
-    ardadb_credentials = ardadb_settings[constants.CREDENTIAL_GROUP]
-    ch_client = create_clickhouse_client(**ardadb_credentials)
-    client = ClickHouseClient(ch_client)
-
-    return DataSource(client, description_provider)
+    manager = ResourceManager()
+    return manager.create_data_source(DataSourceType.ARDADB)
 
 
 @pytest.fixture(scope="module")
