@@ -19,8 +19,8 @@ def check_object_exists(obj):
 
 @pytest.fixture(scope="module")
 def session():
-    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
+    access_key = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("ALGOSEEK__DEV__AWS_SECRET_ACCESS_KEY")
     return boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
 
 
@@ -48,7 +48,7 @@ def test_create_session_with_invalid_user():
 
 
 def test_create_session_with_invalid_secret_access_key():
-    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    access_key = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")
     secret_key = "InvalidSecretKey"
     session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     # creating a sts client and running the get_caller_identity method
