@@ -635,7 +635,7 @@ class ColumnDescription:
 
     name: str
     type: str
-    description: str = ""
+    description: str | None = None
 
     def get_type_name(self) -> str:
         """Get the type name."""
@@ -660,7 +660,7 @@ class ColumnDescription:
         """Create a description of the column as an HTML row."""
         name = self.name
         t = self.type
-        description = self.description
+        description = self.description if self.description is not None else ""
         return f"<tr>\n<td>{name}</td><td>{t}</td><td>{description}</td></tr>"
 
 
