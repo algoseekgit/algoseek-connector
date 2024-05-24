@@ -23,6 +23,30 @@ class DatasetAPIProvider:
 
     By default, a timeout of 5 s is set to all requests.
 
+    Parameters
+    ----------
+    token : AuthToken
+        The API authentication token.
+
+    Methods
+    -------
+    get:
+        Request data from an endpoint using the GET method.
+    list_datagroups:
+        List available data groups.
+    list_datasets:
+        List available datasets.
+    get_dataset:
+        Get the metadata of a dataset.
+    get_data_group:
+        Get the metadata of a data group.
+    get_dataset_details:
+        Get extended information of a dataset.
+    get_dataset_name:
+        Get the dataset name used when creating dataset instances.
+    get_dataset_destination_id:
+        Get a dataset destination id using a dataset name.
+
     """
 
     def __init__(self, config: DatasetAPIConfiguration | None = None):
