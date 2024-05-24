@@ -94,10 +94,11 @@ class ResourceManager:
     def _create_client(self, type_: DataSourceType, **kwargs) -> base.ClientProtocol:
         settings = load_settings()
         if type_ == DataSourceType.ARDADB:
-            clickhouse_connect_client = clickhouse.create_clickhouse_client(settings.ardadb)
+            ardadb_config = settings.ardadb.model_copy(update=kwargs)
+            clickhouse_connect_client = clickhouse.create_clickhouse_client(ardadb_config)
             client = clickhouse.ClickHouseClient(clickhouse_connect_client)
         elif type_ == DataSourceType.S3:
-            s3_config = settings.s3
+            s3_config = settings.s3.model_copy(update=kwargs)
             session = s3.create_boto3_session(
                 profile_name=s3_config.profile_name,
                 aws_access_key_id=s3_config.aws_access_key_id,
