@@ -3,7 +3,7 @@
 Settings
 ========
 
-.. autopydantic_model:: algoseek_connector.settings.AlgoseekConnectorSettings
+.. autopydantic_settings:: algoseek_connector.settings.AlgoseekConnectorSettings
     :members:
     :show-inheritance:
     :exclude-members: model_computed_fields, model_config, model_fields
