@@ -3,9 +3,9 @@
 Creating SQL queries
 ********************
 
-Here we describe how to create select statements using
+this guide describes how to create select statements using
 :py:class:`~algoseek_connector.base.DataSet` objects. For instructions on how to
-create datasets from different data sources please see :ref:`this guide <datasets>`.
+create datasets from different data sources please see :ref:`this guide <getting-started-tutorial>`.
 
 The Dataset class is built on top of `SQLAlchemy <https://www.sqlalchemy.org/>`_
 table and column constructs and supports most of the standard SQL operations.
@@ -14,8 +14,8 @@ source by means of queries.
 
 Before starting with the description of the query generation process, it is
 important to make the following remark: a good understanding of the inner
-working of the DBMS where the data is hosted is necessary to maximize the speed
-at which data is requested. For example, in ArdaDB, which is implemented using
+working of the DBMS where the data is hosted is necessary to write efficient
+queries. For example, in ArdaDB, which is implemented using
 `Clickhouse <https://clickhouse.com/>`_, knowing how primary indexes are
 implemented will result in better performance when querying the data.
 See `this article <https://clickhouse.com/docs/en/optimize/sparse-primary-indexes#data-is-organized-into-granules-for-parallel-data-processing>`_
@@ -29,15 +29,15 @@ dataset to use in the examples:
     import algoseek_connector as ac
 
     manager = ac.ResourceManager()
-    data_source = manager.create_data_source("ardadb")
+    data_source = manager.create_data_source("ArdaDB")
     group = data_source.groups.USEquityMarketData.fetch()
     dataset = group.datasets.TradeOnlyMinuteBar.fetch()
 
 Columns and simple select statements
 ------------------------------------
 
-Each column of a dataset is represented as a :py:class:`sqlalchemy.Column` and
-is accessed by using either attribute or dict-like access:
+Each dataset column is represented as a :py:class:`sqlalchemy.Column` and is accessed
+by using either attribute or dict-like access:
 
 .. code-block:: python
 

@@ -1,7 +1,10 @@
-.. _datasets:
+.. _introduction:
 
 Introduction
 ============
+
+
+.. _installation-tutorial:
 
 Installation & initial setup
 ----------------------------
@@ -13,18 +16,18 @@ the `pip` command:
 
     pip install algoseek-connector
 
-Before start using the library, it is necessary to set the credentials to access
-data sources. The recommended way to do this is through environment variables.
+Before using the library for the first time, it is required to set the credentials
+to access data sources. The recommended way to do this is through environment variables.
 The following list contains some of the most common variables:
 
     ALGOSEEK__ARDADB__HOST
-        The IP address of the ArdaDB instance.
+        The ArdaDB host IP address.
     ALGOSEEK__ARDADB__PORT
         The port used in the connection. If not set, port 8123 is used.
     ALGOSEEK__ARDADB__USER
-        The username for DB login.
+        The username to authenticate into ArdaDB.
     ALGOSEEK__ARDADB__PASSWORD
-        The ArdaDB user' password.
+        The password to authenticate into ArdaDB.
     ALGOSEEK__S3__PROFILE
         A profile name defined in `~/.aws/credentials` with access to Algoseek
         S3 datasets. If this variable is defined, ALGOSEEK__S3__ACCESS_KEY_ID and
@@ -34,14 +37,10 @@ The following list contains some of the most common variables:
     ALGOSEEK__S3__SECRET_ACCESS_KEY
         Access key to Algoseek S3 datasets.
 
-.. code-block:: python
-
-    import algoseek_connector as ac
-
-    ac.config.create_config_file()
-
-Refer to the :ref:`this guide <configuration>` for an in depth guide on how to
+Refer to :ref:`this guide <configuration>` for an in-depth explanation on how to
 set the user configuration.
+
+.. _getting-started-tutorial:
 
 Getting started
 ---------------
@@ -49,11 +48,8 @@ Getting started
 The algoseek-connector library provides means to retrieve data from the different
 data sources that the users has access to in a straightforward, pythonic way.
 
-In order to fully understand how to work with the library, we present its main
-components and facilities. An in-depth description of the library architecture
-can be found :ref:`here <algoseek-architecture>`.
-
-Jupyter notebooks with examples are also available in the ``examples``
+We provide first an introduction to the library main components and facilities.
+Alternatively, Jupyter notebooks with examples are also available in the ``examples``
 directory of the library `GitHub repository <https://github.com/algoseekgit/algoseek-connector>`_.
 
 The :py:class:`~algoseek_connector.manager.ResourceManager` is the first point of contact
@@ -84,12 +80,12 @@ created with the
 DataSources and DataGroups
 --------------------------
 
-A :py:class:`~algoseek_connector.base.DataSource` manages the connection to a
-data source and enables access to data. It manages collections of related
-datasets, called data groups. Thinking in terms of relational databases, a
-database is a data group, which contains several related tables (datasets). The
-available data groups can be retrieved by using the
-:py:func:`~algoseek_connector.base.DataSource.list_datagroups` method:
+The :py:class:`~algoseek_connector.base.DataSource` class manages the connection
+to Algoseek's datasets. It groups collection of related datasets into data groups.
+If we think in terms of relational databases, a database is a data group, which
+contains several related tables (datasets). The available data groups can be
+retrieved by using the :py:func:`~algoseek_connector.base.DataSource.list_datagroups`
+method:
 
 .. code-block:: python
 
@@ -148,9 +144,8 @@ data using SQL. Data from ``S3`` datasets is retrieved through the
 :py:func:`~algoseek_connector.base.DataSetFetcher.download` method, which
 downloads dataset files and allows filtering data by date, symbols and expiration
 date in the case of options and futures datasets. See :ref:`here <S3DataSource>`
-for an example of downloading data from S3 datasets. In order to retrieve data
-from ``ArdaDB``, a :py:class:`~algoseek_connector.base.DataSet` must be created
-using the fetch method:
+for an example of downloading data from S3 datasets. To retrieve data from ``ArdaDB``,
+a :py:class:`~algoseek_connector.base.DataSet` must be created using the fetch method:
 
 .. code-block:: python
 
@@ -194,7 +189,7 @@ passed manually:
         "username": "username",
         "password": "password"
     }
-    data_source = manager.create_data_source("ardadb", **credentials)
+    data_source = manager.create_data_source("ArdaDB", **credentials)
 
 Once an ArdaDB data source is created, datasets are fetched as described
 above:

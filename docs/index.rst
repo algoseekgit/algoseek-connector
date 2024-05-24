@@ -14,12 +14,13 @@ datasets by creating sql-like queries using method chaining:
    import algoseek_connector as ac
 
    manager = ac.ResourceManager()
-   data_source = manager.create_data_source("clickhouse")
+   data_source = manager.create_data_source("ArdaDB")
    group = data_source.groups.USEquityMarketData.fetch()
    dataset = group.datasets.TradeOnlyMinuteBar.fetch()
 
    stmt = (
-      dataset.select()
+      dataset
+      .select()
       .where(dataset.TradeDate > "2015-01-01").
       .order_by(dataset.Volume)
       .limit(1000000)
@@ -40,26 +41,17 @@ Features:
 -  Streaming query results.
 
 Contents
-========
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-   tutorials/datasets
-   tutorials/sql
-   tutorials/configuration
-   api
+   algoseek_connector/tutorials
+   algoseek_connector/api
    developers
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
-
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
