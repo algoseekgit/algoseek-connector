@@ -13,7 +13,16 @@ from .utils import get_algoseek_path
 
 
 class AlgoseekConnectorSettings(BaseSettings):
-    """Store library configuration."""
+    """Store library configuration.
+
+    Settings fields may be set through environment variables by using the notation
+
+        ``ALGOSEEK__{SETTINGS_GROUP}__{SETTINGS_FIELD}``
+
+    where `SETTINGS_GROUP` may be `ARDADB`, `DATASET_API` or `S3`. Refer to each
+    submodel for the corresponding setting fields available.
+
+    """
 
     model_config = SettingsConfigDict(env_prefix="ALGOSEEK__", env_nested_delimiter="__", validate_assignment=True)
 

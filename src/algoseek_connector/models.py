@@ -28,11 +28,18 @@ class DatasetAPIConfiguration(pydantic.BaseModel):
     headers: dict[str, str] | None = None
     """Headers to include in all requests."""
 
-    email: str | None = "connector-lib@algoseek.com"
+    email: str | None = None
     """the email to request an access token."""
 
-    password: str | None = "57xB_d69U_Mqgq_uzrP"
+    password: str | None = None
     """the password to request an access token."""
+
+    @pydantic.model_validator(mode="after")
+    def _set_credentials(self):
+        """Set API credentials. Defaults are set here to avoid showing default credentials in API docs."""
+        self.email = "connector-lib@algoseek.com" if self.email is None else self.email
+        self.password = "57xB_d69U_Mqgq_uzrP" if self.password is None else self.password
+        return self
 
 
 class ArdaDBConfiguration(pydantic.BaseModel):
@@ -73,7 +80,7 @@ class S3Configuration(pydantic.BaseModel):
     """Default region when creating new connections"""
 
     download_limit: pydantic.PositiveInt = TIB
-    """S3 datasets download quota"""
+    """S3 datasets download quota, in bytes. Set by default to 1 TiB."""
 
-    download_limit_do_not_change: pydantic.PositiveInt = 20 * TIB
-    """A second download limit fo S3 datasets."""
+    download_limit_do_not_change: pydantic.PositiveInt = pydantic.Field(default=20 * TIB, frozen=True)
+    """A second download limit fo S3 datasets, in bytes. Set by default to 20 TiB."""
