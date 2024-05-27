@@ -24,12 +24,12 @@ jobs:
       - name: Check code quality
         if: ${{ always() }}
         run: |
-          poetry ruff check src --output-format=github
+          poetry run ruff check src --output-format=github
 
       - name: Check code formatting
         if: ${{ always() }}
         run: |
-          poetry ruff format src --check
+          poetry run ruff format src --check
       - name: Test with pytest
         run: |
           poetry run pytest tests/unit
