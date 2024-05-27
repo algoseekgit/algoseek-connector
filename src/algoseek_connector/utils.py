@@ -6,8 +6,6 @@ import hashlib
 import re
 from pathlib import Path
 
-from . import constants
-
 
 class ExpirationMonthCode(enum.Enum):
     """Represent Expiration month codes for futures."""
@@ -67,7 +65,9 @@ def iterate_date_range(start: datetime.date, end: datetime.date):
     Parameters
     ----------
     start : datetime.date
+        The start date range
     end : datetime.date
+        The end date range
 
     Yields
     ------
@@ -102,4 +102,4 @@ def sha1_digest(path: Path) -> str:
 
 def get_algoseek_path() -> Path:
     """Get the path to the algoseek directory located in the user home."""
-    return Path.home() / constants.ALGOSEEK_DIR
+    return Path.home() / ".algoseek"

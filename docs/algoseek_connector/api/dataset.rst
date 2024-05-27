@@ -1,11 +1,5 @@
-.. _api:
-
-===============
- API Reference
-===============
-
-Here you can find the reference for the objects used by algoseek-connector
-library:
+Dataset API
+===========
 
 .. _ResourceManager:
 
@@ -98,52 +92,4 @@ ColumnDescription
 -----------------
 
 .. autoclass:: algoseek_connector.base.ColumnDescription
-    :members:
-
-
-Library utilities
-=================
-
-.. _library-utilities:
-
-Connection to metadata services
--------------------------------
-
-.. _AuthToken:
-
-AuthToken
----------
-
-.. autoclass:: algoseek_connector.metadata_api.AuthToken
-    :members:
-
-.. _BaseAPIConsumer:
-
-BaseAPIConsumer
----------------
-
-.. autoclass:: algoseek_connector.metadata_api.BaseAPIConsumer
-    :members:
-
-
-Client Protocols
-----------------
-
-Implementation of the ClientProtocol for the different data sources. These
-classes should not be instantiated directly.
-
-.. _ArdaDBClientProtocol:
-
-ClickHouseClient
-----------------
-
-.. autoclass:: algoseek_connector.clickhouse.ClickHouseClient
-    :members:
-
-.. _S3ClientProtocol:
-
-S3DownloaderClient
-------------------
-
-.. autoclass:: algoseek_connector.s3.S3DownloaderClient
     :members:

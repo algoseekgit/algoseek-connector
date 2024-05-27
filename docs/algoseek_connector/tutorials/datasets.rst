@@ -1,7 +1,10 @@
-.. _datasets:
+.. _introduction:
 
 Introduction
 ============
+
+
+.. _installation-tutorial:
 
 Installation & initial setup
 ----------------------------
@@ -13,45 +16,31 @@ the `pip` command:
 
     pip install algoseek-connector
 
-Before start using the library, it is recommendable to setup the credentials for
-the different data sources, as it allows the library to automatically manage
-login. The easiest way to set up credentials and library settings is by
-creating a settings file. This is done in the following way:
+Before using the library for the first time, it is required to set the credentials
+to access data sources. The recommended way to do this is through environment variables.
+The following list contains some of the most common variables:
 
-.. code-block:: python
-
-    import algoseek_connector as ac
-
-    ac.config.create_config_file()
-
-This will create the config file at `~/.algoseek/config.toml`. Replace the
-default values with your credentials for the different data sources. For ArdaDB
-the DB address, username and password are needed. For S3 datasets, AWS
-credentials with access to the datasets are required. Refer to the
-:ref:`this guide <configuration>` for an in depth guide on how to set the user
-configuration.
-This is done by defining the following environment variables:
-
-    ALGOSEEK_ARDADB_HOST
-        The IP address of the ArdaDB instance.
-    ALGOSEEK_ARDADB_PORT
+    ALGOSEEK__ARDADB__HOST
+        The ArdaDB host IP address.
+    ALGOSEEK__ARDADB__PORT
         The port used in the connection. If not set, port 8123 is used.
-    ALGOSEEK_ARDADB_USERNAME
-        The username for DB login.
-    ALGOSEEK_ARDADB_PASSWORD
-        The ArdaDB user' password.
-    ALGOSEEK_AWS_PROFILE
+    ALGOSEEK__ARDADB__USER
+        The username to authenticate into ArdaDB.
+    ALGOSEEK__ARDADB__PASSWORD
+        The password to authenticate into ArdaDB.
+    ALGOSEEK__S3__PROFILE
         A profile name defined in `~/.aws/credentials` with access to Algoseek
-        S3 datasets. If this variable is defined, ALGOSEEK_AWS_ACCESS_KEY_ID and
-        ALGOSEEK_AWS_SECRET_ACCESS_KEY are ignored.
-    ALGOSEEK_AWS_ACCESS_KEY_ID
+        S3 datasets. If this variable is defined, ALGOSEEK__S3__ACCESS_KEY_ID and
+        ALGOSEEK__S3__SECRET_ACCESS_KEY are ignored.
+    ALGOSEEK__S3__ACCESS_KEY_ID
         Access ID to Algoseek S3 datasets.
-    ALGOSEEK_AWS_SECRET_ACCESS_KEY
+    ALGOSEEK__S3__SECRET_ACCESS_KEY
         Access key to Algoseek S3 datasets.
 
-If the variables are not defined, they must be passed when creating connections
-to each data source. See the guides for creating
-:ref:`ArdaDB <ArdaDBDataSource>` and :ref:`S3 <S3DataSource>` data sources
+Refer to :ref:`this guide <configuration>` for an in-depth explanation on how to
+set the user configuration.
+
+.. _getting-started-tutorial:
 
 Getting started
 ---------------
@@ -59,13 +48,9 @@ Getting started
 The algoseek-connector library provides means to retrieve data from the different
 data sources that the users has access to in a straightforward, pythonic way.
 
-In order to fully understand how to work with the library, we present its main
-components and facilities. An in-depth description of the library architecture
-can be found :ref:`here <algoseek-architecture>`.
-
-Jupyter notebooks with examples are also available in the ``examples``
-directory of the library
-`GitHub repository <https://github.com/algoseekgit/algoseek-connector>`_.
+We provide first an introduction to the library main components and facilities.
+Alternatively, Jupyter notebooks with examples are also available in the ``examples``
+directory of the library `GitHub repository <https://github.com/algoseekgit/algoseek-connector>`_.
 
 The :py:class:`~algoseek_connector.manager.ResourceManager` is the first point of contact
 to fetch data. It manages available data sources for an user:
@@ -90,17 +75,17 @@ created with the
 
 .. code-block:: python
 
-    data_source = manager.create_data_source("ardadb")
+    data_source = manager.create_data_source("ArdaDB")
 
 DataSources and DataGroups
 --------------------------
 
-A :py:class:`~algoseek_connector.base.DataSource` manages the connection to a
-data source and enables access to data. It manages collections of related
-datasets, called data groups. Thinking in terms of relational databases, a
-database is a data group, which contains several related tables (datasets). The
-available data groups can be retrieved by using the
-:py:func:`~algoseek_connector.base.DataSource.list_datagroups` method:
+The :py:class:`~algoseek_connector.base.DataSource` class manages the connection
+to Algoseek's datasets. It groups collection of related datasets into data groups.
+If we think in terms of relational databases, a database is a data group, which
+contains several related tables (datasets). The available data groups can be
+retrieved by using the :py:func:`~algoseek_connector.base.DataSource.list_datagroups`
+method:
 
 .. code-block:: python
 
@@ -109,7 +94,7 @@ available data groups can be retrieved by using the
 Also, the `groups` attribute maintains a collection of the
 :py:class:`~algoseek_connector.base.DataGroup` instances available in a data source:
 
-.. image:: ../_static/algoseek-groups.gif
+.. image:: ../../_static/algoseek-groups.gif
     :alt: Autocompletion of data groups in a data source.
 
 
@@ -135,7 +120,7 @@ In a similar way to data sources, data groups allows to list datasets:
 
 Available datasets are also listed in the `datasets` attribute:
 
-.. image:: ../_static/algoseek-datasets.gif
+.. image:: ../../_static/algoseek-datasets.gif
     :alt: Autocompletion of datasets in a data group.
 
 The members of the `datasets` attribute are instances of
@@ -150,7 +135,7 @@ representation of algoseek datasets. If working on a jupyter notebook
 environment, the dataset description can be displayed, with links to sample data
 and documentation:
 
-.. image:: ../_static/algoseek-dataset-description.gif
+.. image:: ../../_static/algoseek-dataset-description.gif
     :alt: Description of datasets in jupyter notebooks.
 
 DataSetFetchers are responsible for downloading dataset files and for creating
@@ -159,9 +144,8 @@ data using SQL. Data from ``S3`` datasets is retrieved through the
 :py:func:`~algoseek_connector.base.DataSetFetcher.download` method, which
 downloads dataset files and allows filtering data by date, symbols and expiration
 date in the case of options and futures datasets. See :ref:`here <S3DataSource>`
-for an example of downloading data from S3 datasets. In order to retrieve data
-from ``ArdaDB``, a :py:class:`~algoseek_connector.base.DataSet` must be created
-using the fetch method:
+for an example of downloading data from S3 datasets. To retrieve data from ``ArdaDB``,
+a :py:class:`~algoseek_connector.base.DataSet` must be created using the fetch method:
 
 .. code-block:: python
 
@@ -205,7 +189,7 @@ passed manually:
         "username": "username",
         "password": "password"
     }
-    data_source = manager.create_data_source("ardadb", **credentials)
+    data_source = manager.create_data_source("ArdaDB", **credentials)
 
 Once an ArdaDB data source is created, datasets are fetched as described
 above:
@@ -253,7 +237,7 @@ attribute and the query parameters in the `parameters` attribute. If working on
 a Jupyter notebook environment, the compiled query can be used to display the
 query as a code block:
 
-.. image:: ../_static/sql-code-block.png
+.. image:: ../../_static/sql-code-block.png
     :alt: Displaying a SQL query as a code block in a Jupyter notebook.
 
 Creating select statements is a topic on its own. Refer to

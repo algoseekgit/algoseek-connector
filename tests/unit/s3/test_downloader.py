@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-
 from algoseek_connector.s3 import downloader
 from algoseek_connector.s3.downloader import PlaceHolder
 
@@ -201,15 +200,11 @@ def test_split_path_format(path_format, expected):
         ("so_detailed.csv", ["so_detailed.csv"], [set()]),
     ],
 )
-def test_tokenize_path_format(
-    path_format, expected_template_parts, expected_placeholders
-):
+def test_tokenize_path_format(path_format, expected_template_parts, expected_placeholders):
     prefix_sep = "/"
     name_sep = "."
     actual = downloader._tokenize_path_format(path_format, prefix_sep, name_sep)
-    for t, template_str, placeholders in zip(
-        actual, expected_template_parts, expected_placeholders
-    ):
+    for t, template_str, placeholders in zip(actual, expected_template_parts, expected_placeholders):
         assert t.template == template_str
         assert t.placeholders == placeholders
 
@@ -303,9 +298,7 @@ def test_S3KeyFilter_expiration_date_single_expiration_date():
     expiration_date_str = f"{year}{month:02d}{day:02d}"
     expected_expiration_date = datetime.date(year, month, day)
     symbols = ["ABC", "CDE"]
-    key_filter = downloader.S3KeyFilter(
-        date, symbols, expiration_date=expiration_date_str
-    )
+    key_filter = downloader.S3KeyFilter(date, symbols, expiration_date=expiration_date_str)
     start_expiration_date, end_expiration_date = cast(tuple, key_filter.expiration_date)
     assert start_expiration_date == end_expiration_date
     assert start_expiration_date == expected_expiration_date
@@ -321,9 +314,7 @@ def test_S3KeyFilter_expiration_date_expiration_date_range():
     expected_end_expiration_date = datetime.date(end_year, end_month, end_day)
     expiration_date_str = (start_expiration_date_str, end_expiration_date_str)
     symbols = ["ABC", "CDE"]
-    key_filter = downloader.S3KeyFilter(
-        date, symbols, expiration_date=expiration_date_str
-    )
+    key_filter = downloader.S3KeyFilter(date, symbols, expiration_date=expiration_date_str)
     start_expiration_date, end_expiration_date = cast(tuple, key_filter.expiration_date)
     assert start_expiration_date == expected_start_expiration_date
     assert end_expiration_date == expected_end_expiration_date

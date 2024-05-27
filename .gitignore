@@ -109,3 +109,6 @@ app.db
 
 # Tests data
 tests/data
+
+# direnv
+.envrc

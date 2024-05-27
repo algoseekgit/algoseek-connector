@@ -1,27 +1,21 @@
-import os
 from pathlib import Path
 
-import pytest
-from boto3 import Session
-
 import algoseek_connector as ac
-from algoseek_connector import constants
-from algoseek_connector.metadata_api import AuthToken, BaseAPIConsumer
+import pytest
+from algoseek_connector.dataset_api import DatasetAPIProvider
 from algoseek_connector.s3.client import (
     BucketMetadataProvider,
     S3DatasetDownloader,
     S3DescriptionProvider,
 )
 from algoseek_connector.s3.downloader import FileDownloader, create_boto3_session
+from algoseek_connector.settings import AlgoseekConnectorSettings
+from boto3 import Session
 
 
 @pytest.fixture(scope="module")
 def api():
-    credentials = (
-        ac.Settings().get_group(constants.METADATA_SERVICE_SETTINGS_GROUP).get_dict()
-    )
-    token = AuthToken(**credentials)
-    return BaseAPIConsumer(token)
+    return DatasetAPIProvider()
 
 
 @pytest.fixture(scope="module")
@@ -31,8 +25,10 @@ def bucket_metadata(api):
 
 @pytest.fixture(scope="module")
 def boto3_session():
-    profile_str = os.getenv(constants.ALGOSEEK_AWS_PROFILE_ENV)
-    return create_boto3_session(profile_name=profile_str)
+    settings = AlgoseekConnectorSettings().s3
+    return create_boto3_session(
+        aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
+    )
 
 
 @pytest.fixture(scope="module")
@@ -55,9 +51,7 @@ def test_get_bucket_path_format(bucket_metadata: BucketMetadataProvider):
     assert actual == expected
 
 
-def test_S3DatasetDownloader_download_invalid_download_path(
-    dataset_downloader: S3DatasetDownloader, tmp_path: Path
-):
+def test_S3DatasetDownloader_download_invalid_download_path(dataset_downloader: S3DatasetDownloader, tmp_path: Path):
     date = "20230703"
     symbols = "AAPL"
     download_path = tmp_path / "non-existent-path"
@@ -66,9 +60,7 @@ def test_S3DatasetDownloader_download_invalid_download_path(
         dataset_downloader.download(dataset_text_id, download_path, date, symbols)
 
 
-def test_S3DatasetDownloader_download_equity_data(
-    dataset_downloader: S3DatasetDownloader, tmp_path: Path
-):
+def test_S3DatasetDownloader_download_equity_data(dataset_downloader: S3DatasetDownloader, tmp_path: Path):
     date = ("20230701", "20230705")
     symbols = ["AMZN", "AAPL"]
     download_path = tmp_path / "data"
@@ -130,7 +122,7 @@ def test_S3DatasetDownloader_download_from_multiple_years_raises_error(
 
 
 @pytest.fixture(scope="module")
-def description_provider(api: BaseAPIConsumer):
+def description_provider(api: DatasetAPIProvider):
     return S3DescriptionProvider(api)
 
 
@@ -139,9 +131,7 @@ def test_S3DescriptionProvider_get_columns_description(
 ):
     group_text_id = "us_equity"
     dataset_text_id = "eq_taq_1min"
-    actual = description_provider.get_columns_description(
-        group_text_id, dataset_text_id
-    )
+    actual = description_provider.get_columns_description(group_text_id, dataset_text_id)
     assert len(actual)
     assert all(isinstance(x, ac.base.ColumnDescription) for x in actual)
 
@@ -151,9 +141,7 @@ def test_S3DescriptionProvider_get_columns_description_non_existent_returns_empt
 ):
     group_text_id = "us_equity"
     dataset_text_id = "NonExistentDataSet"
-    actual = description_provider.get_columns_description(
-        group_text_id, dataset_text_id
-    )
+    actual = description_provider.get_columns_description(group_text_id, dataset_text_id)
     assert not actual
 
 
@@ -162,9 +150,7 @@ def test_S3DescriptionProvider_get_dataset_description(
 ):
     dataset_text_id = "eq_taq_1min"
     group_text_id = "us_equity"
-    actual = description_provider.get_dataset_description(
-        group_text_id, dataset_text_id
-    )
+    actual = description_provider.get_dataset_description(group_text_id, dataset_text_id)
     expected_name = dataset_text_id
     assert actual.name == expected_name
     assert actual.display_name != expected_name
@@ -178,9 +164,7 @@ def test_S3DescriptionProvider_get_dataset_description_non_existent_does_not_fai
 ):
     dataset_text_id = "NonExistentDataSet"
     group_text_id = "NonExistentDataGroup"
-    actual = description_provider.get_dataset_description(
-        group_text_id, dataset_text_id
-    )
+    actual = description_provider.get_dataset_description(group_text_id, dataset_text_id)
     expected_name = dataset_text_id
     assert actual.name == expected_name
     assert actual.display_name == expected_name

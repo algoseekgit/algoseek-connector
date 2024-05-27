@@ -6,8 +6,6 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from algoseek_connector import constants
-
 
 def check_object_exists(obj):
     try:
@@ -20,14 +18,14 @@ def check_object_exists(obj):
 
 @pytest.fixture(scope="module")
 def session():
-    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
+    access_key = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("ALGOSEEK__DEV__AWS_SECRET_ACCESS_KEY")
     return boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
 
 
 @pytest.fixture(scope="module")
 def s3_resource(session: boto3.Session):
-    return session.resource(constants.S3)
+    return session.resource("s3")
 
 
 @pytest.fixture(scope="module")
@@ -39,9 +37,7 @@ def test_create_session_with_invalid_user():
     # passing invalid user/key is possible.
     access_key = "InvalidAccessKeyID"
     secret_key = os.getenv("ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY")
-    session = boto3.Session(
-        aws_access_key_id=access_key, aws_secret_access_key=secret_key
-    )
+    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     # in order to check credentials, validation code must be executed
     # creating a sts client and running the get_caller_identity method
     # allows to check if the credentials are valid.
@@ -51,11 +47,9 @@ def test_create_session_with_invalid_user():
 
 
 def test_create_session_with_invalid_secret_access_key():
-    access_key = os.getenv("ALGOSEEK_DEV_AWS_ACCESS_KEY_ID")
+    access_key = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")
     secret_key = "InvalidSecretKey"
-    session = boto3.Session(
-        aws_access_key_id=access_key, aws_secret_access_key=secret_key
-    )
+    session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     # creating a sts client and running the get_caller_identity method
     # allows to check if the credentials are valid.
     with pytest.raises(ClientError):

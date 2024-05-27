@@ -2,15 +2,14 @@ from typing import cast
 
 import pytest
 import sqlparse
-from clickhouse_connect.driver import Client
-from sqlalchemy import func
-
 from algoseek_connector import base
 from algoseek_connector.base import DataGroup, DataSet, DataSetDescription, DataSource
 from algoseek_connector.clickhouse.client import (
     ArdaDBDescriptionProvider,
     ClickHouseClient,
 )
+from clickhouse_connect.driver import Client
+from sqlalchemy import func
 
 sql_format_params = {
     "reindent": True,
@@ -104,9 +103,7 @@ def test_select_exclude_all_columns_raise_value_error(dataset: DataSet):
 def test_select_groupby(dataset: DataSet):
     expected = "SELECT avg(g.t.col1) AS avg_col1 FROM g.t GROUP BY g.t.col4"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1")).group_by(
-        dataset["col4"]
-    )
+    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1")).group_by(dataset["col4"])
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -115,9 +112,7 @@ def test_select_groupby(dataset: DataSet):
 def test_select_groupby_two_columns(dataset: DataSet):
     expected = "SELECT avg(g.t.col1) AS avg_col1, g.t.col4 FROM g.t GROUP BY g.t.col4"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select(
-        func.avg(dataset["col1"]).label("avg_col1"), dataset["col4"]
-    ).group_by(dataset["col4"])
+    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1"), dataset["col4"]).group_by(dataset["col4"])
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -127,9 +122,7 @@ def test_select_where(dataset: DataSet):
     expected = "SELECT g.t.col1, g.t.col3 FROM g.t WHERE g.t.col2 = %(col2_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     col2_filter = 2
-    stmt = dataset.select(dataset["col1"], dataset["col3"]).where(
-        dataset["col2"] == col2_filter
-    )
+    stmt = dataset.select(dataset["col1"], dataset["col3"]).where(dataset["col2"] == col2_filter)
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -137,17 +130,11 @@ def test_select_where(dataset: DataSet):
 
 
 def test_select_where_logical_and(dataset: DataSet):
-    expected = (
-        "SELECT g.t.col1 "
-        "FROM g.t "
-        "WHERE g.t.col2 = %(col2_1)s AND g.t.col1 >= %(col1_1)s"
-    )
+    expected = "SELECT g.t.col1 " "FROM g.t " "WHERE g.t.col2 = %(col2_1)s AND g.t.col1 >= %(col1_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     col2_filter = 2
     col1_filter = 5
-    stmt = dataset.select(dataset["col1"]).where(
-        (dataset["col2"] == col2_filter) & (dataset["col1"] >= col1_filter)
-    )
+    stmt = dataset.select(dataset["col1"]).where((dataset["col2"] == col2_filter) & (dataset["col1"] >= col1_filter))
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -156,17 +143,11 @@ def test_select_where_logical_and(dataset: DataSet):
 
 
 def test_select_where_logical_or(dataset: DataSet):
-    expected = (
-        "SELECT g.t.col1 "
-        "FROM g.t "
-        "WHERE g.t.col2 = %(col2_1)s OR g.t.col1 >= %(col1_1)s"
-    )
+    expected = "SELECT g.t.col1 " "FROM g.t " "WHERE g.t.col2 = %(col2_1)s OR g.t.col1 >= %(col1_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     col2_filter = 2
     col1_filter = 5
-    stmt = dataset.select(dataset["col1"]).where(
-        (dataset["col2"] == col2_filter) | (dataset["col1"] >= col1_filter)
-    )
+    stmt = dataset.select(dataset["col1"]).where((dataset["col2"] == col2_filter) | (dataset["col1"] >= col1_filter))
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -186,9 +167,7 @@ def test_select_where_in(dataset: DataSet):
 
 
 def test_select_where_between(dataset: DataSet):
-    expected = (
-        "SELECT g.t.col1 FROM g.t WHERE g.t.col2 BETWEEN %(col2_1)s AND %(col2_2)s"
-    )
+    expected = "SELECT g.t.col1 FROM g.t WHERE g.t.col2 BETWEEN %(col2_1)s AND %(col2_2)s"
     expected = sqlparse.format(expected, **sql_format_params)
     low = 10
     high = 20
@@ -232,9 +211,7 @@ def test_select_order_desc(dataset: DataSet):
 def test_select_order_multiple(dataset: DataSet):
     expected = "SELECT g.t.col1 FROM g.t ORDER BY g.t.col3, g.t.col2 DESC"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select(dataset["col1"]).order_by(
-        dataset["col3"], dataset["col2"].desc()
-    )
+    stmt = dataset.select(dataset["col1"]).order_by(dataset["col3"], dataset["col2"].desc())
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -245,11 +222,7 @@ def test_select_limit(dataset: DataSet):
     expected = "SELECT g.t.col1, g.t.col2 FROM g.t ORDER BY g.t.col1  LIMIT %(param_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     limit = 20
-    stmt = (
-        dataset.select(dataset["col1"], dataset["col2"])
-        .order_by(dataset["col1"])
-        .limit(limit)
-    )
+    stmt = dataset.select(dataset["col1"], dataset["col2"]).order_by(dataset["col1"]).limit(limit)
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected

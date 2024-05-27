@@ -1,5 +1,4 @@
 import pytest
-
 from algoseek_connector import utils
 
 
