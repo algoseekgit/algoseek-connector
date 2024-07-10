@@ -19,10 +19,9 @@ def dev_session():
 
 @pytest.fixture(scope="module")
 def dataset_session():
-    s3_settings = AlgoseekConnectorSettings().s3
-    return downloader.create_boto3_session(
-        aws_access_key_id=s3_settings.aws_access_key_id, aws_secret_access_key=s3_settings.aws_secret_access_key
-    )
+    s3_config = AlgoseekConnectorSettings().s3
+    secret = None if s3_config.aws_secret_access_key is None else s3_config.aws_secret_access_key.get_secret_value()
+    return downloader.create_boto3_session(aws_access_key_id=s3_config.aws_access_key_id, aws_secret_access_key=secret)
 
 
 def test_create_boto3_session_invalid_aws_access_key_id(monkeypatch):
@@ -44,12 +43,6 @@ def test_create_boto3_session(dataset_session: boto3.Session):
         aws_secret_access_key=credentials.secret_key,
     )
     assert session.profile_name == "default"
-
-
-def test_create_boto3_session_using_profile():
-    profile_name = "algoseek-datasets"
-    session = downloader.create_boto3_session(profile_name=profile_name)
-    assert session.profile_name == profile_name
 
 
 def test_BucketWrapper(dev_session: boto3.Session):

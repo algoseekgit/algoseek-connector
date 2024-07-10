@@ -35,3 +35,10 @@ def test_yyyymmdd_str_to_date_invalid_date(date_str: str):
 def test_remove_duplicates_preserve_order(lst: list[str], expected: list[str]):
     actual = utils.remove_duplicates_preserve_order(lst)
     assert actual == expected
+
+
+@pytest.mark.parametrize("value", ["", "my-secret", "secret_W1th_chars_and_symBOLS_@@@!)"])
+def test_base64_encode_decode_return_same_str(value):
+    expected = value
+    actual = utils.b64_decode(utils.b64_encode(expected))
+    assert actual == expected
