@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
+from typing import Any
 
 import pendulum
 import pydantic
@@ -197,6 +198,18 @@ class DataGroupApiInfo(pydantic.BaseModel):
     description: str
     """The data group description."""
 
+    @pydantic.field_validator("description", mode="before")
+    @classmethod
+    def _validate_no_description(cls, description: str | None) -> str:
+        return "" if description is None else description
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def _validate_no_display_name(cls, data: Any) -> Any:
+        if data.get("display_name") is None:
+            data["display_name"] = data["internal_name"]
+        return data
+
 
 class DatasetVersionApiInfo(pydantic.BaseModel):
     """Store dataset general information retrieved from the dataset API 2.0."""
@@ -305,10 +318,10 @@ class BearerAuth(requests.auth.AuthBase):
 
         body = dict()
         if self.config.email is not None:
-            body["email"] = self.config.email
+            body["email"] = self.config.email.get_secret_value()
 
         if self.config.password is not None:
-            body["password"] = self.config.password
+            body["password"] = self.config.password.get_secret_value()
 
         headers = {"timeout": "5.0"}
         endpoint = f"{self.config.url}/auth/login"

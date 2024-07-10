@@ -480,7 +480,11 @@ def create_clickhouse_client(config: ArdaDBConfiguration) -> Client:
 
     """
     return clickhouse_connect.get_client(
-        host=config.host, port=config.port, user=config.user, password=config.password, **config.extra
+        host=config.host,
+        port=config.port,
+        user=config.user.get_secret_value(),
+        password=config.password.get_secret_value(),
+        **config.extra,
     )
 
 

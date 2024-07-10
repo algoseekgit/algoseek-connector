@@ -99,10 +99,13 @@ class ResourceManager:
             client = clickhouse.ClickHouseClient(clickhouse_connect_client)
         elif type_ == DataSourceType.S3:
             s3_config = settings.s3.model_copy(update=kwargs)
+            secret_key = (
+                None if s3_config.aws_secret_access_key is None else s3_config.aws_secret_access_key.get_secret_value()
+            )
             session = s3.create_boto3_session(
                 profile_name=s3_config.profile_name,
                 aws_access_key_id=s3_config.aws_access_key_id,
-                aws_secret_access_key=s3_config.aws_secret_access_key,
+                aws_secret_access_key=secret_key,
             )
             client = s3.S3DownloaderClient(session, self._api)
         else:

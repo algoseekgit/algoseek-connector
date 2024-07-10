@@ -1,5 +1,6 @@
 """General utility functions."""
 
+import base64
 import datetime
 import enum
 import hashlib
@@ -103,3 +104,15 @@ def sha1_digest(path: Path) -> str:
 def get_algoseek_path() -> Path:
     """Get the path to the algoseek directory located in the user home."""
     return Path.home() / ".algoseek"
+
+
+def b64_encode(s: str) -> str:
+    """Encode a string into base64."""
+    encoded = base64.b64encode(bytes(s, "utf8"))
+    return encoded.decode("utf8")
+
+
+def b64_decode(s: str) -> str:
+    """Decode a base64 string."""
+    decoded = base64.b64decode(s.encode("utf8"))
+    return decoded.decode("utf8")

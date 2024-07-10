@@ -27,7 +27,8 @@ def bucket_metadata(api):
 def boto3_session():
     settings = AlgoseekConnectorSettings().s3
     return create_boto3_session(
-        aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
+        aws_access_key_id=settings.aws_access_key_id,
+        aws_secret_access_key=settings.aws_secret_access_key.get_secret_value(),  # type: ignore
     )
 
 
