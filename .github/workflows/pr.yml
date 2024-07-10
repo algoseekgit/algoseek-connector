@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11']
+        python-version: ["3.10", "3.11"]
 
     runs-on: ${{ matrix.os }}
 
@@ -22,12 +22,10 @@ jobs:
           pip install poetry
           poetry install --with dev
       - name: Check code quality
-        if: ${{ always() }}
         run: |
           poetry run ruff check src --output-format=github
 
       - name: Check code formatting
-        if: ${{ always() }}
         run: |
           poetry run ruff format src --check
       - name: Test with pytest
