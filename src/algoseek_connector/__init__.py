@@ -1,13 +1,9 @@
 """
 The connector library for Algoseek Datasets.
 
-For getting started with the library, see the following link at TODO: ADD LINK.
+For getting started with the library, see the following link:
 
-Datasets access is done via SQL queries, using either method cascading or raw
-SQL queries.
-
-TODO: list user classes.
-TODO: add examples.
+https://algoseek-connector.readthedocs.io/en/latest/index.html
 
 """
 

@@ -64,7 +64,7 @@ class DataSource:
     """
     Manage the connection to a data source.
 
-    See :ref:`here <datasets>` for a guide on how to work with data sources.
+    See :ref:`here <introduction>` for a guide on how to work with data sources.
 
     Attributes
     ----------
@@ -312,7 +312,7 @@ class DataSetFetcher:
         Create a dataset instance.
 
         DataSet allow to fetch data using SQL-like queries. See
-        :ref:`here <datasets>` for a detailed description on how work with
+        :ref:`here <introduction>` for a detailed description on how work with
         datasets.
 
         """
@@ -329,7 +329,7 @@ class DataSet:
     """
     Retrieve data from a data source using SQL queries.
 
-    See :ref:`here <datasets>` for a detailed description on how work with
+    See :ref:`here <introduction>` for a detailed description on how work with
     datasets.
 
     Attributes
@@ -849,7 +849,7 @@ class ColumnHandle:
 
     Support access to a dataset columns by attribute or by key.
 
-    See :ref:`here <datasets>` for a guide on how to use column handles.
+    See :ref:`here <sql>` for a guide on how to use column handles.
 
     """
 
@@ -875,7 +875,7 @@ class FunctionHandle:
     """
     Handle for SQL functions.
 
-    See :ref:`here <datasets>` for a guide on how to use function handles.
+    See :ref:`here <sql>` for a guide on how to use function handles.
 
     """
 
