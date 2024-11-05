@@ -1,5 +1,6 @@
 # User installation
 .PHONY: install
+install:
 	poetry install
 
 # Install repository for development
@@ -33,3 +34,8 @@ coverage:
 format:
 	poetry run ruff check --fix
 	poetry run ruff format
+
+.PHONY: clean
+clean:
+	rm -rf .venv
+	find -iname "*.pyc" -delete
