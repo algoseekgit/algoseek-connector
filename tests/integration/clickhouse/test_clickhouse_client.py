@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from pandas import DataFrame
+
 from algoseek_connector import ResourceManager, base, s3
 from algoseek_connector.base import DataSet, DataSource
 from algoseek_connector.clickhouse import ArdaDBDescriptionProvider
 from algoseek_connector.models import DataSourceType
-from pandas import DataFrame
 
 DEV_BUCKET = "algoseek-connector-dev"
 ALGOSEEK_DEV_AWS_ACCESS_KEY_ID = os.getenv("ALGOSEEK__DEV__AWS_ACCESS_KEY_ID")

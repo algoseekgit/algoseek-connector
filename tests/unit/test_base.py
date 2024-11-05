@@ -2,11 +2,12 @@ from pathlib import Path
 from typing import Generator, Optional, Union
 
 import pytest
-from algoseek_connector import base
-from algoseek_connector.base import CompiledQuery, date_like
 from pandas import DataFrame
 from sqlalchemy import Column, String
 from sqlalchemy.sql import Select
+
+from algoseek_connector import base
+from algoseek_connector.base import CompiledQuery, date_like
 
 
 def get_dummy_columns() -> list[base.ColumnDescription]:

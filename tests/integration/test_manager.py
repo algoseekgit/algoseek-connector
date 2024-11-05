@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import cast
 
-import algoseek_connector as ac
 import pytest
+
+import algoseek_connector as ac
 from algoseek_connector.models import DataSourceType
 
 

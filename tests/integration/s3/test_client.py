@@ -1,7 +1,9 @@
 from pathlib import Path
 
-import algoseek_connector as ac
 import pytest
+from boto3 import Session
+
+import algoseek_connector as ac
 from algoseek_connector.dataset_api import DatasetAPIProvider
 from algoseek_connector.s3.client import (
     BucketMetadataProvider,
@@ -10,7 +12,6 @@ from algoseek_connector.s3.client import (
 )
 from algoseek_connector.s3.downloader import FileDownloader, create_boto3_session
 from algoseek_connector.settings import AlgoseekConnectorSettings
-from boto3 import Session
 
 
 @pytest.fixture(scope="module")

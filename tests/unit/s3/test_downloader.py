@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+
 from algoseek_connector.s3 import downloader
 from algoseek_connector.s3.downloader import PlaceHolder
 

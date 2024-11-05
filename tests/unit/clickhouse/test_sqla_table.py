@@ -1,8 +1,9 @@
 import pytest
-from algoseek_connector.base import ColumnDescription
-from algoseek_connector.clickhouse import sqla_table
 from clickhouse_sqlalchemy import types as clickhouse_types
 from sqlalchemy import types as sqla_types
+
+from algoseek_connector.base import ColumnDescription
+from algoseek_connector.clickhouse import sqla_table
 
 
 @pytest.fixture
