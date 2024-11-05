@@ -3,9 +3,10 @@ from pathlib import Path
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
+
 from algoseek_connector.s3 import downloader
 from algoseek_connector.settings import AlgoseekConnectorSettings
-from botocore.exceptions import ClientError
 
 DEV_BUCKET = "algoseek-connector-dev"
 

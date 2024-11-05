@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 import requests
+
 from algoseek_connector.base import InvalidDataGroupName
 from algoseek_connector.dataset_api import BearerAuth, DatasetAPIProvider
 from algoseek_connector.settings import AlgoseekConnectorSettings

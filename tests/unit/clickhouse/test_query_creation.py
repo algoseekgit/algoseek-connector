@@ -2,14 +2,15 @@ from typing import cast
 
 import pytest
 import sqlparse
+from clickhouse_connect.driver import Client
+from sqlalchemy import func
+
 from algoseek_connector import base
 from algoseek_connector.base import DataGroup, DataSet, DataSetDescription, DataSource
 from algoseek_connector.clickhouse.client import (
     ArdaDBDescriptionProvider,
     ClickHouseClient,
 )
-from clickhouse_connect.driver import Client
-from sqlalchemy import func
 
 sql_format_params = {
     "reindent": True,
