@@ -8,87 +8,88 @@ Developers guide
 Getting Started
 ---------------
 
-Algoseek-connector is developed for ``Python>=3.9`` using
-`Poetry <https://python-poetry.org/>`_ as the build tool. A recipe for
-development installation is included in the repository `Makefile`:
+This library is developed for Python >= 3.10, with `Poetry <https://python-poetry.org/>`_ as the build
+and dependency management tool. A development installation recipe is provided in the project's Makefile:
 
 .. code-block:: shell
 
     make dev-install
 
-Running this command will install the package, along with dependencies to
-build the documentation and execute tests.
-`pre-commit <https://pre-commit.com/>`_ hooks are also installed. In order to
-run integration tests, access to the different data sources is required. Contact
-the :ref:`maintainers` to obtain the necessary credentials.
+Executing this command will install the package along with all dependencies required for building
+documentation and running tests. Additionally, `pre-commit <https://pre-commit.com/>`_ hooks are configured
+to enforce code quality standards. To execute integration tests, access to relevant data sources is necessary.
+Please contact the project maintainers to obtain the appropriate credentials.
 
-All contribution to the project should be made by creating feature branches and
-creating a corresponding PR. Feature branches must be created from the `dev`
-branch. Be sure to pass all unit and integration tests before submitting a PR.
-All new features should be :ref:`tested <testing>` and
-:ref:`documented <documentation>`.
-Refer to their corresponding sections in this guide for more information.
+The library follows the `semantic versioning <https://semver.org/>`_ convention, using the format
+MAJOR.MINOR.PATCH for releases. Releases are managed automatically by the release please GitHub action.
+The version number is bumped automatically based on `conventional commit <https://www.conventionalcommits.org/en/v1.0.0/>`_
+messages. To create a new release, the only required action is to merge the release please bot release branch.
+Once a new release is created, the poetry publish action publish the package in the Python package index.
 
+The `commitizen <https://commitizen-tools.github.io/commitizen/>`_ tool comes bundled with the development
+dependencies. This tool should be used to generate conventional commit messages.
+
+Contributions to the project should be made via feature branches, with corresponding pull requests (PRs).Ensure
+that all unit and integration tests pass successfully before submitting a PR. Additionally, new features must be
+:ref:`tested <testing>` and :ref:`documented <documentation>`. Refer to the respective sections in this guide for
+detailed instructions on testing and documentation procedures.
 
 .. _testing:
 
 Testing
 -------
 
-`Pytest <https://docs.pytest.org/en/7.4.x/>`_ is used as the suite for testing.
-The library tests are grouped in three different types: integration, learning and
-unit:
+The testing suite for this library is based on `Pytest <https://docs.pytest.org/en/stable/index.html>`_. Tests are
+organized into three categories: unit tests, integration tests, and learning tests.
 
 **Unit tests**
 
-    Check basic library component functionality. This type of tests do not
-    connect to external data sources such as DB or REST APIs. If necessary,
-    external connections are mocked. Unit test are executed with the following
-    command:
+Unit tests verify the functionality of individual components within the library. These tests are isolated
+from external systems, such as databases or REST APIs; external interactions are simulated using mocks
+when necessary. Unit tests can be executed using the following command:
 
-    .. code-block:: shell
+.. code-block:: shell
 
-        make unit-tests
+    make unit-tests
 
 **Integration tests**
-    Check library functionality in real-world scenarios, connecting to external
-    data sources. Usually they take longer to run and are not executed by
-    default. Integration tests are executed with the following command:
 
-    .. code-block:: shell
+Integration tests evaluate the library's behavior in real-world scenarios, interacting with external data
+sources (e.g., databases, APIs). These tests tend to have longer execution times and are not run by default.
+To execute integration tests, use the following command:
 
-        make integration-tests
+.. code-block:: shell
+
+    make integration-tests
 
 **Learning tests**
 
-    This kind of tests do not test library functionality. They are created to
-    learn how third party library works and check their behavior in different
-    scenarios. They are not executed by default. Learning tests are executed
-    with the following command:
+Learning tests do not assess the library's functionality. Instead, they are designed to explore and evaluate
+the behavior of third-party libraries in various scenarios. These tests are not executed by default. To run
+the learning tests, use the following command:
 
-    .. code-block:: shell
+.. code-block:: shell
 
-        make learning-tests
+    make learning-tests
 
-Integration and learning tests need access to external resources to run. Access
-is set through environment variables:
+Integration and learning tests need access to external resources to run. Access is set through environment
+variables:
 
 **ArdaDB**
-    Set host address, port, user and password using the environment variables
-    ``ALGOSEEK_ARDADB_HOST``, ``ALGOSEEK_ARDADB_USER`` and
-    ``ALGOSEEK_ARDADB_PASSWORD``.
+
+Set host address, port, user and password using the environment variables ``ALGOSEEK_ARDADB_HOST``,
+``ALGOSEEK_ARDADB_USER`` and ``ALGOSEEK_ARDADB_PASSWORD``.
 
 **S3**
-    Set access to dataset buckets setting the variables ``ALGOSEEK_AWS_PROFILE``
-    to get the credentials from ~/.aws/credentials or set user/password using
-    the ``ALGOSEEK_AWS_ACCESS_KEY_ID`` and ``ALGOSEEK_AWS_SECRET_ACCESS_KEY``
-    environment variables. Also, For writing to S3 buckets, access to the
-    development buckets needs to be set using the environment variables
-    ``ALGOSEEK_DEV_AWS_ACCESS_KEY_ID`` and
-    ``ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY``.
 
-We aim to achieve 100 % code coverage on the code base. A code coverage report
-is executed with the following command:
+Set access to dataset buckets setting the variables ``ALGOSEEK_AWS_PROFILE`` to get the credentials
+from ``~/.aws/credentials`` or set user/password using the ``ALGOSEEK_AWS_ACCESS_KEY_ID`` and
+``ALGOSEEK_AWS_SECRET_ACCESS_KEY`` environment variables. Also, For writing to S3 buckets, access to
+the development buckets needs to be set using the environment variables ``ALGOSEEK_DEV_AWS_ACCESS_KEY_ID``
+and ``ALGOSEEK_DEV_AWS_SECRET_ACCESS_KEY``.
+
+We aim to achieve 100 % code coverage on the code base. A code coverage report is executed with the
+following command:
 
 .. code-block:: shell
 
@@ -99,140 +100,104 @@ is executed with the following command:
 Improving the documentation
 ---------------------------
 
-The library documentation is generated using
-`Sphinx <https://www.sphinx-doc.org/en/master/>`_.
-The docstrings are written using the
-`Numpy style <https://numpydoc.readthedocs.io/en/latest/>`_.
-All public modules, classes, methods and functions **must** have a docstring.
-Docstrings for private and magic functions/methods are not mandatory, but a
-brief description of its usage is encouraged. Tutorials are recommended to
-explain intended usage of the different facilities.
+The library's documentation is generated using `Sphinx <https://www.sphinx-doc.org/en/master/>`_.
+Doc building dependencies are installed with the following command:
 
-To generate the HTML documentation, execute the following command inside the
-``docs`` directory:
+```sh
+poetry install --with docs
+```
+
+Docstrings are written in the `Numpy style <https://numpydoc.readthedocs.io/en/latest/>`_.
+
+All public modules, classes, methods, and functions must include a docstring. While docstrings for private
+functions and magic methods are not strictly required, it is strongly encouraged to provide at least a brief
+description of their purpose and usage.
+
+Additionally, tutorials are encouraged to illustrate the intended usage and best practices for utilizing the
+library's features.
+
+To generate the HTML documentation, navigate to the docs directory and execute the following command:
 
 .. code-block:: shell
 
     make html
 
-Communication Channels
-----------------------
+Deprecating Features
+--------------------
 
-You can contact one of the project :ref:`maintainers` or check the project
-discussions at GitHub.
+Feature deprecations must be communicated to users with a warning, indicating the version in which the feature
+will be removed (typically a major version change). Deprecations should be marked in the following ways:
 
-Reporting an issue
-------------------
-
-Reporting issues is very important to make ``algoseek-connector`` more reliable.
-Reports can be made in the repository
-`issue tracker <https://github.com/algoseekgit/algoseek-connector/issues>`_.
-
-When submitting an issue, make sure to provide a code snippet reproducing the
-problem. If an error occurs, please also provide the traceback. An explanation
-of why the current behavior is not correct is also encouraged. Refer to this
-`post <https://matthewrocklin.com/minimal-bug-reports>`_ for a guide on how to
-write an issue report.
-
-Also, it is worthwhile to check if the issue is already reported using the
-search function of the issue tracker.
-
-For user questions of the type "What is the best way to achieve X?", the
-discussions at GitHub is a better place to ask.
-
-Versioning and Release Process
-------------------------------
-
-``algoseek-connector`` releases follows the
-`semantic versioning <https://semver.org/>`_ convention. Releases follow the
-notation ``MAJOR.MINOR.PATCH``. API breaking changes must occur only in
-**major** version changes, the only exception being bug fixes. **Minor** changes
-include new features while maintaining API compatibility.
-See Poetry's `version command <https://python-poetry.org/docs/cli/#version>`_
-to bump the project version.
-
-Feature deprecation must be announced through a warning, displaying the version
-where deprecation will occur (major change) and marked both in the issue
-tracker in the GitHub repository and with the `..deprecated::` directive in
-the function/class docstring. If available, an alternative must be included in
-the deprecation announcement.
+-   In the issue tracker: Open an issue in the GitHub repository to announce the deprecation and its timeline.
+-   In the code: Use the ``.. deprecated::`` directive in the relevant function or class docstring, indicating
+    the version when the feature will be removed.
+-   Provide alternatives: If available, recommend an alternative approach or feature in the deprecation message.
 
 .. _algoseek-architecture:
 
-Algoseek-connector architectural overview
------------------------------------------
+Architecture overview
+---------------------
 
-``algoseek-connector`` aims to provide a fast, high-level, easy-to-use library
-to fetch data from Algoseek datasets. In order to achieve this, we adhere to the
-following principles:
+``algoseek-connector`` aims to provide a fast, high-level, easy-to-use library to fetch data from Algoseek
+datasets. In order to achieve this, we adhere to the following principles:
 
 - performance is a top priority.
 - The number of dependencies must be kept to a minimum.
 - Provide a unified interface to access datasets.
 - Provide utilities to aid the user in dataset exploration.
 
-Te overall architecture and functionality responds to these principles. The
-following figures display the different modules of the library and the
-architecture of the library API.
+The overall architecture and functionality responds to these principles. The following figures display the
+different modules of the library and the architecture of the library API.
 
 .. image:: _static/api-uml.png
     :target: _static/api-uml.png
     :alt: A UML diagram of the library API.
 
 
-We can follow, in a top-bottom fashion, how the different classes are used by
-an user:
+We can follow, in a top-bottom fashion, how the different classes are used by an user:
 
-**ResourceManager**
-    The first point of contact of the user with the library. It lists and
-    creates the different data sources. It is basically a DataSource factory.
-**DataSource**
-    A data source manages the connection to a data source (ArdaDB or S3) and
-    displays the different data groups. In other words, it orchestrates the
-    process of requesting data. :ref:`Below <creating-new-data-sources>` we
-    discuss how to extend the library, creating new data sources.
-**DataGroupMapping**
-    A mapping class that stores a lightweight representation of data groups.
-    It is used in the `groups` attribute of DataSource to display all available
-    data groups at run time.
-**DataGroupFetcher**
-    A lightweight representation of a data group. It stores a description of
-    the datagroup (see DataGroupDescription) and creates a DataGroup when
-    requested.
-**DataGroupDescription**
-    A container class that stores the name and description of a data group.
-**DataGroup**
-    Manages a collection of related datasets.
-**DataSetMapping**
-    A mapping class that stores a lightweight representation of datasets. It is
-    used in the `datasets` attribute of DataGroup to display all available
-    datasets at run time.
-**DataSetFetcher**
-    A lightweight representation of a dataset. It stores a description of the
-    dataset (see DataSetDescription) and provides functionality to download data
-    from a dataset, in the case of S3 datasets, and to create a DataSet for
-    querying data using SQL, in the case of ArdaDB.
-**DataSetDescription**
-    A container class that stores the name and description of a dataset, along
-    with links to the dataset documentation and ColumnDescription.
-**DataSet**
-    A representation of a dataset using SQLAlchemy utilities. It provides
-    functionality to fetch data from a dataset using SQL-like queries.
+**ResourceManager** is the first point of contact of the user with the library. It lists and creates the
+different data sources. It is basically a DataSource factory.
+
+A **DataSource** manages the connection to a data source (ArdaDB or S3) and displays the different data
+groups. In other words, it orchestrates the process of requesting data. :ref:`Below <creating-new-data-sources>`
+we discuss how to extend the library, by creating new data sources.
+
+**DataGroupMappings** store a lightweight representation of data groups. It is used in the `groups` attribute of
+DataSource to display all available data groups at run time.
+
+A **DataGroupFetcher** is lightweight representation of a data group. It stores a description of the datagroup
+and creates a DataGroup when requested.
+
+A **DataGroupDescription** is a container class that stores the name and description of a data group.
+
+**DataGroups** manages a collection of related datasets.
+
+A **DataSetMapping** stores a lightweight representation of datasets. It is used in the `datasets` attribute of
+DataGroup to display all available datasets at run time.
+
+A **DataSetFetcher** is a lightweight representation of a dataset. It stores a description of the dataset and
+provides functionality to download data from a dataset, in the case of S3 datasets, and to create a DataSet for
+querying data using SQL, in the case of ArdaDB.
+
+A **DataSetDescription** is a container class that stores the name and description of a dataset, along with links
+to the dataset documentation and ColumnDescription.
+
+A **DataSet** represents a dataset using SQLAlchemy utilities. It provides functionality to fetch data from a
+dataset using SQL-like queries.
 
 .. _creating-new-data-sources:
 
 Creating new data sources
 -------------------------
 
-The :py:class:`algoseek_connector.base.DataSource` is created using two
-components: a ``ClientProtocol`` and a ``DescriptionProvider``. The interface
-for both components is enforced through structural subtyping, using
-`Python Protocols <https://peps.python.org/pep-0544/>`_. That is, to create
-a new data source, both components must be created and they must implement the
-corresponding protocol.
+A :py:class:`~algoseek_connector.base.DataSource` is created using two components: a
+:py:class:`~algoseek_connector.base.ClientProtocol` and a
+:py:class:`~algoseek_connector.base.DescriptionProvider`. To create a new data source, both components
+must be implemented.
 
-The ``DescriptionProvider`` provides descriptions for the data groups and datasets
-available in a data source and needs to implement three methods:
+The ``DescriptionProvider`` provides descriptions for the data groups and datasets available in a data source
+and needs to implement three methods:
 
 ``get_data_group_description``
     Takes a data group name and returns a
@@ -244,28 +209,23 @@ available in a data source and needs to implement three methods:
     Takes a dataset name and returns a list of
     :py:class:`~algoseek_connector.base.ColumnDescription`.
 
-The ``ClientProtocol`` manages the connection to the data. Depending on the subset
-of functionality required for each data source, different methods needs to be
-implemented.
+The ``ClientProtocol`` manages the connection to the data. Depending on the subset of functionality required
+for each data source, different methods needs to be implemented.
 
-At a minimum, the ``list_data_groups`` and ``list_dataset`` method must be
-implemented, which return a list of available data groups and datasets
-respectively.
+At a minimum, the ``list_data_groups`` and ``list_dataset`` method must be implemented, which return a
+list of available data groups and datasets respectively.
 
-For downloading data, the ``download`` method must be implemented. Check the
-signature of the method in the source code.
+For downloading data, the ``download`` method must be implemented. Check the signature of the method in
+the source code.
 
-For querying data using SQL-like constructs, several methods must be implemented.
-First, the ``get_dataset_columns`` creates SQLAlchemy Column constructs for
-a dataset and allows the creation of :py:class:`~algoseek_connector.base.DataSet`
-instances. The `compile` method, which takes a SQLAlchemy Select statement and
-returns a :py:class:`~algoseek_connector.base.CompiledQuery` must also be
-implemented. The implementation of this method depends on the specific
-characteristics of the DB used, but it usually involves compiling the Select
-statement using a SQLAlchemy Dialect.
+For querying data using SQL-like constructs, several methods must be implemented. First, the ``get_dataset_columns``
+creates SQLAlchemy Column constructs for a dataset and allows the creation of
+:py:class:`~algoseek_connector.base.DataSet` instances. The `compile` method, which takes a SQLAlchemy Select
+statement and returns a :py:class:`~algoseek_connector.base.CompiledQuery` must also be implemented. The
+implementation of this method depends on the specific characteristics of the DB used, but it usually involves
+compiling the Select statement using a SQLAlchemy Dialect.
 
-Once these methods are implemented, the different ways to fetch data from
-a dataset can be implemented:
+Once these methods are implemented, the different ways to fetch data from a dataset can be implemented:
 
 ``fetch``
     Fetch data using a CompiledQuery and returns a dictionary where keys are
@@ -280,11 +240,3 @@ a dataset can be implemented:
     Executes SQL queries passing statements as strings.
 ``store_to_s3``
     Stores the query results into an S3 object.
-
-.. _maintainers:
-
-Project maintainers
--------------------
-
-- Gabriel Riquelme: gabrielr [at] algoseek [dot] com
-- Taras Kuzyo: taras [at] algoseek [dot] com

@@ -15,7 +15,7 @@ from .utils import get_algoseek_path
 class AlgoseekConnectorSettings(BaseSettings):
     """Store library configuration.
 
-    Settings fields may be set through environment variables by using the notation
+    Setting fields may be set through environment variables by using the notation
 
         ``ALGOSEEK__{SETTINGS_GROUP}__{SETTINGS_FIELD}``
 

@@ -40,11 +40,16 @@ html_theme_options = {
     "page_width": "1000px",
 }
 
+# numpydoc
+#_--------
+numpydoc_show_class_members = False 
+
 # autodoc-pydantic
 # ----------------
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_model_show_field_summary = False
 autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_validator_summary = False
 autodoc_pydantic_model_undoc_members = False
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_field_show_constraints = False
@@ -53,4 +58,5 @@ autodoc_pydantic_settings_show_json = False
 autodoc_pydantic_settings_show_config_summary = False
 autodoc_pydantic_settings_show_field_summary = False
 autodoc_pydantic_settings_show_validator_members = False
+autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_settings_show_validator_summary = False
