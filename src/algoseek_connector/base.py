@@ -406,7 +406,7 @@ class DataSet:
         """
         Create a select statement using chained methods with SQL-like syntax.
 
-        See :ref:`here <sql>` for a detailed guide on how to create select
+        See :ref:`here <query>` for a detailed guide on how to create select
         statements.
 
         Parameters
@@ -849,7 +849,7 @@ class ColumnHandle:
 
     Support access to a dataset columns by attribute or by key.
 
-    See :ref:`here <sql>` for a guide on how to use column handles.
+    See :ref:`here <query>` for a guide on how to use column handles.
 
     """
 
@@ -875,7 +875,7 @@ class FunctionHandle:
     """
     Handle for SQL functions.
 
-    See :ref:`here <sql>` for a guide on how to use function handles.
+    See :ref:`here <query>` for a guide on how to use function handles.
 
     """
 
@@ -947,12 +947,7 @@ class ClientProtocol(Protocol):
         Returns
         -------
         dict or pandas.DataFrame
-            If `size` is ``None``.
-
-        Yields
-        ------
-        dict or pandas.DataFrame
-            If `size` is specified.
+            If `size` is ``None``. If size is provided, a generator is yield
 
         """
 

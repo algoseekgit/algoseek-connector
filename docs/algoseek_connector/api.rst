@@ -14,3 +14,4 @@ library:
    api/dataset
    api/settings
    api/utils
+   api/protocols
