@@ -1,11 +1,8 @@
 [tool.poetry]
 name = "algoseek-connector"
 version = "2.1.4"
-description = "A wrapper library for ORM-like SQL builder and executor"
-authors = [
-    "Taras Kuzyo <taras@algoseek.com>",
-    "Gabriel Riquelme <gabrielr@algoseek.com>",
-]
+description = "A library for fetching Algoseek datasets using SQL-like queries"
+authors = ["algoseek <support@algoseek.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 packages = [{ include = "algoseek_connector", from = "src" }]
