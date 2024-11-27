@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "algoseek-connector"
-version = "2.1.4"
+version = "2.1.5"
 description = "A library for fetching Algoseek datasets using SQL-like queries"
 authors = ["algoseek <support@algoseek.com>"]
 license = "Apache-2.0"
