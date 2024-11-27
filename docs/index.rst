@@ -40,4 +40,3 @@ Contents
 
    algoseek_connector/tutorials
    algoseek_connector/api
-   developers
