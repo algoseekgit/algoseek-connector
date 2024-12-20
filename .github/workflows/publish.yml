@@ -1,11 +1,24 @@
 name: Publish to PyPI
 on: workflow_dispatch
 jobs:
-  build:
+  pypi-publish:
+    name: Upload release to PyPI
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/algoseek-connector/
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - uses: actions/checkout@v3
-      - name: build and publish
-        uses: JRubics/poetry-publish@v2.0
+      - uses: actions/setup-python@v3
         with:
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          python-version: 3.12
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: build package
+        run: |
+          uv self update && uv build && ls dist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
