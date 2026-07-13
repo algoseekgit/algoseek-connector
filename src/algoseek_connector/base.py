@@ -753,9 +753,7 @@ class DataSetDescription:
         if self.sample_data_url:
             info_html += f' | <a href="{self.sample_data_url}">Sample data</a>'
 
-        html = (
-            f"<h2>{self.display_name}</h2>\n" f"<p>{self.description}</p>\n" f"<p>{info_html}</html>" f"{table_html}"
-        )
+        html = f"<h2>{self.display_name}</h2>\n<p>{self.description}</p>\n<p>{info_html}</html>{table_html}"
         return html
 
 
@@ -799,7 +797,7 @@ class DataGroupDescription:
 
     def html(self) -> str:  # pragma: no cover
         """Create an HTML description of the data group."""
-        return f"<h2>{self.display_name}</h2>" f"<p>{self.description}</p>"
+        return f"<h2>{self.display_name}</h2><p>{self.description}</p>"
 
 
 class InvalidDataGroupName(KeyError):
