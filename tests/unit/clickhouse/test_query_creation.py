@@ -2,7 +2,7 @@ from typing import cast
 
 import pytest
 import sqlparse
-from clickhouse_connect.driver import Client
+from clickhouse_connect.driver.client import Client
 from sqlalchemy import func
 
 from algoseek_connector import base
@@ -19,13 +19,13 @@ sql_format_params = {
 
 
 class MockClient(ClickHouseClient):
-    def list_datagroups(self):
+    def list_datagroups(self):  # pyright: ignore
         return list()
 
-    def list_datasets(self, group: str):
+    def list_datasets(self, group: str):  # pyright: ignore
         return list()
 
-    def get_dataset_columns(self, group: str, dataset: str):
+    def get_dataset_columns(self, group: str, dataset: str):  # pyright: ignore
         descriptions = [
             base.ColumnDescription("col1", "Float64", ""),
             base.ColumnDescription("col2", "Int64", ""),
@@ -104,7 +104,7 @@ def test_select_exclude_all_columns_raise_value_error(dataset: DataSet):
 def test_select_groupby(dataset: DataSet):
     expected = "SELECT avg(g.t.col1) AS avg_col1 FROM g.t GROUP BY g.t.col4"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1")).group_by(dataset["col4"])
+    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1")).group_by(dataset["col4"])  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -113,7 +113,7 @@ def test_select_groupby(dataset: DataSet):
 def test_select_groupby_two_columns(dataset: DataSet):
     expected = "SELECT avg(g.t.col1) AS avg_col1, g.t.col4 FROM g.t GROUP BY g.t.col4"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1"), dataset["col4"]).group_by(dataset["col4"])
+    stmt = dataset.select(func.avg(dataset["col1"]).label("avg_col1"), dataset["col4"]).group_by(dataset["col4"])  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -131,7 +131,7 @@ def test_select_where(dataset: DataSet):
 
 
 def test_select_where_logical_and(dataset: DataSet):
-    expected = "SELECT g.t.col1 " "FROM g.t " "WHERE g.t.col2 = %(col2_1)s AND g.t.col1 >= %(col1_1)s"
+    expected = "SELECT g.t.col1 FROM g.t WHERE g.t.col2 = %(col2_1)s AND g.t.col1 >= %(col1_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     col2_filter = 2
     col1_filter = 5
@@ -144,7 +144,7 @@ def test_select_where_logical_and(dataset: DataSet):
 
 
 def test_select_where_logical_or(dataset: DataSet):
-    expected = "SELECT g.t.col1 " "FROM g.t " "WHERE g.t.col2 = %(col2_1)s OR g.t.col1 >= %(col1_1)s"
+    expected = "SELECT g.t.col1 FROM g.t WHERE g.t.col2 = %(col2_1)s OR g.t.col1 >= %(col1_1)s"
     expected = sqlparse.format(expected, **sql_format_params)
     col2_filter = 2
     col1_filter = 5
@@ -234,7 +234,7 @@ def test_select_arithmetic_add_columns(dataset: DataSet):
     col_sum_name = "col_sum"
     expected = f"SELECT g.t.col1 + g.t.col2 AS {col_sum_name} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] + dataset["col2"]).label(col_sum_name))
+    stmt = dataset.select((dataset["col1"] + dataset["col2"]).label(col_sum_name))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -246,7 +246,7 @@ def test_select_arithmetic_add_literal(dataset: DataSet):
     col_label = "col1_sum"
     expected = f"SELECT g.t.col1 + %({lit_placeholder})s AS {col_label} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] + lit).label(col_label))
+    stmt = dataset.select((dataset["col1"] + lit).label(col_label))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -258,7 +258,7 @@ def test_select_arithmetic_multiply_columns(dataset: DataSet):
     col_label = "col_prod"
     expected = f"SELECT g.t.col1 * g.t.col2 AS {col_label} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] * dataset["col2"]).label(col_label))
+    stmt = dataset.select((dataset["col1"] * dataset["col2"]).label(col_label))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -270,7 +270,7 @@ def test_select_arithmetic_multiply_literal(dataset: DataSet):
     lit_placeholder = "col1_1"
     expected = f"SELECT g.t.col1 * %({lit_placeholder})s AS {col_label} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] * lit).label(col_label))
+    stmt = dataset.select((dataset["col1"] * lit).label(col_label))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -279,9 +279,9 @@ def test_select_arithmetic_multiply_literal(dataset: DataSet):
 
 def test_select_arithmetic_divide_columns(dataset: DataSet):
     col_label = "col_div"
-    expected = f"SELECT g.t.col1 / g.t.col2 AS {col_label} FROM g.t"
+    expected = f"SELECT g.t.col1 / CAST(g.t.col2 AS Decimal(None, None)) AS {col_label} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] / dataset["col2"]).label(col_label))
+    stmt = dataset.select((dataset["col1"] / dataset["col2"]).label(col_label))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -291,9 +291,9 @@ def test_select_arithmetic_divide_literal(dataset: DataSet):
     col_label = "col_div"
     lit_placeholder = "col1_1"
     lit = 5.0
-    expected = f"SELECT g.t.col1 / %({lit_placeholder})s AS {col_label} FROM g.t"
+    expected = f"SELECT g.t.col1 / CAST(%({lit_placeholder})s AS Float64 ) AS {col_label} FROM g.t"
     expected = sqlparse.format(expected, **sql_format_params)
-    stmt = dataset.select((dataset["col1"] / lit).label(col_label))
+    stmt = dataset.select((dataset["col1"] / lit).label(col_label))  # pyright: ignore
     query = dataset.compile(stmt)
     actual = query.sql
     assert actual == expected
@@ -316,8 +316,8 @@ def test_select_complex_query(dataset: DataSet):
     having_value = 1000
     stmt = (
         dataset.select(
-            func.avg(dataset["col2"]).label(col2_mean_label),
-            func.toYear(dataset["col3"]).label(col3_year_label),
+            func.avg(dataset["col2"]).label(col2_mean_label),  # pyright: ignore
+            func.toYear(dataset["col3"]).label(col3_year_label),  # pyright: ignore
         )
         .where(func.toMonth(dataset["col3"]) == where_value)
         .group_by(func.toYear(dataset["col3"]))
