@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Generator, Optional, Union, cast
+from typing import Generator, Optional, Union
 
 import clickhouse_connect
 import sqlparse
@@ -118,7 +118,7 @@ class ClickHouseClient(base.ClientProtocol):
         download_path: Path,
         date: Union[date_like, tuple[date_like, date_like]],
         symbols: Union[str, list[str]],
-        expiration_date: Union[date_like, tuple[date_like, date_like]],
+        expiration_date: Union[date_like, tuple[date_like, date_like], None],
     ):  # pragma: no cover
         """Not implemented."""
         raise NotImplementedError
@@ -176,7 +176,7 @@ class ClickHouseClient(base.ClientProtocol):
         kwargs_settings.update(settings)
 
         with self._client.query_column_block_stream(query.sql, parameters=query.parameters, **kwargs) as stream:
-            column_names = stream.source.column_names
+            column_names = stream.source.column_names  # pyright: ignore
             for block in stream:
                 yield {k: v for k, v in zip(column_names, block)}
 
@@ -227,22 +227,24 @@ class ClickHouseClient(base.ClientProtocol):
             for df in stream:
                 yield df
 
+    # Ignoring reportIncompatibleMethodOverride as lru_cache alters the wrapped
+    # function type
     @lru_cache
-    def list_datagroups(self) -> list[str]:
+    def list_datagroups(self) -> list[str]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """List available groups."""
         sql = "SHOW DATABASES"
         group_names = self._client.query(sql).result_columns[0]
         return list(group_names)
 
     @lru_cache
-    def list_datasets(self, group: str) -> list[str]:
+    def list_datasets(self, group: str) -> list[str]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """List available datasets in the data group."""
         sql = f"SHOW TABLES FROM {group}"
         table_names = self._client.query(sql).result_columns
         return list(table_names[0]) if table_names else list()
 
     @lru_cache
-    def get_dataset_columns(self, group: str, dataset: str) -> list[Column]:
+    def get_dataset_columns(self, group: str, dataset: str) -> list[Column]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """
         Create SQLAlchemy columns for the dataset.
 
@@ -277,13 +279,13 @@ class ClickHouseClient(base.ClientProtocol):
         """Convert a stmt into an SQL string."""
         compile_kwargs = {"compile_kwargs": {"render_postcompile": True}}
         compile_kwargs.update(kwargs)
-        compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)
+        compiled = stmt.compile(dialect=self._dialect, **compile_kwargs)  # pyright: ignore
         sql_format_params = {
             "reindent": True,
             "indent_width": 4,
         }
         compiled_string = sqlparse.format(compiled.string, **sql_format_params)
-        return base.CompiledQuery(compiled_string, compiled.params)
+        return base.CompiledQuery(compiled_string, dict(**compiled.params))
 
     def store_to_s3(
         self,
@@ -335,8 +337,9 @@ class ClickHouseClient(base.ClientProtocol):
             raise ValueError(msg)
         url = bucket_obj.get_object_url(key)
         credentials = boto3_session.get_credentials()
-        aws_key_id = cast(str, credentials.access_key)
-        aws_secret_access_key = cast(str, credentials.secret_key)
+        assert credentials is not None
+        aws_key_id = credentials.access_key
+        aws_secret_access_key = credentials.secret_key
 
         sql = _create_insert_to_s3_query(query.sql, url, aws_key_id, aws_secret_access_key)
         self._client.query(sql, query.parameters, **kwargs)
@@ -355,7 +358,8 @@ class ArdaDBDescriptionProvider(base.DescriptionProvider):
         for destination_id in self.api.list_dataset_destinations():
             dataset = self.api.get_dataset(destination_id)
             if dataset.destination_type == "ArdaDB":
-                res[dataset.schema_name] = dataset.data_group_name
+                if dataset.schema_name not in res:
+                    res[dataset.schema_name] = dataset.data_group_name
         return res
 
     @lru_cache
@@ -471,7 +475,6 @@ def create_clickhouse_client(config: ArdaDBConfiguration) -> Client:
     Create a clickhouse_connect.Client instance.
 
     Default values are obtained from the user configuration. See here
-    TODO: add link for a guide on how to set user configuration.
 
     Parameters
     ----------
