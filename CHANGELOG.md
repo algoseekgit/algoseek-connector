@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.6](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.5...v2.1.6) (2026-07-13)
+
+
+### Bug Fixes
+
+* fix s3 connector for datasets with multiple s3 destinations ([86af441](https://github.com/algoseekgit/algoseek-connector/commit/86af441d3210f933f322467b41fdc744461d9169))
+* upgrade sqlalchemy to 2.X ([bf4e877](https://github.com/algoseekgit/algoseek-connector/commit/bf4e877c21c8058132027fb53e65ff28655037c9))
+
+
+### Documentation
+
+* update query example with having statement in jupyter notebook ([65852c6](https://github.com/algoseekgit/algoseek-connector/commit/65852c617950d1a96d6c9ddfaa1ebac658c9159d))
+
 ## [2.1.5](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.4...v2.1.5) (2024-11-27)
 
 
