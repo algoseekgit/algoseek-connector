@@ -1,5 +1,7 @@
 """Utilities to download files from S3 buckets."""
 
+from __future__ import annotations
+
 import datetime
 import enum
 from abc import ABC, abstractmethod
@@ -29,6 +31,7 @@ class FileDownloader:
         profile_name = self.session.profile_name
         if profile_name == "default":
             credentials = self.session.get_credentials()
+            assert credentials is not None
             session = create_boto3_session(
                 aws_access_key_id=credentials.access_key,
                 aws_secret_access_key=credentials.secret_key,
@@ -70,7 +73,7 @@ class BucketWrapper:
     """A thin wrapper for boto3 Bucket objects."""
 
     def __init__(self, s3_client: BaseClient, bucket_name: str) -> None:
-        bucket = s3_client.Bucket(bucket_name)
+        bucket = s3_client.Bucket(bucket_name)  # pyright: ignore
         if bucket.creation_date is None:
             msg = f"Bucket with name {bucket_name} not found."
             raise ValueError(msg)
@@ -240,7 +243,7 @@ class BasePrefixGenerator(ABC):
     """Base class to generate S3 object key prefixes."""
 
     @abstractmethod
-    def create_fillers(self) -> list["BasePlaceholderFiller"]:
+    def create_fillers(self) -> list[BasePlaceholderFiller]:
         """Create a list of placeholder filler."""
 
     def create_fill_values(self, template: str, placeholders: list[PlaceHolder]) -> list[str]:
@@ -255,7 +258,7 @@ class DatePrefixGenerator(BasePrefixGenerator):
         self._start_date = start_date
         self._end_date = end_date
 
-    def create_fillers(self) -> list["DatePlaceholderFiller"]:
+    def create_fillers(self) -> list[DatePlaceholderFiller]:  # pyright: ignore
         """Create a list of filler objects."""
         start = self._start_date
         end = self._end_date
@@ -276,7 +279,7 @@ class SymbolPrefixGenerator(BasePrefixGenerator):
     def __init__(self, symbols: list[str]) -> None:
         self._symbols = symbols
 
-    def create_fillers(self) -> list["SymbolPlaceholderFiller"]:
+    def create_fillers(self) -> list[SymbolPlaceholderFiller]:  # pyright: ignore
         """Create a list of filler objects."""
         return [SymbolPlaceholderFiller(x) for x in self._symbols]
 
@@ -293,7 +296,7 @@ class FuturesPrefixGenerator(SymbolPrefixGenerator, DatePrefixGenerator):
         SymbolPrefixGenerator.__init__(self, tickers)
         DatePrefixGenerator.__init__(self, start_date, end_date)
 
-    def create_fillers(self) -> list["FuturesPlaceholderFiller"]:
+    def create_fillers(self) -> list[FuturesPlaceholderFiller]:  # pyright: ignore
         """Create a list of filler objects."""
         fillers = list()
         current = self._start_date
