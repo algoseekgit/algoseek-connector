@@ -1,13 +1,13 @@
 """Client protocol for S3 data."""
 
 import datetime
-from functools import lru_cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 from boto3 import Session
 
 from .. import base
-from ..dataset_api import DatasetAPIProvider
+from ..dataset_api import DatasetAPIProvider, DatasetVersionApiInfo
 from ..models import DataSourceType
 from . import downloader
 
@@ -67,7 +67,7 @@ class S3DownloaderClient(base.ClientProtocol):
 
     def download(
         self,
-        dataset_text_id: str,
+        dataset: str,
         download_path: Path,
         date: date_like | tuple[date_like, date_like],
         symbols: str | list[str],
@@ -78,7 +78,7 @@ class S3DownloaderClient(base.ClientProtocol):
 
         Parameters
         ----------
-        dataset_text_id : str
+        dataset : str
             The dataset text id.
         download_path : pathlib.Path
             Path to a directory to download dataset files.
@@ -99,9 +99,9 @@ class S3DownloaderClient(base.ClientProtocol):
         # boto3 sessions are not thread/multi process safe, so  this allows to
         # download multiple datasets at the same.
         dataset_downloader = S3DatasetDownloader(self._file_downloader.copy(), self._bucket_metadata)
-        dataset_downloader.download(dataset_text_id, download_path, date, symbols, expiration_date)
+        dataset_downloader.download(dataset, download_path, date, symbols, expiration_date)
 
-    def get_dataset_columns(self, group: str, dataset: str) -> base.DataSetDescription:  # pragma: no cover
+    def get_dataset_columns(self, group: str, name: str) -> list[base.Column]:  # pragma: no cover
         """Create a dataset."""
         raise NotImplementedError
 
@@ -130,7 +130,7 @@ class S3DownloaderClient(base.ClientProtocol):
         return self.api.list_data_groups()
 
     @lru_cache
-    def list_datasets(self, group_text_id: str) -> list[str]:
+    def list_datasets(self, group_text_id: str) -> list[str]:  # pyright: ignore
         """List available data groups."""
         # datasets are listed based on the following conditions:
         # Must have at least a bucket group and csv column information
@@ -154,9 +154,11 @@ class S3DownloaderClient(base.ClientProtocol):
     def store_to_s3(
         self,
         query: base.CompiledQuery,
-        path: str,
-        aws_key_id: str,
-        aws_secret_access_key: str,
+        bucket: str,
+        key: str,
+        profile_name: str | None = None,
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
     ):  # pragma: no cover
         """Download query to S3."""
         raise NotImplementedError
@@ -171,6 +173,24 @@ class S3DescriptionProvider(base.DescriptionProvider):
 
     def __init__(self, api: DatasetAPIProvider):
         self.api = api
+
+    @cache
+    def _text_id_to_s3_destination(self) -> dict[str, DatasetVersionApiInfo]:
+        """Fetch a S3 dataset destination for a dataset."""
+        d = dict()
+        for destination_id in self.api.list_dataset_destinations():
+            destination = self.api.get_dataset_destination(destination_id)
+
+            if destination.destination_type == "S3" and destination.is_primary:
+                d[destination.dataset_text_id] = destination
+        return d
+
+    def get_dataset_destination(self, text_id: str) -> DatasetVersionApiInfo:
+        """Search an S3 destination for the provided dataset text id."""
+        destination = self._text_id_to_s3_destination().get(text_id)
+        if destination is None:
+            raise base.InvalidDataSetName(text_id)
+        return destination
 
     def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
         """
@@ -213,7 +233,7 @@ class S3DescriptionProvider(base.DescriptionProvider):
         """
         columns = list()
         try:
-            destination_id = self.api.get_dataset_destination_id(dataset)
+            destination_id = self.get_dataset_destination(dataset).destination_id
             dataset_details = self.api.get_dataset_details(destination_id)
         except base.InvalidDataSetName:
             return columns
@@ -242,7 +262,7 @@ class S3DescriptionProvider(base.DescriptionProvider):
 
         """
         try:
-            destination_id = self.api.get_dataset_destination_id(dataset)
+            destination_id = self.get_dataset_destination(dataset).destination_id
             columns = self.get_columns_description(group, dataset)
             dataset_metadata = self.api.get_dataset(destination_id)
             details = self.api.get_dataset_details(destination_id)
@@ -278,6 +298,24 @@ class BucketMetadataProvider:
     def __init__(self, api: DatasetAPIProvider) -> None:
         self.api = api
 
+    @cache
+    def _text_id_to_s3_destination(self) -> dict[str, DatasetVersionApiInfo]:
+        """Fetch a S3 dataset destination for a dataset."""
+        d = dict()
+        for destination_id in self.api.list_dataset_destinations():
+            destination = self.api.get_dataset_destination(destination_id)
+
+            if destination.destination_type == "S3" and destination.is_primary:
+                d[destination.dataset_text_id] = destination
+        return d
+
+    def get_dataset_destination(self, text_id: str) -> DatasetVersionApiInfo:
+        """Search an S3 destination for the provided dataset text id."""
+        destination = self._text_id_to_s3_destination().get(text_id)
+        if destination is None:
+            raise base.InvalidDataSetName(text_id)
+        return destination
+
     def get_dataset_bucket_format(self, text_id: str) -> str:
         """
         Get the bucket name format.
@@ -293,19 +331,18 @@ class BucketMetadataProvider:
             a template with the format for the bucket name.
 
         """
-        destination_id = self.api.get_dataset_destination_id(text_id)
-        dataset = self.api.get_dataset(destination_id)
-        if dataset.bucket_name is not None:
-            return dataset.bucket_name
-        raise ValueError(f"S3 bucket not found for dataset {text_id}")
+        destination = self.get_dataset_destination(text_id)
+        if destination.bucket_name is None:
+            raise ValueError(f"S3 bucket not found for dataset {text_id}")
+        return destination.bucket_name
 
-    def get_dataset_bucket_path_format(self, name: str) -> str:
+    def get_dataset_bucket_path_format(self, text_id: str) -> str:
         """
         Get the bucket path format.
 
         Parameters
         ----------
-        name : str
+        text_id : str
             The dataset name
 
         Returns
@@ -318,11 +355,10 @@ class BucketMetadataProvider:
             If an non-existent dataset name is passed.
 
         """
-        destination_id = self.api.get_dataset_destination_id(name)
-        dataset = self.api.get_dataset(destination_id)
-        if dataset.path_format is not None:
-            return dataset.path_format
-        raise ValueError(f"S3 bucket path format not found for dataset {name}")
+        destination = self.get_dataset_destination(text_id)
+        if destination.path_format is None:
+            raise ValueError(f"S3 path format not found for dataset {text_id}")
+        return destination.path_format
 
 
 class S3DatasetDownloader:
@@ -382,7 +418,7 @@ class S3DatasetDownloader:
         key_to_size = downloader.create_key_to_size_dictionary(bucket, path_format, filters)
         total_size = sum(key_to_size.values())
         if total_size > MAX_DOWNLOAD_SIZE:
-            msg = f"The total size of the requested data is {total_size}. " f"Maximum allowed is {MAX_DOWNLOAD_SIZE}."
+            msg = f"The total size of the requested data is {total_size}. Maximum allowed is {MAX_DOWNLOAD_SIZE}."
             raise DownloadLimitExceededError(msg)
 
         # TODO: multi process download.

@@ -45,13 +45,12 @@ class DatasetAPIProvider:
         Get extended information of a dataset.
     get_dataset_name:
         Get the dataset name used when creating dataset instances.
-    get_dataset_destination_id:
+    get_dataset_destination:
         Get a dataset destination id using a dataset name.
 
     """
 
     def __init__(self, config: DatasetAPIConfiguration | None = None):
-        # TODO: temp workaround. Fix when pydantic based settings is implemented
         if config is None:
             config = load_settings().dataset_api
 
@@ -168,20 +167,14 @@ class DatasetAPIProvider:
                 return f"{dataset.dataset_text_id}-v{dataset.version_number}"
             return dataset.dataset_text_id
         else:
-            # TODO: replace with a better error type
             raise ValueError(f"Could not find dataset name for dataset with destination id {destination_id}.")
 
-    def get_dataset_destination_id(self, name: str) -> int:
-        """Get the dataset destination id from its name."""
-        text_id_to_destination_id = self._dataset_text_id_to_dataset_destination_id()
-        if name in text_id_to_destination_id:
-            return text_id_to_destination_id[name]
-
-        try:
-            text_id, _ = name.split("-")
-            return text_id_to_destination_id[text_id]
-        except (ValueError, KeyError) as e:
-            raise InvalidDataSetName(f"Invalid dataset name {name}") from e
+    def get_dataset_destination(self, destination_id: int) -> DatasetVersionApiInfo:
+        """Get a dataset destination using its id."""
+        destination = self._fetch_datasets().get(destination_id)
+        if destination is None:
+            raise ValueError(f"destinations {destination_id} not found")
+        return destination
 
 
 class DataGroupApiInfo(pydantic.BaseModel):
