@@ -1,8 +1,6 @@
 .PHONY: dev-install
 dev-install:
-	type uv && uv venv || >&2 echo "Error: uv not found in user PATH." && \
-	uv pip install --editable .[dev,docs]
-	uv run pre-commit install
+	type uv && uv venv || >&2 echo "Error: uv not found in user PATH." && uv sync
 
 # Run unit tests
 .PHONY: unit-tests
