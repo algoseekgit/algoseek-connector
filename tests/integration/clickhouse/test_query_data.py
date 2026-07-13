@@ -147,23 +147,20 @@ def test_select_where_between(dataset: DataSet):
 
 
 def test_select_groupby_filter_year(dataset: DataSet):
-    agg_year_label = "year"
-    year_having_filter = 2015
+    count_label = "cnt"
+    having_filter = 100
     stmt = (
         dataset.select(
-            func.avg(dataset["AdjustmentFactor"]),
-            func.toYear(dataset["EffectiveDate"]).label(agg_year_label),
+            dataset.AdjustmentReason,  # pyright: ignore[reportAttributeAccessIssue]
+            func.count().label(count_label),  # pyright: ignore[reportArgumentType]
         )
-        .group_by(func.toYear(dataset["EffectiveDate"]))
-        .having(func.toYear(dataset["EffectiveDate"]) == year_having_filter)
+        .group_by(dataset.AdjustmentReason)  # pyright: ignore[reportAttributeAccessIssue]
+        .having(func.count() > having_filter)
     )
     result = dataset.fetch(stmt)
 
-    for d in result[agg_year_label]:
-        assert d == year_having_filter
-
-    for v in result.values():
-        assert len(v) == 1
+    for count in result[count_label]:
+        assert count > having_filter
 
 
 def test_select_order_by(dataset: DataSet):

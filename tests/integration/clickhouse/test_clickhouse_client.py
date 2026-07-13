@@ -184,7 +184,7 @@ def test_ClickHouseClient_store_to_s3(dataset: DataSet, tmp_path: Path):
     bucket.download_file(key, s3_file_download_path)
 
     # execute a raw query and store data into a csv file
-    clickhouse_client = dataset.source.client._client
+    clickhouse_client = dataset.source.client._client  # pyright: ignore
     compiled_query = dataset.compile(stmt)
     raw_stmt_str = compiled_query.sql + "\n FORMAT CSVWithNames"
     csv_str = clickhouse_client.raw_query(raw_stmt_str, compiled_query.parameters)
@@ -242,24 +242,4 @@ def test_ClickHouseClient_store_to_s3_overwrite_raises_error(dataset: DataSet, t
 def test_ArdaDBDescriptionProvider_get_api_group_text_id(data_source: DataSource, ardadb_group, api_group):
     description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
     actual = description_provider._get_api_data_group_name(ardadb_group)
-    assert actual == api_group
-
-
-# TODO: remove old test
-# @pytest.mark.parametrize(
-#     "ardadb_group,ardadb_dataset,dataset_text_id",
-#     [
-#         ("USEquityMarketData", "TradeAndQuote", "eq_taq"),
-#         ("USEquityMarketData", "TradeOnly", "eq_trades"),
-#         ("USEquityReferenceData", "BasicAdjustments", "eq_adj_factors_basic"),
-#     ],
-# )
-# def test_ArdaDBDescriptionProvider_get_api_dataset_text_id(
-#     data_source: DataSource,
-#     ardadb_group: str,
-#     ardadb_dataset: str,
-#     dataset_text_id: str,
-# ):
-#     description_provider = cast(ArdaDBDescriptionProvider, data_source.description_provider)
-#     actual = description_provider._get_api_dataset_destination_id(ardadb_group, ardadb_dataset)
-#     assert actual == dataset_text_id
+    assert actual == api_group, f"ArdaDB data group {ardadb_group} does not match dataset API data group {api_group}"

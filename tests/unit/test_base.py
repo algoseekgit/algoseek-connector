@@ -33,11 +33,11 @@ class MockDescriptorProvider(base.DescriptionProvider):
     def get_datagroup_description(self, group: str) -> base.DataGroupDescription:
         return base.DataGroupDescription(group, f"{group} description.")
 
-    def get_columns_description(self, dataset: str) -> list[base.ColumnDescription]:
+    def get_columns_description(self, group: str, dataset: str) -> list[base.ColumnDescription]:
         return get_dummy_columns()
 
     def get_dataset_description(self, group: str, dataset: str) -> base.DataSetDescription:
-        cols = self.get_columns_description(dataset)
+        cols = self.get_columns_description(group, dataset)
         return base.DataSetDescription(dataset, group, cols)
 
 

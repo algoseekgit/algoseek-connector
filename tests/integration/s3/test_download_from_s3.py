@@ -39,6 +39,7 @@ def test_create_boto3_session_invalid_aws_secret_access_key():
 
 def test_create_boto3_session(dataset_session: boto3.Session):
     credentials = dataset_session.get_credentials()
+    assert credentials is not None
     session = downloader.create_boto3_session(
         aws_access_key_id=credentials.access_key,
         aws_secret_access_key=credentials.secret_key,
@@ -104,7 +105,9 @@ def test_FileDownloader_copy_session_created_using_profile(
     file_downloader = downloader.FileDownloader(dataset_session)
     copy = file_downloader.copy()
     original_credentials = dataset_session.get_credentials()
+    assert original_credentials is not None
     copy_credentials = copy.session.get_credentials()
+    assert copy_credentials is not None
 
     assert file_downloader.session.profile_name == copy.session.profile_name
     assert copy_credentials.access_key == original_credentials.access_key
@@ -113,6 +116,7 @@ def test_FileDownloader_copy_session_created_using_profile(
 
 def test_FileDownloader_copy(dataset_session: boto3.Session):
     credentials = dataset_session.get_credentials()
+    assert credentials is not None
     session = downloader.create_boto3_session(
         aws_access_key_id=credentials.access_key,
         aws_secret_access_key=credentials.secret_key,
@@ -120,6 +124,7 @@ def test_FileDownloader_copy(dataset_session: boto3.Session):
     file_downloader = downloader.FileDownloader(session)
     copy = file_downloader.copy()
     copy_credentials = copy.session.get_credentials()
+    assert copy_credentials is not None
 
     assert file_downloader.session.profile_name == copy.session.profile_name
     assert copy_credentials.access_key == credentials.access_key
