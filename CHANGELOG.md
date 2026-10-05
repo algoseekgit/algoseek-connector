@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.7](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.6...v2.1.7) (2026-10-05)
+
+
+### Bug Fixes
+
+* security update for dependencies ([1db2497](https://github.com/algoseekgit/algoseek-connector/commit/1db2497a21a4491f4c395ef6b0a93082665599e3))
+
 ## [2.1.6](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.5...v2.1.6) (2026-07-13)
 
 
