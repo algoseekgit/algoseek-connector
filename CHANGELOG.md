@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.8](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.7...v2.1.8) (2026-11-02)
+
+
+### Bug Fixes
+
+* upgrade certifi version ([2e8a835](https://github.com/algoseekgit/algoseek-connector/commit/2e8a835889d623296f4b9df33ff99c1f298d88bc))
+
 ## [2.1.7](https://github.com/algoseekgit/algoseek-connector/compare/v2.1.6...v2.1.7) (2026-10-05)
 
 
